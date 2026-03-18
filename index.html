@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seum 고T 영어 문제 제작 tool</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+:root {
+  --bg:#f5f2eb; --sf:#fffef9; --sf2:#f0ece0;
+  --bd:#d4c9a8; --bd2:#b8a97a;
+  --ink:#1a1612; --ink2:#4a3f2f; --ink3:#8a7a5a;
+  --ac:#c0392b; --ac2:#e74c3c; --acs:#fdf0ef;
+  --gr:#1a6b3a; --grs:#edf7f1;
+  --bl:#1a3a6b; --bls:#eff4fd;
+  --gd:#9a7b2f; --gds:#fdf8ec;
+  --r:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;}
+
+/* HEADER */
+header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--ac);}
+.htitle{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;}
+.htitle span{color:var(--ac2);}
+.apiwrap{display:flex;align-items:center;gap:10px;}
+.apilabel{font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;}
+.apiinput{background:#2a2520;border:1px solid #444;border-radius:3px;color:#e8dcc0;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:5px 10px;width:260px;outline:none;}
+.apiinput:focus{border-color:var(--ac2);}
+.apiinput::placeholder{color:#555;}
+.apist{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:4px 8px;border-radius:2px;white-space:nowrap;}
+.kok{background:#1a3a1a;color:#6dbb6d;} .kno{background:#3a1a1a;color:#bb6d6d;}
+
+/* TABS */
+.tabs{display:flex;background:var(--sf2);border-bottom:2px solid var(--bd);padding:0 24px;}
+.tab{height:48px;padding:0 20px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:7px;}
+.tab:hover{color:var(--ink2);}
+.tab.active{color:var(--ac);border-bottom-color:var(--ac);font-weight:700;}
+.tcnt{background:var(--ac);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
+
+/* PANELS */
+.panel{display:none;padding:24px;min-height:calc(100vh - 112px);}
+.panel.active{display:block;}
+
+/* SETTINGS */
+.sgrid{display:grid;grid-template-columns:240px 1fr;gap:20px;max-width:1200px;}
+.tlist{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;}
+.tlhead{padding:12px 16px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);background:var(--sf2);border-bottom:1px solid var(--bd);}
+.ti{padding:11px 16px;cursor:pointer;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;}
+.ti:last-child{border-bottom:none;}
+.ti:hover{background:var(--sf2);}
+.ti.active{background:var(--acs);}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tname{font-weight:500;font-size:13px;}
+.tcode{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);margin-left:auto;}
+.pe{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;}
+.pehead{padding:13px 18px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;}
+.pebadge{width:10px;height:10px;border-radius:50%;}
+.petitle{font-weight:700;font-size:14px;}
+.pebody{padding:16px 18px;}
+.fl{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;}
+.fi{width:100%;padding:9px 12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'Noto Sans KR',sans-serif;font-size:13px;background:var(--bg);color:var(--ink);margin-bottom:14px;outline:none;}
+.fi:focus{border-color:var(--ac);}
+.fta{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:var(--r);font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;background:#1a1612;color:#e8dcc0;resize:vertical;min-height:340px;margin-bottom:14px;outline:none;}
+.fta:focus{border-color:var(--ac);}
+.gbtn{background:var(--gr);color:#fff;border:none;padding:9px 20px;border-radius:var(--r);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
+.gbtn:hover{background:#155c31;}
+
+/* PASSAGES */
+.playout{display:grid;grid-template-columns:1fr 360px;gap:20px;max-width:1200px;}
+.sectitle{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.abtn{background:var(--ac);color:#fff;border:none;padding:9px 16px;border-radius:var(--r);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
+.abtn:hover{background:var(--ac2);}
+.plist{display:flex;flex-direction:column;gap:10px;}
+.pc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;}
+.pc:hover{border-color:var(--bd2);}
+.pchead{padding:10px 14px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;}
+.pnum{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--ink3);background:var(--bd);padding:2px 7px;border-radius:2px;}
+.pprev{padding:10px 14px;font-size:12px;color:var(--ink2);line-height:1.6;max-height:58px;overflow:hidden;position:relative;}
+.pprev::after{content:'';position:absolute;bottom:0;left:0;right:0;height:18px;background:linear-gradient(transparent,var(--sf));}
+.pcfoot{padding:8px 14px;display:flex;gap:8px;border-top:1px solid var(--bd);}
+.mb{font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:500;padding:4px 10px;border-radius:2px;border:1px solid var(--bd);background:#fff;cursor:pointer;color:var(--ink2);}
+.mb:hover{background:var(--sf2);}
+.mb.d{color:var(--ac);border-color:#f0c0bb;}
+.mb.d:hover{background:var(--acs);}
+.ptsel{font-family:'Noto Sans KR',sans-serif;font-size:11px;padding:3px 6px;border:1px solid var(--bd2);border-radius:3px;background:var(--sf);color:var(--ink2);cursor:pointer;outline:none;flex-shrink:0;}
+.ptsel:focus{border-color:var(--ac);}
+
+/* SIDEBAR */
+.scard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;position:sticky;top:20px;}
+.schead{padding:12px 16px;background:var(--ink);color:var(--bg);font-weight:700;font-size:13px;}
+.scbody{padding:14px 16px;}
+.qrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;padding:7px 10px;background:var(--bg);border-radius:var(--r);border:1px solid var(--bd);}
+.qtype{font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.qctrl{display:flex;align-items:center;gap:6px;}
+.qbtn{width:22px;height:22px;border:1px solid var(--bd2);background:#fff;border-radius:2px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font-weight:700;}
+.qbtn:hover{background:var(--sf2);}
+.qnum{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;min-width:20px;text-align:center;}
+.qsum{margin-top:10px;padding:9px 10px;background:var(--gds);border:1px solid #d4b86a;border-radius:var(--r);font-size:12px;color:var(--gd);font-weight:500;}
+.rrow{display:flex;align-items:center;gap:10px;margin:10px 0;padding:9px 10px;background:var(--bls);border:1px solid #a0b8e0;border-radius:var(--r);font-size:12px;color:var(--bl);}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tslider{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bd2);border-radius:20px;cursor:pointer;transition:.2s;}
+.tslider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+.toggle input:checked+.tslider{background:var(--bl);}
+.toggle input:checked+.tslider::before{transform:translateX(16px);}
+.seobox{background:var(--acs);border:1px solid #f0c0bb;border-radius:var(--r);padding:10px;margin-top:4px;}
+.seocbrow{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--ink2);}
+.seocbrow input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--ac);}
+.genbtn{width:100%;padding:12px;background:var(--ac);color:#fff;border:none;border-radius:var(--r);font-family:'Playfair Display',serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
+.genbtn:hover{background:var(--ac2);}
+.genbtn:disabled{background:var(--bd2);cursor:not-allowed;}
+
+/* OUTPUT */
+.otbar{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.tbtn{padding:8px 14px;border-radius:var(--r);border:1px solid var(--bd);background:var(--sf);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--ink2);}
+.tbtn:hover{background:var(--sf2);border-color:var(--bd2);}
+.tbtn.p{background:var(--ink);color:#fff;border-color:var(--ink);}
+.tbtn.p:hover{background:var(--ink2);}
+.pbwrap{flex:1;background:var(--sf2);border-radius:4px;height:8px;overflow:hidden;display:none;min-width:80px;}
+.pbfill{height:100%;background:var(--ac);border-radius:4px;transition:width .3s;}
+.pblabel{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);display:none;}
+.gi{display:flex;align-items:center;gap:12px;padding:11px 16px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--ink2);}
+.spin{width:16px;height:16px;border:2px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.di{color:var(--gr);} .ei{color:var(--ac);}
+.empty{text-align:center;padding:60px 20px;color:var(--ink3);}
+.eic{font-size:48px;margin-bottom:12px;} .eti{font-size:16px;font-weight:600;margin-bottom:6px;}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;}
+.mo.open{display:flex;}
+.md{background:var(--sf);border-radius:var(--r);width:640px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--bd2);}
+.mdhead{padding:16px 20px;background:var(--sf2);border-bottom:1px solid var(--bd);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.mdbody{padding:20px;overflow-y:auto;flex:1;}
+.mdfoot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end;}
+.xbtn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink3);}
+
+.c1{background:#c0392b} .c2{background:#2980b9} .c3{background:#27ae60}
+.c4{background:#8e44ad} .c5{background:#d35400} .c6{background:#16a085}
+.c7{background:#2c3e50} .c8{background:#7f8c8d} .c9{background:#e67e22}
+.ca{background:#1abc9c} .cb{background:#9b59b6} .cc{background:#34495e}
+.cd{background:#e74c3c} .ce{background:#3498db} .cf{background:#2ecc71}
+
+/* LOCK SCREEN */
+#lockScreen{position:fixed;inset:0;background:var(--ink);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.lockbox{background:var(--sf);border-radius:8px;padding:40px 48px;width:380px;text-align:center;border-top:4px solid var(--ac);}
+.locktitle{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:6px;}
+.locktitle span{color:var(--ac2);}
+.locksub{font-size:13px;color:var(--ink3);margin-bottom:28px;}
+.lockinput{width:100%;padding:12px 16px;border:2px solid var(--bd);border-radius:var(--r);font-family:'IBM Plex Mono',monospace;font-size:16px;letter-spacing:4px;text-align:center;background:var(--bg);color:var(--ink);outline:none;margin-bottom:10px;}
+.lockinput:focus{border-color:var(--ac);}
+.lockbtn{width:100%;padding:12px;background:var(--ac);color:#fff;border:none;border-radius:var(--r);font-family:'Playfair Display',serif;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.lockbtn:hover{background:var(--ac2);}
+.lockerr{font-size:12px;color:var(--ac);min-height:18px;margin-bottom:4px;}
+.lockhint{font-size:11px;color:var(--ink3);}
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lockbox">
+    <div class="locktitle">Seum 고T <span>영어 문제 제작 tool</span></div>
+    <div class="locksub">접근 코드를 입력하세요</div>
+    <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
+      onkeydown="if(event.key==='Enter') checkCode()">
+    <div class="lockerr" id="codeErr"></div>
+    <button class="lockbtn" onclick="checkCode()">입장</button>
+    <div class="lockhint">코드는 관리자에게 문의하세요</div>
+  </div>
+</div>
+
+<header>
+  <div class="htitle">Seum 고T <span>영어 문제 제작 tool</span></div>
+  <div class="apiwrap">
+    <span class="apilabel">Gemini API Key</span>
+    <input class="apiinput" type="password" id="apiKeyInput" placeholder="AIza..." oninput="checkKey()">
+    <span class="apist kno" id="keyStatus">미입력</span>
+    <select id="modelSelect" style="background:#2a2520;border:1px solid #444;border-radius:3px;color:#e8dcc0;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;outline:none;cursor:pointer;" onchange="saveModel()">
+      <option value="gemini-2.5-flash">2.5 Flash (고성능)</option>
+      <option value="gemini-2.5-flash-lite">2.5 Flash Lite (절약)</option>
+    </select>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('settings')">⚙️ 유형별 프롬프트 설정</button>
+  <button class="tab" onclick="switchTab('passages')">📝 지문 입력 <span class="tcnt" id="passageCount">0</span></button>
+  <button class="tab" onclick="switchTab('output')">📄 문항 출력</button>
+</div>
+
+<!-- SETTINGS -->
+<div class="panel active" id="panel-settings">
+  <div class="sgrid">
+    <div>
+      <div class="tlist">
+        <div class="tlhead">문제 유형 목록</div>
+        <div id="typeListEl"></div>
+      </div>
+    </div>
+    <div class="pe">
+      <div class="pehead">
+        <div class="pebadge" id="editorBadge"></div>
+        <div class="petitle" id="editorTitle">유형을 선택하세요</div>
+      </div>
+      <div class="pebody">
+        <div class="fl">유형 이름</div>
+        <input class="fi" id="editName" type="text" placeholder="예: 빈칸추론">
+        <div class="fl">출제 방향 지시</div>
+        <input class="fi" id="editDirection" type="text" placeholder="예: 다음 빈칸에 들어갈 말로 가장 적절한 것은?">
+        <div class="fl">메타프롬프트 (AI 출제 지침)</div>
+        <textarea class="fta" id="editPrompt" rows="16"></textarea>
+        <button class="gbtn" onclick="saveCurrentType()">✓ 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PASSAGES -->
+<div class="panel" id="panel-passages">
+  <div class="playout">
+    <div>
+      <div class="sectitle">
+        지문 입력
+        <button class="abtn" onclick="openModal()">+ 지문 추가</button>
+      </div>
+      <div class="plist" id="passageListEl">
+        <div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 추가" 버튼으로 지문을 입력하세요</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="scard">
+        <div class="schead">📋 시험지 구성 설정</div>
+        <div class="scbody">
+
+          <!-- 랜덤 배정 토글 -->
+          <div class="rrow">
+            <label class="toggle"><input type="checkbox" id="randomToggle" checked onchange="onRandomToggle()"><span class="tslider"></span></label>
+            <span>지문-유형 <strong>랜덤 배정</strong></span>
+          </div>
+
+          <!-- 랜덤 ON: 유형별 문항 수 -->
+          <div id="quotaSection">
+            <div class="fl" style="margin-bottom:8px">유형별 문항 수</div>
+            <div id="quotaRows"></div>
+          </div>
+
+          <!-- 랜덤 OFF: 유형별 카운트 -->
+          <div id="manualCountSection" style="display:none;">
+            <div class="fl" style="margin-bottom:8px">유형별 배정 현황</div>
+            <div id="manualCountRows"></div>
+            <div style="margin-top:6px;padding:7px 10px;background:var(--acs);border:1px solid #f0c0bb;border-radius:var(--r);font-size:11px;color:var(--ac);">각 지문 카드에서 유형을 직접 선택하세요</div>
+          </div>
+
+          <div class="qsum" id="quotaSummary">총 0문항 · 지문 0개 입력됨</div>
+
+          <!-- 서술형 토글 -->
+          <div id="seoToggleRow" class="rrow" style="margin-top:10px;flex-direction:column;align-items:flex-start;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <label class="toggle"><input type="checkbox" id="seoToggle" onchange="onSeoToggle()"><span class="tslider"></span></label>
+              <span style="font-size:12px;color:var(--bl);font-weight:600;">서술형 포함</span>
+            </div>
+            <div id="seoSection" style="display:none;width:100%;">
+              <div class="fl" style="margin-bottom:6px">서술형 유형 선택</div>
+              <div id="seoTypeRows"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <span class="fl" style="margin-bottom:0">문항 수</span>
+                <button class="qbtn" onclick="chgSeoCount(-1)">−</button>
+                <div class="qnum" id="seoCount">1</div>
+                <button class="qbtn" onclick="chgSeoCount(1)">+</button>
+                <span style="font-size:11px;color:var(--ink3)">문항</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="genbtn" id="generateBtn" onclick="startGeneration()">🚀 시험지 1세트 생성</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OUTPUT -->
+<div class="panel" id="panel-output">
+  <div class="otbar">
+    <button class="tbtn" onclick="switchTab('passages')">← 다시 생성</button>
+    <button class="tbtn p" id="copyQBtn" onclick="copySection('q')" style="display:none">📋 문제만 복사</button>
+    <button class="tbtn p" id="copyABtn" onclick="copySection('a')" style="display:none">📋 해설만 복사</button>
+    <button class="tbtn" id="copyAllBtn" onclick="copySection('all')" style="display:none">📋 전체 복사</button>
+    <div style="flex:1"></div>
+    <div class="pbwrap" id="pbWrap"><div class="pbfill" id="pbFill" style="width:0%"></div></div>
+    <div class="pblabel" id="pbLabel"></div>
+  </div>
+  <div id="outputArea">
+    <div class="empty"><div class="eic">📄</div><div class="eti">아직 생성된 문항이 없습니다</div><div>"지문 입력" 탭에서 지문을 추가하고 생성 버튼을 눌러주세요</div></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="addModal">
+  <div class="md">
+    <div class="mdhead">
+      <span id="modalTitle">지문 추가</span>
+      <button class="xbtn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mdbody">
+      <div class="fl">지문 번호 / 제목 (선택)</div>
+      <input class="fi" id="mTitle" type="text" placeholder="예: 지문 1, Unit 3-A ...">
+      <div class="fl">원본 지문 붙여넣기</div>
+      <textarea class="fta" id="mText" rows="14" placeholder="여기에 원본 지문을 붙여넣으세요..."></textarea>
+    </div>
+    <div class="mdfoot">
+      <button class="mb" onclick="closeModal()">취소</button>
+      <button class="gbtn" onclick="savePassage()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var COLORS = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','ca','cb','cc','cd','ce','cf'];
+
+var EXPL = '\nEXPLANATION:\n[정답 근거]: 본문에서 정답의 근거가 되는 핵심 문장 또는 논리 설명\n[오답 분석]:\n② [이 선택지가 틀린 이유]\n③ [이 선택지가 틀린 이유]\n④ [이 선택지가 틀린 이유]\n⑤ [이 선택지가 틀린 이유]';
+
+var DEFAULT_TYPES = [
+  { id:'blank', name:'빈칸추론', direction:'다음 빈칸에 들어갈 말로 가장 적절한 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'빈칸 추론\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 수능 출제 방식의 빈칸 추론 문항을 제작하십시오.\n\n## 출제 규칙\n- 원본의 핵심 주장 문장을 "__________________"으로 대체하라.\n- 빈칸 위치: 초반·중반·후반부에 골고루 배치 (매번 다르게)\n- 원본에 없는 부연·확장 문장 1~2개 추가\n- 어휘 수준: 수능 EBS 수능특강 수준\n- 과도한 패러프레이징으로 원문 의미 왜곡 금지\n\n### 선택지 5개\n① 정답: 핵심 요지를 본문 단어를 피하고 paraphrasing하여 재진술. 10~18단어.\n② 오답 (인과 방향 왜곡)\n③ 오답 (유사 주제 침범)\n④ 오답 (지엽적 세부)\n⑤ 오답 (어휘 재사용 비약)\n\n### 출력 형식 (반드시 이 구조로만 출력)\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n다음 빈칸에 들어갈 말로 가장 적절한 것은?\n\nCHOICES:\n① [정답]\n② [오답]\n③ [오답]\n④ [오답]\n⑤ [오답]\n\nANSWER: ①' + EXPL },
+
+  { id:'topic', name:'주제', direction:'다음 글의 주제로 가장 적절한 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'주제\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 주제 파악 문항을 제작하십시오.\n\n## 출제 규칙\n- 원본을 자연스럽게 재진술, 수능 EBS 수능특강 수준 어휘\n\n### 선택지 5개 (명사구 형태)\n① 정답: 지문 전체 주제를 포괄하는 명사구\n② 오답: 지엽적 내용\n③ 오답: 핵심 주제 왜곡\n④ 오답: 정반대 방향\n⑤ 오답: 어휘 재사용 비약\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n다음 글의 주제로 가장 적절한 것은?\n\nCHOICES:\n① [정답]\n② [오답]\n③ [오답]\n④ [오답]\n⑤ [오답]\n\nANSWER: ①' + EXPL },
+
+  { id:'title', name:'제목', direction:'다음 글의 제목으로 가장 적절한 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'제목\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 제목 추론 문항을 제작하십시오.\n\n## 출제 규칙\n- 원본을 자연스럽게 재진술, 수능 EBS 수능특강 수준 어휘\n\n### 선택지 5개 (짧은 문장 또는 명사구)\n① 정답: 지문 핵심을 함축한 인상적인 제목\n② 오답: 지엽적 내용만 반영\n③ 오답: 반대 방향\n④ 오답: 핵심 빗나감\n⑤ 오답: 너무 광범위\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n다음 글의 제목으로 가장 적절한 것은?\n\nCHOICES:\n① [정답]\n② [오답]\n③ [오답]\n④ [오답]\n⑤ [오답]\n\nANSWER: ①' + EXPL },
+
+  { id:'order', name:'문장 순서', direction:'주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'문장 순서 배열\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 순서 배열 문항을 제작하십시오.\n\n## 출제 규칙\n- 도입부(1~2문장) + (A)(B)(C) 세 단락으로 분할\n- 각 단락 2~3문장, 논리적 연결어 포함\n- 정답 순서는 다양하게 설정\n\n### 출력 형식\nINTRO:\n[도입부]\n\nBLOCK_A:\n(A) [A단락]\n\nBLOCK_B:\n(B) [B단락]\n\nBLOCK_C:\n(C) [C단락]\n\nDIRECTION:\n주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?\n\nCHOICES:\n① (A)-(B)-(C)\n② (B)-(A)-(C)\n③ (B)-(C)-(A)\n④ (C)-(A)-(B)\n⑤ (C)-(B)-(A)\n\nANSWER: [정답번호]' + EXPL },
+
+  { id:'insert', name:'문장 삽입', direction:'글의 흐름으로 보아, 주어진 문장이 들어가기에 가장 적절한 곳은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'주어진 문장 삽입\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 문장 삽입 문항을 제작하십시오.\n\n## 출제 규칙\n- 논리 전환 핵심 문장 1개를 삽입 문장으로 설정\n- 나머지 지문에 ①②③④⑤ 위치 표시\n- 정답 위치가 논리적으로 명확하게 결정되도록 구성\n\n### 출력 형식\nGIVEN_SENTENCE:\n[삽입할 문장]\n\nPASSAGE:\n[①②③④⑤ 표시가 포함된 영어 지문]\n\nDIRECTION:\n글의 흐름으로 보아, 주어진 문장이 들어가기에 가장 적절한 곳은?\n\nCHOICES:\n① ② ③ ④ ⑤\n\nANSWER: [정답번호]' + EXPL },
+
+  { id:'grammar', name:'어법', direction:'다음 밑줄 친 부분 중, 어법상 틀린 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'어법\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 어법 판단 문항을 제작하십시오.\n\n## 출제 규칙\n- 어법 포인트 5개에 ①②③④⑤ 표시 ([①단어/구] 형태)\n- 포인트 유형: 관계대명사/부사, 분사, 수일치, 병렬구조, 접속사/전치사\n- 4개 올바름, 1개만 틀림\n\n### 출력 형식\nPASSAGE:\n[밑줄 표시된 영어 지문]\n\nDIRECTION:\n다음 밑줄 친 부분 중, 어법상 틀린 것은?\n\nCHOICES:\n① ② ③ ④ ⑤\n\nANSWER: [정답번호]' + EXPL },
+
+  { id:'summary', name:'요약문', direction:'다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'요약문 완성\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 요약문 완성 문항을 제작하십시오.\n\n## 출제 규칙\n- 핵심을 담은 한 문장 요약, (A)와 (B) 두 빈칸 (각 단어 1~2개)\n\n### 선택지 (A)/(B) 쌍 5개\n① 정답  ② (A)만 틀림  ③ (B)만 틀림  ④ 둘 다 관련 없음  ⑤ 방향 반대\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nSUMMARY:\n[요약 문장 — (A)와 (B) 빈칸 포함]\n\nDIRECTION:\n다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?\n\nCHOICES:\n①  (A) ___  (B) ___\n②  (A) ___  (B) ___\n③  (A) ___  (B) ___\n④  (A) ___  (B) ___\n⑤  (A) ___  (B) ___\n\nANSWER: ①' + EXPL },
+
+  { id:'vocab', name:'어휘', direction:'다음 밑줄 친 단어의 쓰임이 적절하지 않은 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'어휘\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 어휘 판단 문항을 제작하십시오.\n\n## 출제 규칙\n- 지문에서 5개 어휘에 ①②③④⑤ 밑줄 표시\n- 4개는 문맥상 적절, 1개는 문맥상 부적절 (반의어/혼동어로 교체)\n- 수능 EBS 수능특강 수준 어휘\n\n### 출력 형식\nPASSAGE:\n[밑줄 표시된 영어 지문]\n\nDIRECTION:\n다음 밑줄 친 단어의 쓰임이 적절하지 않은 것은?\n\nCHOICES:\n① ② ③ ④ ⑤\n\nANSWER: [정답번호]\nEXPLANATION:\n[정답 근거]: 해당 어휘가 문맥상 부적절한 이유와 올바른 어휘 제시\n[오답 분석]:\n② [적절한 이유]\n③ [적절한 이유]\n④ [적절한 이유]\n⑤ [적절한 이유]' },
+
+  { id:'irrelevant', name:'무관한 문장', direction:'다음 글에서 전체 흐름과 관계 없는 문장은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'무관한 문장\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 무관한 문장 찾기 문항을 제작하십시오.\n\n## 출제 규칙\n- 지문에 ①②③④⑤ 번호를 문장 앞에 표시\n- 그 중 1개 문장을 주제와 무관한 내용으로 교체\n- 나머지 4개는 주제와 일관성 유지\n\n### 출력 형식\nPASSAGE:\n[①②③④⑤ 번호가 붙은 영어 지문]\n\nDIRECTION:\n다음 글에서 전체 흐름과 관계 없는 문장은?\n\nCHOICES:\n① ② ③ ④ ⑤\n\nANSWER: [정답번호]\nEXPLANATION:\n[정답 근거]: 해당 문장이 글의 주제와 무관한 이유\n[오답 분석]: 나머지 문장들이 주제와 일관된 이유' },
+
+  { id:'implication', name:'함의추론', direction:'다음 글의 밑줄 친 부분이 의미하는 바로 가장 적절한 것은?',
+    prompt:'당신은 대한민국 수능 영어 영역 \'함의추론\' 문항 전문 출제자입니다.\n아래 [원본 지문]을 바탕으로 함의추론 문항을 제작하십시오.\n\n## 출제 규칙\n- 지문에서 비유·은유·함축적 표현 1구절에 밑줄\n- 해당 표현의 문맥적 의미를 추론하는 선택지 5개 구성\n- 수능 EBS 수능특강 수준 어휘\n\n### 출력 형식\nPASSAGE:\n[밑줄 표시된 영어 지문]\n\nDIRECTION:\n다음 글의 밑줄 친 부분이 의미하는 바로 가장 적절한 것은?\n\nCHOICES:\n① [정답]\n② [오답]\n③ [오답]\n④ [오답]\n⑤ [오답]\n\nANSWER: ①' + EXPL },
+
+  { id:'seo1', name:'서술형1', direction:'[서술형] 주제를 우리말로 쓰시오.',
+    prompt:'당신은 대한민국 고등학교 영어 내신 \'서술형\' 문항 출제자입니다.\n아래 [원본 지문]을 바탕으로 서술형 1번 유형을 제작하십시오.\n\n## 유형: 지문 주제를 우리말로 요약\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n위 글의 주제를 다음 조건에 맞게 우리말로 쓰시오.\n[조건]: [구체적 조건 1~2개]\n\nMODEL_ANSWER:\n[모범 답안]\n\nEXPLANATION:\n[채점 기준]: 핵심 내용 포함 여부, 조건 충족 여부\n[주요 채점 포인트]: 반드시 포함해야 할 핵심어' },
+
+  { id:'seo2', name:'서술형2', direction:'[서술형] 빈칸에 알맞은 말을 영어로 쓰시오.',
+    prompt:'당신은 대한민국 고등학교 영어 내신 \'서술형\' 문항 출제자입니다.\n아래 [원본 지문]을 바탕으로 서술형 2번 유형을 제작하십시오.\n\n## 유형: 빈칸에 영어로 직접 쓰기\n\n### 출력 형식\nPASSAGE:\n[빈칸이 포함된 영어 지문]\n\nDIRECTION:\n위 글의 빈칸에 들어갈 말을 본문에서 찾아 [ ]단어로 쓰시오.\n\nMODEL_ANSWER:\n[모범 답안 (영어)]\n\nEXPLANATION:\n[채점 기준]: 철자 정확성, 단어 수, 문법적 형태\n[근거 문장]: 본문에서 답의 근거가 되는 문장' },
+
+  { id:'seo3', name:'서술형3', direction:'[서술형] 조건에 맞게 영작하시오.',
+    prompt:'당신은 대한민국 고등학교 영어 내신 \'서술형\' 문항 출제자입니다.\n아래 [원본 지문]을 바탕으로 서술형 3번 유형을 제작하십시오.\n\n## 유형: 조건에 맞게 영작\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n다음 우리말을 조건에 맞게 영작하시오.\n[우리말]: [번역할 한국어 문장]\n[조건]: [사용할 어휘/구조 조건]\n\nMODEL_ANSWER:\n[모범 답안 (영어 문장)]\n\nEXPLANATION:\n[채점 기준]: 지정 어휘 사용, 문법 정확성, 의미 전달\n[부분 점수 기준]: [부분 점수 허용 범위]' },
+
+  { id:'seo4', name:'서술형4', direction:'[서술형] 질문에 영어로 답하시오.',
+    prompt:'당신은 대한민국 고등학교 영어 내신 \'서술형\' 문항 출제자입니다.\n아래 [원본 지문]을 바탕으로 서술형 4번 유형을 제작하십시오.\n\n## 유형: 영어 질문에 영어로 답변\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오.\n[질문]: [영어 질문]\n\nMODEL_ANSWER:\n[모범 답안 (완전한 영어 문장)]\n\nEXPLANATION:\n[채점 기준]: 핵심 내용 포함, 완전한 문장 형식, 문법 정확성\n[인정 답안]: [유사 표현 허용 범위]' },
+
+  { id:'seo5', name:'서술형5', direction:'[서술형] 요약문의 빈칸을 완성하시오.',
+    prompt:'당신은 대한민국 고등학교 영어 내신 \'서술형\' 문항 출제자입니다.\n아래 [원본 지문]을 바탕으로 서술형 5번 유형을 제작하십시오.\n\n## 유형: 요약문 빈칸 (A)(B) 완성\n\n### 출력 형식\nPASSAGE:\n[출제용 영어 지문]\n\nDIRECTION:\n위 글의 내용을 아래와 같이 요약할 때, 빈칸에 알맞은 말을 본문에서 찾아 쓰시오.\n\nSUMMARY:\n[(A)와 (B) 빈칸이 포함된 영어 요약문]\n\nMODEL_ANSWER:\n(A): [답]  (B): [답]\n\nEXPLANATION:\n[채점 기준]: 철자, 단어 수, 문법 형태 일치\n[근거 문장]: 본문에서 각 답의 근거 문장' }
+];
+
+// ─── STATE ───
+var qTypes = (function() {
+  var saved = JSON.parse(localStorage.getItem('qTypes') || 'null');
+  if (!saved) return DEFAULT_TYPES;
+  // 저장된 목록에 없는 새 유형 자동 병합
+  var savedIds = saved.map(function(t){ return t.id; });
+  DEFAULT_TYPES.forEach(function(dt) {
+    if (savedIds.indexOf(dt.id) < 0) saved.push(dt);
+  });
+  return saved;
+})();
+var passages    = JSON.parse(localStorage.getItem('passages')    || '[]');
+var quotas      = JSON.parse(localStorage.getItem('quotas')      || 'null') || {};
+var seoCount    = parseInt(localStorage.getItem('seoCount')      || '1');
+var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo1"]');
+var selIdx  = 0;
+var editIdx = -1;
+
+function persist() {
+  localStorage.setItem('qTypes',      JSON.stringify(qTypes));
+  localStorage.setItem('passages',    JSON.stringify(passages));
+  localStorage.setItem('quotas',      JSON.stringify(quotas));
+  localStorage.setItem('seoCount',    seoCount);
+  localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
+}
+
+// ─── TABS ───
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('panel-' + name).classList.add('active');
+  var order = ['settings','passages','output'];
+  document.querySelectorAll('.tab')[order.indexOf(name)].classList.add('active');
+}
+
+// ─── API KEY ───
+function checkKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  var st  = document.getElementById('keyStatus');
+  if (key.startsWith('AIza') && key.length > 20) {
+    st.textContent = '✓ 입력됨'; st.className = 'apist kok';
+    localStorage.setItem('geminiKey', key);
+  } else if (key.length > 0) {
+    st.textContent = '형식 확인'; st.className = 'apist kno';
+  } else {
+    st.textContent = '미입력'; st.className = 'apist kno';
+  }
+}
+
+// ─── SETTINGS ───
+function renderTypeList() {
+  document.getElementById('typeListEl').innerHTML = qTypes.map(function(t, i) {
+    return '<div class="ti' + (i===selIdx?' active':'') + '" onclick="selectType(' + i + ')">' +
+      '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
+      '<span class="tname">' + t.name + '</span>' +
+      '<span class="tcode">' + t.id + '</span></div>';
+  }).join('');
+}
+
+function selectType(i) {
+  selIdx = i;
+  renderTypeList();
+  var t = qTypes[i];
+  document.getElementById('editorTitle').textContent  = t.name;
+  document.getElementById('editorBadge').className    = 'pebadge ' + COLORS[i % COLORS.length];
+  document.getElementById('editName').value           = t.name;
+  document.getElementById('editDirection').value      = t.direction;
+  document.getElementById('editPrompt').value         = t.prompt;
+}
+
+function saveCurrentType() {
+  qTypes[selIdx].name      = document.getElementById('editName').value;
+  qTypes[selIdx].direction = document.getElementById('editDirection').value;
+  qTypes[selIdx].prompt    = document.getElementById('editPrompt').value;
+  persist(); renderTypeList(); renderQuotaRows();
+  alert('저장되었습니다.');
+}
+
+// ─── PASSAGES ───
+function renderPassageList() {
+  document.getElementById('passageCount').textContent = passages.length;
+  var el = document.getElementById('passageListEl');
+  if (!passages.length) {
+    el.innerHTML = '<div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 추가" 버튼으로 지문을 입력하세요</div></div>';
+    return;
+  }
+  var isRand = document.getElementById('randomToggle').checked;
+  el.innerHTML = passages.map(function(p, i) {
+    var sel = '';
+    if (!isRand) {
+      var opts = qTypes.map(function(t) {
+        return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
+      }).join('');
+      sel = '<select class="ptsel" onchange="setPassageType(' + i + ',this.value)">' + opts + '</select>';
+    }
+    return '<div class="pc">' +
+      '<div class="pchead"><span class="pnum">' + (i+1) + '</span>' +
+      '<span style="font-size:13px;font-weight:600;color:var(--ink2);flex:1">' + (p.title||'제목 없음') + '</span>' + sel + '</div>' +
+      '<div class="pprev">' + p.text + '</div>' +
+      '<div class="pcfoot">' +
+      '<button class="mb" onclick="editPassage(' + i + ')">✎ 편집</button>' +
+      '<button class="mb d" onclick="delPassage(' + i + ')">✕ 삭제</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function renderQuotaRows() {
+  document.getElementById('quotaRows').innerHTML = qTypes.filter(function(t){
+    return !t.id.startsWith('seo');
+  }).map(function(t, i) {
+    if (quotas[t.id] === undefined) quotas[t.id] = 0;
+    return '<div class="qrow">' +
+      '<div class="qtype"><div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' + t.name + '</div>' +
+      '<div class="qctrl">' +
+      '<button class="qbtn" onclick="chgQ(\'' + t.id + '\',-1)">−</button>' +
+      '<div class="qnum" id="q_' + t.id + '">' + quotas[t.id] + '</div>' +
+      '<button class="qbtn" onclick="chgQ(\'' + t.id + '\',1)">+</button>' +
+      '</div></div>';
+  }).join('');
+  updateQSum();
+}
+
+function renderSeoTypeRows() {
+  var seoTypes = qTypes.filter(function(t){ return t.id.startsWith('seo'); });
+  document.getElementById('seoTypeRows').innerHTML = seoTypes.map(function(t) {
+    var chk = seoSelected.indexOf(t.id) >= 0 ? ' checked' : '';
+    return '<div class="seocbrow">' +
+      '<input type="checkbox" id="scb_' + t.id + '" value="' + t.id + '"' + chk + ' onchange="onSeoCheck(this)">' +
+      '<label for="scb_' + t.id + '">' + t.name + '</label></div>';
+  }).join('');
+}
+
+function chgQ(id, d) {
+  quotas[id] = Math.max(0, (quotas[id]||0) + d);
+  document.getElementById('q_' + id).textContent = quotas[id];
+  updateQSum(); persist();
+}
+
+function renderManualCount() {
+  var nonSeoTypes = qTypes.filter(function(t){ return !t.id.startsWith('seo'); });
+  var allSeoTypes = qTypes.filter(function(t){ return t.id.startsWith('seo'); });
+
+  // 모든 유형 카운트 (일반 + 서술형 포함)
+  var counts = {};
+  qTypes.forEach(function(t){ counts[t.id] = 0; });
+  passages.forEach(function(p){
+    var tid = p.typeId || (qTypes[0] ? qTypes[0].id : '');
+    if (counts[tid] !== undefined) counts[tid]++;
+    else counts[tid] = 1;
+  });
+
+  // 일반 유형 rows
+  var rows = nonSeoTypes.map(function(t, i) {
+    var n = counts[t.id] || 0;
+    var bg  = n > 0 ? 'var(--grs)'  : 'var(--sf2)';
+    var col = n > 0 ? 'var(--gr)'   : 'var(--ink3)';
+    var op  = n > 0 ? '' : 'opacity:0.45;';
+    return '<div class="qrow" style="' + op + '">' +
+      '<div class="qtype"><div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' + t.name + '</div>' +
+      '<div class="qctrl"><div class="qnum" style="min-width:28px;text-align:center;background:' + bg + ';border-radius:3px;padding:2px 6px;border:1px solid var(--bd);color:' + col + ';font-weight:700;">' + n + '</div></div></div>';
+  }).join('');
+
+  // 서술형 rows (랜덤 OFF 시 항상 표시)
+  if (allSeoTypes.length) {
+    rows += '<div style="margin:10px 0 5px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--ac);">[서술형] 배정 현황</div>';
+    allSeoTypes.forEach(function(t, i) {
+      var n = counts[t.id] || 0;
+      var bg  = n > 0 ? 'var(--acs)'   : 'var(--sf2)';
+      var col = n > 0 ? 'var(--ac)'    : 'var(--ink3)';
+      var op  = n > 0 ? '' : 'opacity:0.45;';
+      rows += '<div class="qrow" style="' + op + 'border-color:' + (n>0?'#f0c0bb':'var(--bd)') + ';">' +
+        '<div class="qtype"><div class="tdot ' + COLORS[(nonSeoTypes.length + i) % COLORS.length] + '"></div>' + t.name + '</div>' +
+        '<div class="qctrl"><div class="qnum" style="min-width:28px;text-align:center;background:' + bg + ';border-radius:3px;padding:2px 6px;border:1px solid ' + (n>0?'#f0c0bb':'var(--bd)') + ';color:' + col + ';font-weight:700;">' + n + '</div></div></div>';
+    });
+  }
+
+  document.getElementById('manualCountRows').innerHTML = rows;
+}
+
+function updateQSum() {
+  var isRand = document.getElementById('randomToggle').checked;
+  var total = isRand
+    ? Object.values(quotas).reduce(function(s,v){ return s+v; }, 0)
+    : passages.length;
+  document.getElementById('quotaSummary').textContent = '총 ' + total + '문항 · 지문 ' + passages.length + '개 입력됨';
+  if (!isRand) renderManualCount();
+}
+
+function onRandomToggle() {
+  var isRand = document.getElementById('randomToggle').checked;
+  document.getElementById('quotaSection').style.display        = isRand ? '' : 'none';
+  document.getElementById('manualCountSection').style.display  = isRand ? 'none' : '';
+  document.getElementById('seoToggleRow').style.display        = isRand ? '' : 'none';
+  if (!isRand) {
+    // 랜덤 OFF: 서술형 토글 OFF로 초기화
+    document.getElementById('seoToggle').checked = false;
+    document.getElementById('seoSection').style.display = 'none';
+    renderManualCount();
+  }
+  renderPassageList(); updateQSum();
+}
+
+function onSeoToggle() {
+  var on = document.getElementById('seoToggle').checked;
+  document.getElementById('seoSection').style.display = on ? '' : 'none';
+  var isRand = document.getElementById('randomToggle').checked;
+  if (!isRand) renderManualCount();
+}
+
+function chgSeoCount(d) {
+  seoCount = Math.max(1, Math.min(10, seoCount + d));
+  document.getElementById('seoCount').textContent = seoCount;
+  persist();
+  var isRand = document.getElementById('randomToggle').checked;
+  if (!isRand) renderManualCount();
+}
+
+function onSeoCheck(el) {
+  if (el.checked) { if (seoSelected.indexOf(el.value) < 0) seoSelected.push(el.value); }
+  else { seoSelected = seoSelected.filter(function(s){ return s !== el.value; }); }
+  persist();
+  var isRand = document.getElementById('randomToggle').checked;
+  if (!isRand) renderManualCount();
+}
+
+function openModal() {
+  editIdx = -1;
+  document.getElementById('modalTitle').textContent = '지문 추가';
+  document.getElementById('mTitle').value = '';
+  document.getElementById('mText').value  = '';
+  document.getElementById('addModal').classList.add('open');
+}
+
+function editPassage(i) {
+  editIdx = i;
+  document.getElementById('modalTitle').textContent = '지문 편집';
+  document.getElementById('mTitle').value = passages[i].title || '';
+  document.getElementById('mText').value  = passages[i].text  || '';
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('addModal').classList.remove('open'); }
+
+function savePassage() {
+  var title = document.getElementById('mTitle').value.trim();
+  var text  = document.getElementById('mText').value.trim();
+  if (!text) { alert('지문을 입력해주세요.'); return; }
+  var defType = qTypes.length ? qTypes[0].id : '';
+  if (editIdx >= 0) {
+    passages[editIdx] = { title:title, text:text, typeId: passages[editIdx].typeId || defType };
+  } else {
+    passages.push({ title:title, text:text, typeId: defType });
+  }
+  persist(); renderPassageList(); updateQSum(); closeModal();
+}
+
+function delPassage(i) {
+  if (!confirm('이 지문을 삭제하시겠습니까?')) return;
+  passages.splice(i,1); persist(); renderPassageList(); updateQSum();
+}
+
+function setPassageType(i, typeId) {
+  passages[i].typeId = typeId; persist();
+  var isRand = document.getElementById("randomToggle").checked;
+  if (!isRand) renderManualCount();
+}
+
+// ─── GENERATION ───
+function wait(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+function extractSec(raw, key) {
+  var m = raw.match(new RegExp(key + ':\\s*([\\s\\S]*?)(?=\\n[A-Z_]+:|$)', 'i'));
+  return m ? m[1].trim() : '';
+}
+
+function toSections(num, type, raw) {
+  if (!raw) return { q:'[' + num + '번 생성 실패]\n\n', a:'' };
+  var passage  = extractSec(raw,'PASSAGE') || extractSec(raw,'INTRO') || '';
+  var intro    = extractSec(raw,'INTRO')   || '';
+  var bA       = extractSec(raw,'BLOCK_A') || '';
+  var bB       = extractSec(raw,'BLOCK_B') || '';
+  var bC       = extractSec(raw,'BLOCK_C') || '';
+  var given    = extractSec(raw,'GIVEN_SENTENCE') || '';
+  var summary  = extractSec(raw,'SUMMARY')  || '';
+  var direction= extractSec(raw,'DIRECTION')|| type.direction;
+  var choices  = (extractSec(raw,'CHOICES')||'').split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤]/); });
+  var answer   = extractSec(raw,'ANSWER')   || '';
+  var expl     = extractSec(raw,'EXPLANATION') || '';
+  var modelAns = extractSec(raw,'MODEL_ANSWER') || '';
+  var DIV = '\u2500'.repeat(60);
+
+  var hasContent = passage || intro || bA || given || summary;
+  if (!choices.length) {
+    choices = raw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤]/); });
+  }
+  if (!answer) answer = extractSec(raw,'ANSWER');
+
+  // ── 문제부 ──
+  var q = [];
+  q.push('[' + num + '번] [' + type.name + ']'); q.push('');
+  q.push(direction); q.push('');
+  if (!hasContent) { q.push(raw); }
+  else if (type.id === 'order') {
+    if (intro) { q.push('주어진 글:'); q.push(intro); q.push(''); }
+    if (bA) { q.push(bA); q.push(''); }
+    if (bB) { q.push(bB); q.push(''); }
+    if (bC) { q.push(bC); q.push(''); }
+  } else if (type.id === 'insert') {
+    if (given)   { q.push('주어진 문장: ' + given); q.push(''); }
+    if (passage) { q.push(passage); q.push(''); }
+  } else if (type.id === 'summary' || type.id === 'seo5') {
+    if (passage) { q.push(passage); q.push(''); }
+    if (summary) { q.push('요약: ' + summary); q.push(''); }
+  } else {
+    if (passage) { q.push(passage); q.push(''); }
+  }
+  if (type.id.startsWith('seo')) {
+    q.push('답: _________________________________________________'); q.push('');
+  } else {
+    choices.forEach(function(c){ q.push(c); }); q.push('');
+  }
+  q.push(DIV); q.push('');
+
+  // ── 해설부 ──
+  var a = [];
+  a.push('[' + num + '번 해설] [' + type.name + ']'); a.push('');
+  if (answer) { a.push('▶ 정답: ' + answer.trim()); a.push(''); }
+  if (type.id.startsWith('seo')) {
+    if (modelAns) { a.push('▶ 모범 답안:'); a.push(modelAns); a.push(''); }
+    a.push(expl || '[채점 기준 없음]');
+  } else {
+    a.push(expl || '[해설 없음]');
+  }
+  a.push(''); a.push(DIV); a.push('');
+
+  return { q: q.join('\n'), a: a.join('\n') };
+}
+
+async function callAPI(type, passageText) {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) throw new Error('API 키를 입력해주세요.');
+  var res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/' + (document.getElementById('modelSelect').value) + ':generateContent?key=' + key,
+    { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{parts:[{text: type.prompt + '\n\n[원본 지문]\n' + passageText}]}],
+        generationConfig:{maxOutputTokens:4000, temperature:0.7}
+      })
+    }
+  );
+  if (!res.ok) {
+    var e = await res.json().catch(function(){ return {}; });
+    throw new Error(e.error && e.error.message ? e.error.message : 'HTTP ' + res.status);
+  }
+  var data = await res.json();
+  return (data.candidates && data.candidates[0] && data.candidates[0].content &&
+    data.candidates[0].content.parts && data.candidates[0].content.parts[0])
+    ? data.candidates[0].content.parts[0].text : '';
+}
+
+async function callWithRetry(type, text, sid) {
+  var lastErr, max = 3;
+  for (var n = 1; n <= max; n++) {
+    try {
+      if (n > 1) {
+        var w = n * 10;
+        var el = document.getElementById(sid);
+        if (el) el.innerHTML = '<div class="spin"></div><span>⚠️ 재시도 (' + n + '/' + max + ') — ' + w + '초 대기중...</span>';
+        await wait(w * 1000);
+      }
+      return await callAPI(type, text);
+    } catch(e) {
+      lastErr = e;
+      var retry = e.message.indexOf('429')>=0 || e.message.indexOf('503')>=0 ||
+                  e.message.indexOf('quota')>=0 || e.message.indexOf('overload')>=0;
+      if (!retry) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+async function startGeneration() {
+  try {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('상단에 Gemini API 키를 먼저 입력해주세요.'); return; }
+
+  var isRandom = document.getElementById('randomToggle').checked;
+  var total = isRandom ? Object.values(quotas).reduce(function(s,v){ return s+v; },0) : passages.length;
+  if (isRandom && !total) { alert('유형별 문항 수를 설정해주세요.'); return; }
+  if (!passages.length) { alert('지문을 먼저 입력해주세요.'); return; }
+  if (isRandom && passages.length < total) {
+    alert('총 문항 수(' + total + ')보다 지문 수(' + passages.length + ')가 적습니다.'); return;
+  }
+
+  // 배정
+  var assignment = [];
+  if (isRandom) {
+    var sh = passages.slice().sort(function(){ return Math.random()-.5; });
+    var pi = 0;
+    qTypes.filter(function(t){ return !t.id.startsWith('seo'); }).forEach(function(t) {
+      for (var k=0; k<(quotas[t.id]||0); k++) {
+        if (pi < sh.length) assignment.push({ passage: sh[pi++], typeId: t.id });
+      }
+    });
+    assignment.sort(function(){ return Math.random()-.5; });
+    // 랜덤 ON: 서술형 별도 추가
+    if (document.getElementById('seoToggle').checked && seoSelected.length > 0) {
+      var spool = passages.slice().sort(function(){ return Math.random()-.5; });
+      for (var si=0; si<seoCount; si++) {
+        assignment.push({ passage: spool[si % spool.length], typeId: seoSelected[si % seoSelected.length] });
+      }
+    }
+  } else {
+    // 랜덤 OFF: 지문 카드 배정 그대로 사용 (서술형 포함)
+    passages.forEach(function(p) {
+      assignment.push({ passage: p, typeId: p.typeId || qTypes[0].id });
+    });
+  }
+
+  if (!assignment.length) { alert('생성할 문항이 없습니다. 문항 수를 설정해주세요.'); return; }
+
+  switchTab('output');
+  document.getElementById('pbWrap').style.display    = 'block';
+  document.getElementById('pbLabel').style.display   = 'block';
+  document.getElementById('copyQBtn').style.display  = 'none';
+  document.getElementById('copyABtn').style.display  = 'none';
+  document.getElementById('copyAllBtn').style.display= 'none';
+  document.getElementById('generateBtn').disabled    = true;
+
+  var now = new Date();
+  var dateStr = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
+
+  document.getElementById('outputArea').innerHTML =
+    '<div style="margin-bottom:16px;padding:13px 18px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);">' +
+    '<div style="font-weight:700;font-size:14px;margin-bottom:10px;font-family:\'Playfair Display\',serif;">🔄 생성 중... (' + assignment.length + '문항)</div>' +
+    '<div id="statusList"></div></div>';
+
+  var statusEl = document.getElementById('statusList');
+  var rawResults = [];
+
+  for (var i=0; i<assignment.length; i++) {
+    var item = assignment[i];
+    var type = null;
+    for (var j=0; j<qTypes.length; j++) { if (qTypes[j].id === item.typeId) { type = qTypes[j]; break; } }
+    if (!type) continue;
+
+    var sid = 'st' + i;
+    statusEl.insertAdjacentHTML('beforeend',
+      '<div class="gi" id="' + sid + '"><div class="spin"></div>' +
+      '<span>' + (i+1) + '번 생성 중 — [' + type.name + '] ' + (item.passage.title||'지문') + '</span></div>');
+    document.getElementById(sid).scrollIntoView({ behavior:'smooth', block:'nearest' });
+    document.getElementById('pbFill').style.width = Math.round(i/assignment.length*100) + '%';
+    document.getElementById('pbLabel').textContent = (i+1) + ' / ' + assignment.length;
+
+    if (i > 0) await wait(7000);
+
+    try {
+      var result = await callWithRetry(type, item.passage.text, sid);
+      rawResults.push({ num:i+1, type:type, result:result });
+      var el = document.getElementById(sid);
+      el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
+      el.style.background  = 'var(--grs)';
+      el.style.borderColor = '#a0d4b4';
+    } catch(err) {
+      rawResults.push({ num:i+1, type:type, result:null, error:err.message });
+      var el2 = document.getElementById(sid);
+      el2.innerHTML = '<span class="ei">✗</span><span>' + (i+1) + '번 [' + type.name + '] — 실패: ' + err.message + '</span>';
+      el2.style.background = 'var(--acs)';
+    }
+  }
+
+  document.getElementById('pbFill').style.width   = '100%';
+  document.getElementById('pbLabel').textContent  = '완료 ' + assignment.length + '/' + assignment.length;
+  document.getElementById('generateBtn').disabled = false;
+
+  // 텍스트 조합
+  var HDR = '\u2550'.repeat(60);
+  var qText = 'Seum 고T 영어 시험지 [문제]\n' + dateStr + ' · 총 ' + assignment.length + '문항\n' + HDR + '\n\n';
+  var aText = 'Seum 고T 영어 시험지 [해설]\n' + dateStr + '\n' + HDR + '\n\n';
+  var ansList = [];
+
+  rawResults.forEach(function(r) {
+    if (r.result) {
+      var sec = toSections(r.num, r.type, r.result);
+      qText += sec.q; aText += sec.a;
+      var ans = extractSec(r.result, 'ANSWER');
+      if (ans) ansList.push(r.num + '번: ' + ans.trim());
+    } else {
+      qText += '[' + r.num + '번 생성 실패]\n\n';
+      aText += '[' + r.num + '번 해설 없음]\n\n';
+    }
+  });
+
+  if (ansList.length) {
+    qText += '\n[정답표]\n' + ansList.join('   ') + '\n';
+    aText += '\n[정답표]\n' + ansList.join('   ') + '\n';
+  }
+  window._allText = qText + '\n\n' + HDR + '\n\n' + aText;
+
+  var taStyle = 'width:100%;padding:14px;font-family:\'Noto Sans KR\',sans-serif;font-size:13px;line-height:1.9;border:1px solid var(--bd);border-radius:var(--r);background:var(--sf);color:var(--ink);resize:vertical;outline:none;height:calc(100vh - 260px);';
+
+  document.getElementById('outputArea').insertAdjacentHTML('beforeend',
+    '<div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+    '<div>' +
+    '<div style="font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid var(--ac);">📝 문제 영역</div>' +
+    '<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">복사 후 한글/워드에 붙여넣으세요</div>' +
+    '<textarea id="taQ" readonly style="' + taStyle + '"></textarea></div>' +
+    '<div>' +
+    '<div style="font-family:\'Playfair Display\',serif;font-size:15px;font-weight:700;margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid var(--gr);">💡 해설 영역</div>' +
+    '<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">정답 근거 및 오답 분석 포함</div>' +
+    '<textarea id="taA" readonly style="' + taStyle + '"></textarea></div>' +
+    '</div>');
+
+  document.getElementById('taQ').value = qText;
+  document.getElementById('taA').value = aText;
+  document.getElementById('copyQBtn').style.display   = '';
+  document.getElementById('copyABtn').style.display   = '';
+  document.getElementById('copyAllBtn').style.display = '';
+  document.getElementById('taQ').scrollIntoView({ behavior:'smooth' });
+  } catch(fatalErr) {
+    document.getElementById('generateBtn').disabled = false;
+    alert('오류가 발생했습니다: ' + fatalErr.message);
+    console.error(fatalErr);
+  }
+}
+
+function copySection(sec) {
+  var text = sec === 'q' ? (document.getElementById('taQ')||{}).value
+           : sec === 'a' ? (document.getElementById('taA')||{}).value
+           : window._allText || '';
+  if (!text) { alert('생성된 문항이 없습니다.'); return; }
+  var label = sec==='q' ? '문제 영역' : sec==='a' ? '해설 영역' : '전체';
+  navigator.clipboard.writeText(text)
+    .then(function(){ alert('[' + label + '] 복사 완료!\n한글/워드에 붙여넣으세요.'); })
+    .catch(function(){
+      var ta = sec==='q' ? document.getElementById('taQ') : document.getElementById('taA');
+      if (ta) { ta.focus(); ta.select(); document.execCommand('copy'); }
+      alert('복사되었습니다.');
+    });
+}
+
+
+// ─── MODEL SELECTION ───
+function saveModel() {
+  var m = document.getElementById('modelSelect').value;
+  localStorage.setItem('geminiModel', m);
+}
+
+// ─── ACCESS CODE ───
+// ※ 코드를 변경하려면 아래 CODES 배열을 수정하세요
+var CODES = ['seum2025', 'english01', 'goT2026'];
+
+function checkCode() {
+  var input = document.getElementById('codeInput').value.trim();
+  var err   = document.getElementById('codeErr');
+  if (CODES.indexOf(input) >= 0) {
+    sessionStorage.setItem('seumAuth', '1');
+    document.getElementById('lockScreen').style.display = 'none';
+  } else {
+    err.textContent = '코드가 올바르지 않습니다.';
+    document.getElementById('codeInput').value = '';
+    document.getElementById('codeInput').focus();
+    setTimeout(function(){ err.textContent = ''; }, 2000);
+  }
+}
+
+// 이미 인증된 세션이면 잠금 화면 건너뜀
+if (sessionStorage.getItem('seumAuth') === '1') {
+  document.getElementById('lockScreen').style.display = 'none';
+}
+
+// ─── INIT ───
+(function init() {
+  var k = localStorage.getItem('geminiKey');
+  if (k) { document.getElementById('apiKeyInput').value = k; checkKey(); }
+  var m = localStorage.getItem('geminiModel');
+  if (m) { document.getElementById('modelSelect').value = m; }
+  renderTypeList();
+  selectType(0);
+  renderPassageList();
+  renderQuotaRows();
+  renderSeoTypeRows();
+  document.getElementById('seoCount').textContent = seoCount;
+})();
+</script>
+</body>
+</html>
