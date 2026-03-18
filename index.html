@@ -70,7 +70,22 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
 .playout{display:grid;grid-template-columns:1fr 360px;gap:20px;max-width:1200px;}
 
 
-/* HISTORY */
+
+
+.htable-wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:var(--r);}
+.htable{width:100%;border-collapse:collapse;font-size:13px;min-width:500px;}
+.htable th{padding:9px 12px;background:var(--sf2);border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);font-weight:700;text-align:center;white-space:nowrap;font-size:12px;color:var(--ink2);}
+.htable th:first-child{text-align:left;min-width:160px;position:sticky;left:0;background:var(--sf2);z-index:1;}
+.htable td{padding:8px 12px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:center;vertical-align:middle;}
+.htable td:first-child{text-align:left;font-size:12px;color:var(--ink2);position:sticky;left:0;background:var(--sf);z-index:1;font-weight:500;}
+.htable tr:last-child td{border-bottom:none;}
+.htable td:last-child,.htable th:last-child{border-right:none;}
+.hcell{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;color:#fff;white-space:nowrap;}
+.hcell-empty{color:var(--ink3);font-size:11px;}
+.hist-sel-btn{font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:700;padding:5px 12px;border-radius:var(--r);border:1px solid var(--bd);background:#fff;cursor:pointer;color:var(--ink2);transition:all .15s;}
+.hist-sel-btn:hover{background:var(--sf2);border-color:var(--bd2);}
+.hist-sel-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
 .hcard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:16px;overflow:hidden;}
 .hcard-head{padding:12px 16px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .hcard-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;}
@@ -338,11 +353,19 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
 
 <!-- HISTORY -->
 <div class="panel" id="panel-history">
-  <div style="max-width:1000px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--bd);">
+  <div style="max-width:1100px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--bd);">
       <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;">📋 출제 히스토리</div>
       <button class="tbtn" onclick="clearHistory()" style="color:var(--ac);border-color:#f0c0bb;">🗑 전체 삭제</button>
     </div>
+    <!-- 세트 필터 바 -->
+    <div class="setbar" style="margin-bottom:16px;align-items:center;" id="histSetBar">
+      <span class="setlabel">세트 선택:</span>
+      <select id="histSetSelect" class="fi" style="width:200px;margin-bottom:0;" onchange="setHistFilter(this.value)">
+        <option value="">전체</option>
+      </select>
+    </div>
+    <!-- 표 영역 -->
     <div id="historyArea">
       <div class="empty"><div class="eic">📋</div><div class="eti">출제 기록이 없습니다</div><div>시험지를 생성하면 여기에 기록됩니다</div></div>
     </div>
@@ -1095,7 +1118,7 @@ async function startGeneration() {
   document.getElementById('copyQBtn').style.display   = '';
   document.getElementById('copyABtn').style.display   = '';
   document.getElementById('copyAllBtn').style.display = '';
-  saveHistory(dateStr, assignment, rawResults);
+  saveHistory(dateStr, assignment, rawResults, isRandom);
   document.getElementById('taQ').scrollIntoView({ behavior:'smooth' });
   } catch(fatalErr) {
     document.getElementById('generateBtn').disabled = false;
@@ -1114,9 +1137,10 @@ function persistHistory() {
   localStorage.setItem('examHistory', JSON.stringify(examHistory));
 }
 
-function saveHistory(dateStr, assignment, rawResults) {
+function saveHistory(dateStr, assignment, rawResults, isRandom) {
   var record = {
     date: dateStr,
+    isRandom: !!isRandom,
     setName: (function(){
       // 현재 passages와 일치하는 세트명 찾기
       var keys = Object.keys(passageSets);
@@ -1147,44 +1171,93 @@ function saveHistory(dateStr, assignment, rawResults) {
   renderHistory();
 }
 
+var _histFilter = null;  // 현재 선택된 세트 필터
+
+function renderHistSetBar() {
+  var sel = document.getElementById('histSetSelect');
+  if (!sel) return;
+  // 저장된 세트 (passageSets) + 히스토리에 등장한 세트 병합
+  var sets = [];
+  Object.keys(passageSets).forEach(function(k){ if (sets.indexOf(k) < 0) sets.push(k); });
+  examHistory.forEach(function(r){ if (r.setName && sets.indexOf(r.setName) < 0) sets.push(r.setName); });
+  if (examHistory.some(function(r){ return !r.setName; }) && sets.indexOf('수동 배정') < 0) sets.push('수동 배정');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">전체</option>' + sets.map(function(s) {
+    return '<option value="' + s + '"' + (cur === s ? ' selected' : '') + '>' + s + '</option>';
+  }).join('');
+  sel.value = _histFilter || '';
+}
+
+function setHistFilter(name) {
+  _histFilter = (!name || name === '전체') ? null : name;
+  renderHistory();
+}
+
 function renderHistory() {
+  renderHistSetBar();
   var el = document.getElementById('historyArea');
   if (!examHistory.length) {
     el.innerHTML = '<div class="empty"><div class="eic">📋</div><div class="eti">출제 기록이 없습니다</div><div>시험지를 생성하면 여기에 기록됩니다</div></div>';
     return;
   }
-  // 최신순 정렬
-  var list = examHistory.slice().reverse();
-  el.innerHTML = list.map(function(rec, ri) {
-    var setTag = rec.setName
-      ? '<span style="font-size:11px;background:var(--bls);color:var(--bl);padding:2px 8px;border-radius:10px;font-weight:700;">세트: ' + rec.setName + '</span>'
-      : '<span style="font-size:11px;background:var(--sf2);color:var(--ink3);padding:2px 8px;border-radius:10px;">수동 배정</span>';
-    var rows = rec.items.map(function(item, ii) {
-      var ti = qTypes.findIndex(function(t){ return t.id===item.typeId; });
-      var hex = ti >= 0 ? HEXES[ti % HEXES.length] : '#888';
-      return '<div class="hrow">' +
-        '<span class="hrow-num">' + (ii+1) + '</span>' +
-        '<span class="hrow-title">' + item.passageTitle + '</span>' +
-        '<span class="hrow-type" style="background:' + hex + '">' + item.typeName + '</span>' +
-        (item.answer ? '<span class="hrow-result">정답: ' + item.answer + '</span>' : '') +
-        (item.success ? '' : '<span style="font-size:11px;color:var(--ac);">✗ 실패</span>') +
-        '</div>';
+
+  // 필터 적용
+  var filtered = examHistory.filter(function(r) {
+    if (_histFilter === null) return true;
+    if (_histFilter === '수동 배정') return !r.setName;
+    return r.setName === _histFilter;
+  });
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="eic">📋</div><div class="eti">해당 세트의 출제 기록이 없습니다</div></div>';
+    return;
+  }
+
+  // 회차 인덱스 (전체 기준)
+  function globalIdx(rec) { return examHistory.indexOf(rec); }
+
+  // 세트 선택 시 저장된 세트 지문 순서 우선, 없으면 히스토리에서 수집
+  var allTitles = [];
+  if (_histFilter && passageSets[_histFilter]) {
+    passageSets[_histFilter].forEach(function(p) {
+      var t = p.title || '제목 없음';
+      if (allTitles.indexOf(t) < 0) allTitles.push(t);
+    });
+  }
+  filtered.forEach(function(rec) {
+    rec.items.forEach(function(item) {
+      if (allTitles.indexOf(item.passageTitle) < 0) allTitles.push(item.passageTitle);
+    });
+  });
+
+  // 표 헤더 (회차)
+  var thead = '<tr><th>지문</th>' + filtered.map(function(rec, ri) {
+    var roundNum = globalIdx(rec) + 1;
+    var modeLabel = rec.isRandom
+      ? '<span style="color:#2980b9;font-size:9px;font-weight:700;">랜덤</span>'
+      : '<span style="color:#1a6b3a;font-size:9px;font-weight:700;">유형지정</span>';
+    return '<th>' + roundNum + '회 ' + modeLabel + '<br><span style="font-weight:400;color:var(--ink3);font-size:10px;">' + rec.date + '</span></th>';
+  }).join('') + '</tr>';
+
+  // 표 본문 (지문별 행)
+  var tbody = allTitles.map(function(title) {
+    var cells = filtered.map(function(rec) {
+      // 해당 지문이 이 회차에서 출제된 항목들 (같은 지문이 여러 유형으로 출제될 수 있음)
+      var matches = rec.items.filter(function(item){ return item.passageTitle === title; });
+      if (!matches.length) return '<td><span class="hcell-empty">—</span></td>';
+      var tags = matches.map(function(m) {
+        var ti = qTypes.findIndex(function(t){ return t.id===m.typeId; });
+        var hex = ti >= 0 ? HEXES[ti % HEXES.length] : '#888';
+        var ans = m.answer ? ' (' + m.answer + ')' : '';
+        var fail = m.success ? '' : ' ✗';
+        return '<span class="hcell" style="background:' + hex + ';margin:1px;">' + m.typeName + ans + fail + '</span>';
+      }).join('<br>');
+      return '<td>' + tags + '</td>';
     }).join('');
-    return '<div class="hcard">' +
-      '<div class="hcard-head">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
-          '<div class="hcard-title">회차 ' + (examHistory.length - ri) + '</div>' +
-          setTag +
-          '<span class="hcard-meta">' + rec.total + '문항</span>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<span class="hcard-meta">' + rec.date + '</span>' +
-          '<button class="mb d" onclick="deleteHistory(' + (examHistory.length - 1 - ri) + ')">✕</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="hcard-body">' + rows + '</div>' +
-    '</div>';
+    return '<tr><td>' + title + '</td>' + cells + '</tr>';
   }).join('');
+
+  el.innerHTML = '<div class="htable-wrap"><table class="htable"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
 }
 
 function deleteHistory(idx) {
