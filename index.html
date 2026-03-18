@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -323,6 +323,7 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
 <div class="panel" id="panel-output">
   <div class="otbar">
     <button class="tbtn" onclick="switchTab('passages')">← 다시 생성</button>
+    <button class="tbtn" id="cancelBtn" onclick="cancelGeneration()" style="display:none;color:var(--ac);border-color:#f0c0bb;">⏹ 생성 취소</button>
     <button class="tbtn p" id="copyQBtn" onclick="copySection('q')" style="display:none">📋 문제만 복사</button>
     <button class="tbtn p" id="copyABtn" onclick="copySection('a')" style="display:none">📋 해설만 복사</button>
     <button class="tbtn" id="copyAllBtn" onclick="copySection('all')" style="display:none">📋 전체 복사</button>
@@ -800,6 +801,16 @@ function setPassageType(i, typeId) {
 }
 
 // ─── GENERATION ───
+var _genCancelled = false;
+
+function cancelGeneration() {
+  _genCancelled = true;
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('generateBtn').disabled = false;
+  var lbl = document.getElementById('pbLabel');
+  if (lbl) lbl.textContent = '취소됨';
+}
+
 function wait(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
 function extractSec(raw, key) {
@@ -988,7 +999,9 @@ async function startGeneration() {
   document.getElementById('copyQBtn').style.display  = 'none';
   document.getElementById('copyABtn').style.display  = 'none';
   document.getElementById('copyAllBtn').style.display= 'none';
+  _genCancelled = false;
   document.getElementById('generateBtn').disabled    = true;
+  document.getElementById('cancelBtn').style.display = '';
 
   var now = new Date();
   var dateStr = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
@@ -1015,7 +1028,9 @@ async function startGeneration() {
     document.getElementById('pbFill').style.width = Math.round(i/assignment.length*100) + '%';
     document.getElementById('pbLabel').textContent = (i+1) + ' / ' + assignment.length;
 
+    if (_genCancelled) break;
     if (i > 0) await wait(4000);
+    if (_genCancelled) break;
 
     try {
       var result = await callWithRetry(type, item.passage.text, sid);
@@ -1033,6 +1048,7 @@ async function startGeneration() {
   }
 
   document.getElementById('pbFill').style.width   = '100%';
+  document.getElementById('cancelBtn').style.display = 'none';
   document.getElementById('pbLabel').textContent  = '완료 ' + assignment.length + '/' + assignment.length;
   document.getElementById('generateBtn').disabled = false;
 
@@ -1249,7 +1265,7 @@ if (sessionStorage.getItem('seumAuth') === '1') {
 <footer style="background:var(--ink);color:var(--ink3);text-align:center;padding:14px 24px;font-size:12px;font-family:'IBM Plex Mono',monospace;border-top:2px solid #2a2520;">
   <span style="color:#e8dcc0;">Seum Teachers Lab</span>
   &nbsp;·&nbsp;
-  <span>Designed by <strong style="color:var(--ac2);">Andrew</strong></span>
+  <span>Designed by <strong style="color:#e8dcc0;">고승환</strong></span>
   &nbsp;·&nbsp;
   <span>Powered by Gemini &amp; Claude API</span>
 </footer>
