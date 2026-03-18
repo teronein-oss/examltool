@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seum 고T 영어 문제 제작 tool</title>
+<title>Seum Teachers Lab</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 :root {
@@ -68,6 +68,28 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
 
 /* PASSAGES */
 .playout{display:grid;grid-template-columns:1fr 360px;gap:20px;max-width:1200px;}
+
+
+/* HISTORY */
+.hcard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:16px;overflow:hidden;}
+.hcard-head{padding:12px 16px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.hcard-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;}
+.hcard-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);}
+.hcard-body{padding:14px 16px;}
+.hrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px;}
+.hrow:last-child{border-bottom:none;}
+.hrow-num{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--ink3);background:var(--bd);padding:1px 6px;border-radius:2px;min-width:28px;text-align:center;}
+.hrow-title{flex:1;color:var(--ink2);}
+.hrow-type{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff;white-space:nowrap;}
+.hrow-result{font-size:11px;color:var(--ink3);}
+
+/* PASSAGE SET */
+.setbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);flex-wrap:wrap;}
+.setbtn{font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:700;padding:5px 12px;border-radius:var(--r);border:1px solid var(--bd);background:#fff;cursor:pointer;color:var(--ink2);transition:all .15s;}
+.setbtn:hover{background:var(--sf2);border-color:var(--bd2);}
+.setbtn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.setlabel{font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.3px;white-space:nowrap;}
+
 .sectitle{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
 .abtn{background:var(--ac);color:#fff;border:none;padding:9px 16px;border-radius:var(--r);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
 .abtn:hover{background:var(--ac2);}
@@ -160,7 +182,7 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
 
 <div id="lockScreen">
   <div class="lockbox">
-    <div class="locktitle">Seum 고T <span>영어 문제 제작 tool</span></div>
+    <div class="locktitle">Seum <span>Teachers Lab</span></div>
     <div class="locksub">접근 코드를 입력하세요</div>
     <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
       onkeydown="if(event.key==='Enter') checkCode()">
@@ -171,7 +193,7 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
 </div>
 
 <header>
-  <div class="htitle">Seum 고T <span>영어 문제 제작 tool</span></div>
+  <div class="htitle">Seum <span>Teachers Lab</span></div>
   <div class="apiwrap">
     <select id="modelSelect" style="background:#2a2520;border:1px solid #444;border-radius:3px;color:#e8dcc0;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;outline:none;cursor:pointer;" onchange="onModelChange()">
       <optgroup label="── Gemini ──" style="color:#888">
@@ -193,6 +215,7 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
   <button class="tab active" onclick="switchTab('settings')">⚙️ 유형별 프롬프트 설정</button>
   <button class="tab" onclick="switchTab('passages')">📝 지문 입력 <span class="tcnt" id="passageCount">0</span></button>
   <button class="tab" onclick="switchTab('output')">📄 문항 출력</button>
+  <button class="tab" onclick="switchTab('history')">📋 출제 히스토리</button>
 </div>
 
 <!-- SETTINGS -->
@@ -228,7 +251,17 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
     <div>
       <div class="sectitle">
         지문 입력
-        <button class="abtn" onclick="openModal()">+ 지문 추가</button>
+        <div style="display:flex;gap:8px;">
+          <button class="abtn" onclick="openModal()">+ 지문 추가</button>
+          <button class="abtn" onclick="openSaveSetModal()" style="background:var(--gr);">💾 세트 저장</button>
+          <button class="abtn" onclick="clearAllPassages()" style="background:#555;">🗑 전체삭제</button>
+        </div>
+      </div>
+      <!-- 저장된 세트 바 -->
+      <div class="setbar" id="setBar">
+        <span class="setlabel">저장된 세트:</span>
+        <span id="setButtons" style="display:flex;gap:6px;flex-wrap:wrap;"></span>
+        <span style="font-size:11px;color:var(--ink3);margin-left:4px;" id="setEmptyMsg">없음 — 세트 저장 버튼으로 저장하세요</span>
       </div>
       <div class="plist" id="passageListEl">
         <div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 추가" 버튼으로 지문을 입력하세요</div></div>
@@ -302,6 +335,19 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
   </div>
 </div>
 
+<!-- HISTORY -->
+<div class="panel" id="panel-history">
+  <div style="max-width:1000px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--bd);">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;">📋 출제 히스토리</div>
+      <button class="tbtn" onclick="clearHistory()" style="color:var(--ac);border-color:#f0c0bb;">🗑 전체 삭제</button>
+    </div>
+    <div id="historyArea">
+      <div class="empty"><div class="eic">📋</div><div class="eti">출제 기록이 없습니다</div><div>시험지를 생성하면 여기에 기록됩니다</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="mo" id="addModal">
   <div class="md">
@@ -318,6 +364,25 @@ header{background:var(--ink);color:var(--bg);padding:0 24px;height:56px;display:
     <div class="mdfoot">
       <button class="mb" onclick="closeModal()">취소</button>
       <button class="gbtn" onclick="savePassage()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE SET MODAL -->
+<div class="mo" id="saveSetModal">
+  <div class="md" style="width:380px;">
+    <div class="mdhead">
+      <span>지문 세트 저장</span>
+      <button class="xbtn" onclick="closeSaveSetModal()">✕</button>
+    </div>
+    <div class="mdbody">
+      <div class="fl">세트 이름 (예: A, B, 1단원, 기말고사...)</div>
+      <input class="fi" id="setNameInput" type="text" placeholder="세트 이름 입력" maxlength="20" onkeydown="if(event.key==='Enter') confirmSaveSet()">
+      <div style="font-size:12px;color:var(--ink3);margin-top:4px;">현재 입력된 지문 <strong id="setCountPreview">0</strong>개를 저장합니다.</div>
+    </div>
+    <div class="mdfoot">
+      <button class="mb" onclick="closeSaveSetModal()">취소</button>
+      <button class="gbtn" onclick="confirmSaveSet()">저장</button>
     </div>
   </div>
 </div>
@@ -405,7 +470,7 @@ function switchTab(name) {
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   document.getElementById('panel-' + name).classList.add('active');
-  var order = ['settings','passages','output'];
+  var order = ['settings','passages','output','history'];
   document.querySelectorAll('.tab')[order.indexOf(name)].classList.add('active');
 }
 
@@ -608,6 +673,8 @@ function onSeoToggle() {
 function chgSeoCount(d) {
   seoCount = Math.max(1, Math.min(10, seoCount + d));
   document.getElementById('seoCount').textContent = seoCount;
+  renderSetBar();
+  renderHistory();
   persist();
   var isRand = document.getElementById('randomToggle').checked;
   if (!isRand) renderManualCount();
@@ -653,8 +720,77 @@ function savePassage() {
 }
 
 function delPassage(i) {
-  if (!confirm('이 지문을 삭제하시겠습니까?')) return;
   passages.splice(i,1); persist(); renderPassageList(); updateQSum();
+}
+
+// ─── PASSAGE SETS ───
+var passageSets = JSON.parse(localStorage.getItem('passageSets') || '{}');
+
+function persistSets() {
+  localStorage.setItem('passageSets', JSON.stringify(passageSets));
+}
+
+function renderSetBar() {
+  var keys = Object.keys(passageSets);
+  var btnEl = document.getElementById('setButtons');
+  var emptyEl = document.getElementById('setEmptyMsg');
+  if (!keys.length) {
+    btnEl.innerHTML = '';
+    emptyEl.style.display = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  btnEl.innerHTML = keys.map(function(k) {
+    return '<div style="display:flex;align-items:center;gap:3px;">' +
+      '<button class="setbtn" onclick="loadSet(&quot;' + k + '&quot;)" title="클릭하여 불러오기">📂 ' + k + ' (' + passageSets[k].length + ')</button>' +
+      '<button class="setbtn" onclick="deleteSet(&quot;' + k + '&quot;)" style="padding:5px 7px;color:var(--ac);border-color:#f0c0bb;" title="세트 삭제">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+function openSaveSetModal() {
+  if (!passages.length) { alert('저장할 지문이 없습니다.'); return; }
+  document.getElementById('setNameInput').value = '';
+  document.getElementById('setCountPreview').textContent = passages.length;
+  document.getElementById('saveSetModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('setNameInput').focus(); }, 100);
+}
+
+function closeSaveSetModal() {
+  document.getElementById('saveSetModal').classList.remove('open');
+}
+
+function confirmSaveSet() {
+  var name = document.getElementById('setNameInput').value.trim();
+  if (!name) { alert('세트 이름을 입력해주세요.'); return; }
+  passageSets[name] = JSON.parse(JSON.stringify(passages));
+  persistSets();
+  renderSetBar();
+  closeSaveSetModal();
+  alert('[' + name + '] 세트로 저장되었습니다. (' + passages.length + '개 지문)');
+}
+
+function loadSet(name) {
+  if (!passageSets[name]) return;
+  if (passages.length && !confirm('[' + name + '] 세트를 불러오면 현재 지문이 교체됩니다. 계속하시겠습니까?')) return;
+  passages = JSON.parse(JSON.stringify(passageSets[name]));
+  persist(); renderPassageList(); updateQSum();
+}
+
+function deleteSet(name) {
+  delete passageSets[name];
+  persistSets();
+  renderSetBar();
+}
+
+function savePassages() {
+  persist();
+}
+
+function clearAllPassages() {
+  if (!passages.length) { alert('삭제할 지문이 없습니다.'); return; }
+  passages = [];
+  persist(); renderPassageList(); updateQSum();
 }
 
 function setPassageType(i, typeId) {
@@ -902,8 +1038,8 @@ async function startGeneration() {
 
   // 텍스트 조합
   var HDR = '\u2550'.repeat(60);
-  var qText = 'Seum 고T 영어 시험지 [문제]\n' + dateStr + ' · 총 ' + assignment.length + '문항\n' + HDR + '\n\n';
-  var aText = 'Seum 고T 영어 시험지 [해설]\n' + dateStr + '\n' + HDR + '\n\n';
+  var qText = 'Seum Teachers Lab [문제]\n' + dateStr + ' · 총 ' + assignment.length + '문항\n' + HDR + '\n\n';
+  var aText = 'Seum Teachers Lab [해설]\n' + dateStr + '\n' + HDR + '\n\n';
   var ansList = [];
 
   rawResults.forEach(function(r) {
@@ -943,12 +1079,110 @@ async function startGeneration() {
   document.getElementById('copyQBtn').style.display   = '';
   document.getElementById('copyABtn').style.display   = '';
   document.getElementById('copyAllBtn').style.display = '';
+  saveHistory(dateStr, assignment, rawResults);
   document.getElementById('taQ').scrollIntoView({ behavior:'smooth' });
   } catch(fatalErr) {
     document.getElementById('generateBtn').disabled = false;
     alert('오류가 발생했습니다: ' + fatalErr.message);
     console.error(fatalErr);
   }
+}
+
+
+// ─── HISTORY ───
+var examHistory = JSON.parse(localStorage.getItem('examHistory') || '[]');
+
+function persistHistory() {
+  // 최대 50세트만 보관
+  if (examHistory.length > 50) examHistory = examHistory.slice(-50);
+  localStorage.setItem('examHistory', JSON.stringify(examHistory));
+}
+
+function saveHistory(dateStr, assignment, rawResults) {
+  var record = {
+    date: dateStr,
+    setName: (function(){
+      // 현재 passages와 일치하는 세트명 찾기
+      var keys = Object.keys(passageSets);
+      for (var i=0; i<keys.length; i++) {
+        var s = passageSets[keys[i]];
+        if (s.length === passages.length) {
+          var match = s.every(function(p,idx){ return passages[idx] && passages[idx].text === p.text; });
+          if (match) return keys[i];
+        }
+      }
+      return null;
+    })(),
+    total: assignment.length,
+    items: assignment.map(function(a, i) {
+      var r = rawResults[i] || {};
+      var ans = r.result ? extractSec(r.result, 'ANSWER') : '';
+      return {
+        passageTitle: a.passage.title || ('지문 ' + (i+1)),
+        typeId: a.typeId,
+        typeName: (function(){ var t = qTypes.find(function(q){ return q.id===a.typeId; }); return t ? t.name : a.typeId; })(),
+        answer: ans ? ans.trim() : '',
+        success: !!r.result
+      };
+    })
+  };
+  examHistory.push(record);
+  persistHistory();
+  renderHistory();
+}
+
+function renderHistory() {
+  var el = document.getElementById('historyArea');
+  if (!examHistory.length) {
+    el.innerHTML = '<div class="empty"><div class="eic">📋</div><div class="eti">출제 기록이 없습니다</div><div>시험지를 생성하면 여기에 기록됩니다</div></div>';
+    return;
+  }
+  // 최신순 정렬
+  var list = examHistory.slice().reverse();
+  el.innerHTML = list.map(function(rec, ri) {
+    var setTag = rec.setName
+      ? '<span style="font-size:11px;background:var(--bls);color:var(--bl);padding:2px 8px;border-radius:10px;font-weight:700;">세트: ' + rec.setName + '</span>'
+      : '<span style="font-size:11px;background:var(--sf2);color:var(--ink3);padding:2px 8px;border-radius:10px;">수동 배정</span>';
+    var rows = rec.items.map(function(item, ii) {
+      var ti = qTypes.findIndex(function(t){ return t.id===item.typeId; });
+      var hex = ti >= 0 ? HEXES[ti % HEXES.length] : '#888';
+      return '<div class="hrow">' +
+        '<span class="hrow-num">' + (ii+1) + '</span>' +
+        '<span class="hrow-title">' + item.passageTitle + '</span>' +
+        '<span class="hrow-type" style="background:' + hex + '">' + item.typeName + '</span>' +
+        (item.answer ? '<span class="hrow-result">정답: ' + item.answer + '</span>' : '') +
+        (item.success ? '' : '<span style="font-size:11px;color:var(--ac);">✗ 실패</span>') +
+        '</div>';
+    }).join('');
+    return '<div class="hcard">' +
+      '<div class="hcard-head">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div class="hcard-title">회차 ' + (examHistory.length - ri) + '</div>' +
+          setTag +
+          '<span class="hcard-meta">' + rec.total + '문항</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span class="hcard-meta">' + rec.date + '</span>' +
+          '<button class="mb d" onclick="deleteHistory(' + (examHistory.length - 1 - ri) + ')">✕</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="hcard-body">' + rows + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function deleteHistory(idx) {
+  examHistory.splice(idx, 1);
+  persistHistory();
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!examHistory.length) return;
+  if (!confirm('모든 출제 기록을 삭제하시겠습니까?')) return;
+  examHistory = [];
+  persistHistory();
+  renderHistory();
 }
 
 function copySection(sec) {
@@ -1007,6 +1241,8 @@ if (sessionStorage.getItem('seumAuth') === '1') {
   renderQuotaRows();
   renderSeoTypeRows();
   document.getElementById('seoCount').textContent = seoCount;
+  renderSetBar();
+  renderHistory();
 })();
 </script>
 
