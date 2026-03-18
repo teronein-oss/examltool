@@ -733,7 +733,7 @@ async function callWithRetry(type, text, sid) {
   for (var n = 1; n <= max; n++) {
     try {
       if (n > 1) {
-        var w = n * 10;
+        var w = 40;
         var el = document.getElementById(sid);
         if (el) el.innerHTML = '<div class="spin"></div><span>⚠️ 재시도 (' + n + '/' + max + ') — ' + w + '초 대기중...</span>';
         await wait(w * 1000);
@@ -822,7 +822,7 @@ async function startGeneration() {
     document.getElementById('pbFill').style.width = Math.round(i/assignment.length*100) + '%';
     document.getElementById('pbLabel').textContent = (i+1) + ' / ' + assignment.length;
 
-    if (i > 0) await wait(7000);
+    if (i > 0) await wait(4000);
 
     try {
       var result = await callWithRetry(type, item.passage.text, sid);
