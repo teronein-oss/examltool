@@ -870,10 +870,17 @@ function toSections(num, type, raw) {
   q.push('[' + num + '번] [' + type.name + ']'); q.push('');
   q.push(direction); q.push('');
   if (!hasContent) {
-    var expIdx = raw.search(/\nEXPLANATION:/i);
-    var ansIdx = raw.search(/\nANSWER:/i);
-    var cutIdx = expIdx > 0 ? expIdx : (ansIdx > 0 ? ansIdx : raw.length);
-    q.push(raw.slice(0, cutIdx).trim());
+    var cutIdx = raw.length;
+    var cutKeys = ['ANSWER:', 'EXPLANATION:', '해석', '해설', '선지 해석'];
+    for (var ci=0; ci<cutKeys.length; ci++) {
+      var ki = raw.indexOf(cutKeys[ci]);
+      if (ki > 0 && ki < cutIdx) cutIdx = ki;
+    }
+    var hanRe = new RegExp('[\uAC00-\uD7A3]');
+    var cleaned = raw.slice(0, cutIdx).split('\n').filter(function(l){
+      return !hanRe.test(l);
+    }).join('\n').trim();
+    q.push(cleaned);
   }
   else if (type.id === 'order') {
     if (intro) { q.push('주어진 글:'); q.push(intro); q.push(''); }
