@@ -838,7 +838,8 @@ function cancelGeneration() {
 function wait(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
 function extractSec(raw, key) {
-  var m = raw.match(new RegExp(key + ':\\s*([\\s\\S]*?)(?=\\n[A-Z_]+:|$)', 'i'));
+  // 줄 시작 기준, 다음 섹션(대문자+언더스코어+콜론) 또는 끝까지
+  var m = raw.match(new RegExp('(?:^|\\n)[ \\t]*' + key + ':[ \\t]*([\\s\\S]*?)(?=\\n[ \\t]*[A-Z][A-Z_]*[ \\t]*:|$)', 'i'));
   return m ? m[1].trim() : '';
 }
 
@@ -868,7 +869,12 @@ function toSections(num, type, raw) {
   var q = [];
   q.push('[' + num + '번] [' + type.name + ']'); q.push('');
   q.push(direction); q.push('');
-  if (!hasContent) { q.push('[파싱 실패]'); q.push(raw); }
+  if (!hasContent) {
+    var expIdx = raw.search(/\nEXPLANATION:/i);
+    var ansIdx = raw.search(/\nANSWER:/i);
+    var cutIdx = expIdx > 0 ? expIdx : (ansIdx > 0 ? ansIdx : raw.length);
+    q.push(raw.slice(0, cutIdx).trim());
+  }
   else if (type.id === 'order') {
     if (intro) { q.push('주어진 글:'); q.push(intro); q.push(''); }
     if (bA) { q.push(bA); q.push(''); }
