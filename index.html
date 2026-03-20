@@ -868,7 +868,7 @@ function toSections(num, type, raw) {
   var q = [];
   q.push('[' + num + '번] [' + type.name + ']'); q.push('');
   q.push(direction); q.push('');
-  if (!hasContent) { q.push(raw); }
+  if (!hasContent) { q.push('[파싱 실패]'); q.push(raw); }
   else if (type.id === 'order') {
     if (intro) { q.push('주어진 글:'); q.push(intro); q.push(''); }
     if (bA) { q.push(bA); q.push(''); }
