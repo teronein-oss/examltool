@@ -793,7 +793,7 @@ function chgSeoCount(d) {
   document.getElementById('seoCount').textContent = seoCount;
   renderSetBar();
   renderHistory();
-  renderReports();
+  loadReportsFromSheets();
   initReportQtype();
   persist();
   var isRand = document.getElementById('randomToggle').checked;
@@ -1279,7 +1279,7 @@ function saveHistory(dateStr, assignment, rawResults, isRandom) {
   examHistory.push(record);
   persistHistory();
   renderHistory();
-  renderReports();
+  loadReportsFromSheets();
   initReportQtype();
 }
 
@@ -1303,7 +1303,7 @@ function renderHistSetBar() {
 function setHistFilter(name) {
   _histFilter = (!name || name === '전체') ? null : name;
   renderHistory();
-  renderReports();
+  loadReportsFromSheets();
   initReportQtype();
 }
 
@@ -1378,7 +1378,7 @@ function deleteHistory(idx) {
   examHistory.splice(idx, 1);
   persistHistory();
   renderHistory();
-  renderReports();
+  loadReportsFromSheets();
   initReportQtype();
 }
 
@@ -1388,7 +1388,7 @@ function clearHistory() {
   examHistory = [];
   persistHistory();
   renderHistory();
-  renderReports();
+  loadReportsFromSheets();
   initReportQtype();
 }
 
@@ -1448,6 +1448,9 @@ function toggleRequired() {
 }
 
 // ─── ERROR REPORT ───
+// ※ Google Apps Script 배포 URL을 아래에 붙여넣으세요
+var SHEETS_URL = 'https://script.google.com/macros/s/AKfycbw_NytzSMeQ9g6LYdhA3qKhjUBnK8CKnVvbm-lPP2v4oHjZR2BgQBAkXMPq5etzPlpL/exec';
+
 var reports = JSON.parse(localStorage.getItem('errorReports') || '[]');
 
 function persistReports() {
@@ -1473,13 +1476,69 @@ function submitReport() {
     String(now.getDate()).padStart(2,'0') + ' ' +
     String(now.getHours()).padStart(2,'0') + ':' +
     String(now.getMinutes()).padStart(2,'0');
-  reports.unshift({ type:type, qtype:qtype, content:content, date:dateStr, status:'new' });
-  persistReports();
-  renderReports();
-  document.getElementById('reportType').value    = '';
-  document.getElementById('reportQtype').value   = '';
-  document.getElementById('reportContent').value = '';
-  alert('오류가 보고되었습니다. 감사합니다!');
+  var rec = { type:type, qtype:qtype, content:content, date:dateStr, status:'new' };
+
+  // Google Sheets 전송
+  if (SHEETS_URL) {
+    var btn = document.querySelector('.gbtn[onclick="submitReport()"]');
+    if (btn) { btn.textContent = '전송 중...'; btn.disabled = true; }
+    fetch(SHEETS_URL, {
+      method: 'POST',
+      body: JSON.stringify(rec)
+    }).then(function(r){ return r.json(); })
+    .then(function(){
+      reports.unshift(rec);
+      persistReports();
+      loadReportsFromSheets();
+      document.getElementById('reportType').value    = '';
+      document.getElementById('reportQtype').value   = '';
+      document.getElementById('reportContent').value = '';
+      if (btn) { btn.textContent = '📤 보고하기'; btn.disabled = false; }
+      alert('오류가 Google Sheets에 보고되었습니다. 감사합니다!');
+    }).catch(function(){
+      reports.unshift(rec);
+      persistReports(); renderReports();
+      document.getElementById('reportType').value    = '';
+      document.getElementById('reportQtype').value   = '';
+      document.getElementById('reportContent').value = '';
+      if (btn) { btn.textContent = '📤 보고하기'; btn.disabled = false; }
+      alert('오류가 보고되었습니다. (오프라인 저장)');
+    });
+  } else {
+    // URL 미설정 시 로컬 저장
+    reports.unshift(rec);
+    persistReports(); renderReports();
+    document.getElementById('reportType').value    = '';
+    document.getElementById('reportQtype').value   = '';
+    document.getElementById('reportContent').value = '';
+    alert('오류가 보고되었습니다. (SHEETS_URL 미설정 — 로컬 저장)');
+  }
+}
+
+function loadReportsFromSheets() {
+  if (!SHEETS_URL) { renderReports(); return; }
+  fetch(SHEETS_URL)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      // 서버 데이터를 최신순으로 표시
+      data.reverse();
+      data.forEach(function(r){ if (!r.status) r.status = 'new'; });
+      // 로컬 보고와 합치지 않고 서버 데이터로 대체
+      document.getElementById('reportList').innerHTML = data.length ? data.map(function(r, i) {
+        var tc  = TAG_CLASS[r.type] || 'rtag-etc';
+        return '<div class="rcard">' +
+          '<div class="rcard-head">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span class="rtag ' + tc + '">' + r.type + '</span>' +
+              (r.qtype ? '<span style="font-size:11px;color:var(--ink3);">[' + r.qtype + ']</span>' : '') +
+            '</div>' +
+            '<span class="rcard-meta">' + r.date + '</span>' +
+          '</div>' +
+          '<div class="rcard-body">' + (r.content||'').replace(/\n/g,'<br>') + '</div>' +
+        '</div>';
+      }).join('') : '<div class="empty"><div class="eic">✅</div><div class="eti">보고된 오류가 없습니다</div></div>';
+    })
+    .catch(function(){ renderReports(); });
 }
 
 function toggleReportStatus(idx) {
@@ -1545,7 +1604,7 @@ function renderReports() {
   document.getElementById('seoCount').textContent = seoCount;
   renderSetBar();
   renderHistory();
-  renderReports();
+  loadReportsFromSheets();
   initReportQtype();
 })();
 </script>
