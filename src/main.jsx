@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import React from 'react'
 import App from './check-table/App.jsx'
 import './index.css'
+import './teachers-lab.css'
 
 // check-table React 앱을 패널 div에 마운트
 // panel은 CSS display:none 상태여도 React는 정상 렌더링하고,
