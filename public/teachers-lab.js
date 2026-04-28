@@ -2299,13 +2299,3 @@ function clearAllRefFiles() {
     }
   }
 })();
-</script>
-
-<footer style="background:var(--ink);color:var(--ink3);text-align:center;padding:14px 24px;font-size:12px;font-family:'IBM Plex Mono',monospace;border-top:2px solid #2a2520;">
-  <span style="color:#e8dcc0;">Seum Teachers Lab</span>
-  &nbsp;·&nbsp;
-  <span>Designed by <strong style="color:#e8dcc0;">고승환</strong></span>
-  &nbsp;·&nbsp;
-  <span>Powered by Gemini &amp; Claude API</span>
-</footer>
-</body>
