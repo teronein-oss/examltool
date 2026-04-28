@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* check-table 패널이 활성화될 때 배경/패딩 리셋 */
+#panel-check-table {
+  padding: 0;
+  background: #F8FAFC;
+}
