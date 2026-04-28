@@ -330,7 +330,6 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   <div style="max-width:1200px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--bd);">
       <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;">🐛 오류 보고</div>
-      <button class="tbtn" onclick="clearReports()" style="color:var(--ac);border-color:#f0c0bb;">🗑 전체 삭제</button>
     </div>
     <div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:20px;">
       <div style="padding:12px 18px;background:var(--sf2);border-bottom:1px solid var(--bd);font-weight:700;font-size:13px;">✏️ 오류 보고하기</div>
@@ -354,10 +353,7 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         <button class="gbtn" onclick="submitReport()">📤 보고하기</button>
       </div>
     </div>
-    <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:12px;">📋 보고된 오류 목록</div>
-    <div id="reportList">
-      <div class="empty"><div class="eic">✅</div><div class="eti">보고된 오류가 없습니다</div></div>
-    </div>
+    <div id="reportList" style="display:none;"></div>
   </div>
 </div>
 
