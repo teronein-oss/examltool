@@ -32,7 +32,7 @@ const SCHOOLS = [
 ]
 
 function toPageId(group, grade) {
-  return `${group}-${grade}` // e.g. "동백고-1학년"
+  return `${group}-${grade}`
 }
 
 function parsePageId(id) {
@@ -43,6 +43,7 @@ function parsePageId(id) {
 // ─── Defaults ───────────────────────────────────────────────────────────────
 
 const DEFAULT_COLUMNS = ['1차', '2차', '3차']
+const DEFAULT_ROW_COUNT = 25
 
 function makeRows(n) {
   return Array.from({ length: n }, () => ({
@@ -52,9 +53,14 @@ function makeRows(n) {
   }))
 }
 
+function padRowsTo25(rows) {
+  if (rows.length >= DEFAULT_ROW_COUNT) return rows
+  return [...rows, ...makeRows(DEFAULT_ROW_COUNT - rows.length)]
+}
+
 const DEFAULT_PAGE_DATA = () => ({
   columns: DEFAULT_COLUMNS,
-  rows: makeRows(25),
+  rows: makeRows(DEFAULT_ROW_COUNT),
   customTags: [],
 })
 
@@ -64,28 +70,44 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(
     () => localStorage.getItem('ct_lastPage') ?? toPageId('동백고', '1학년')
   )
-  const [pageData, setPageData] = useState(null)   // { columns, rows, customTags }
+  const [pageData, setPageData] = useState(null)
   const [loading, setLoading]   = useState(true)
-  const [openCell, setOpenCell] = useState(null)   // { rowId, col }
+  const [openCell, setOpenCell] = useState(null)
+  const [writeError, setWriteError] = useState(null)
   const tableRef = useRef(null)
 
   // ── Firestore subscription ────────────────────────────────────────────────
   useEffect(() => {
     setLoading(true)
     setOpenCell(null)
+    setWriteError(null)
 
     const ref = doc(db, 'pages', currentPage)
     const unsub = onSnapshot(ref, async (snap) => {
-      if (snap.exists()) {
-        setPageData(snap.data())
-      } else {
-        const defaults = DEFAULT_PAGE_DATA()
-        await setDoc(ref, defaults)
-        setPageData(defaults)
+      try {
+        if (snap.exists()) {
+          const data = snap.data()
+          // Always ensure at least 25 rows
+          const paddedRows = padRowsTo25(data.rows ?? [])
+          if (paddedRows.length > (data.rows ?? []).length) {
+            await updateDoc(ref, { rows: paddedRows })
+            // onSnapshot will fire again with the updated data
+            return
+          }
+          setPageData(data)
+        } else {
+          const defaults = DEFAULT_PAGE_DATA()
+          await setDoc(ref, defaults)
+          setPageData(defaults)
+        }
+      } catch (err) {
+        console.error('Firestore error:', err)
+        setWriteError(err.code ?? err.message)
       }
       setLoading(false)
     }, (err) => {
-      console.error('Firestore error:', err)
+      console.error('Firestore listener error:', err)
+      setWriteError(err.code ?? err.message)
       setLoading(false)
     })
 
@@ -107,34 +129,39 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler)
   }, [openCell])
 
-  // ── Firestore write helpers ───────────────────────────────────────────────
-  function pageRef() { return doc(db, 'pages', currentPage) }
-
-  const saveField = useCallback((field, value) =>
-    updateDoc(pageRef(), { [field]: value }), [currentPage])
+  // ── Firestore write helper ────────────────────────────────────────────────
+  const saveField = useCallback(async (field, value) => {
+    setWriteError(null)
+    try {
+      await updateDoc(doc(db, 'pages', currentPage), { [field]: value })
+    } catch (err) {
+      console.error('Firestore write error:', err)
+      setWriteError(err.code ?? err.message)
+    }
+  }, [currentPage])
 
   // ── Row handlers ──────────────────────────────────────────────────────────
   const addRow = useCallback(() => {
     const newRows = [...(pageData?.rows ?? []), { id: crypto.randomUUID(), passage: '', cells: {} }]
     saveField('rows', newRows)
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   const deleteRow = useCallback((rowId) => {
     const newRows = (pageData?.rows ?? []).filter(r => r.id !== rowId)
     saveField('rows', newRows)
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   const updatePassage = useCallback((rowId, value) => {
     const newRows = (pageData?.rows ?? []).map(r => r.id === rowId ? { ...r, passage: value } : r)
     saveField('rows', newRows)
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   // ── Column handlers ───────────────────────────────────────────────────────
   const addColumn = useCallback((name) => {
     const cols = pageData?.columns ?? []
     if (!name.trim() || cols.includes(name.trim())) return
     saveField('columns', [...cols, name.trim()])
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   const deleteColumn = useCallback((col) => {
     const newCols = (pageData?.columns ?? []).filter(c => c !== col)
@@ -143,7 +170,8 @@ export default function App() {
       delete cells[col]
       return { ...r, cells }
     })
-    updateDoc(pageRef(), { columns: newCols, rows: newRows })
+    updateDoc(doc(db, 'pages', currentPage), { columns: newCols, rows: newRows })
+      .catch(err => { console.error(err); setWriteError(err.code ?? err.message) })
   }, [pageData, currentPage])
 
   // ── Tag handlers ──────────────────────────────────────────────────────────
@@ -155,7 +183,7 @@ export default function App() {
       return { ...r, cells: { ...r.cells, [col]: next } }
     })
     saveField('rows', newRows)
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   const removeTag = useCallback((rowId, col, tag) => {
     const newRows = (pageData?.rows ?? []).map(r => {
@@ -163,14 +191,14 @@ export default function App() {
       return { ...r, cells: { ...r.cells, [col]: (r.cells[col] ?? []).filter(t => t !== tag) } }
     })
     saveField('rows', newRows)
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   const addCustomTag = useCallback((tag) => {
     const trimmed = tag.trim()
     const existing = pageData?.customTags ?? []
     if (!trimmed || OBJECTIVE_TAGS.includes(trimmed) || SUBJECTIVE_TAGS.includes(trimmed) || existing.includes(trimmed)) return
     saveField('customTags', [...existing, trimmed])
-  }, [pageData, currentPage])
+  }, [pageData, saveField])
 
   const handleOpenCell  = useCallback((rowId, col) => {
     setOpenCell(prev => (prev?.rowId === rowId && prev?.col === col) ? null : { rowId, col })
@@ -230,6 +258,15 @@ export default function App() {
           <span className="text-sm font-bold text-slate-700">{group} {grade}</span>
           {loading && <Loader2 size={14} className="animate-spin text-blue-500" />}
         </div>
+
+        {/* Error banner */}
+        {writeError && (
+          <div className="mb-3 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+            <span className="font-semibold">저장 실패:</span>
+            <span>{writeError}</span>
+            <span className="ml-auto text-xs text-red-500">Firebase Console → Firestore → 규칙 탭에서 pages 컬렉션 쓰기 허용 필요</span>
+          </div>
+        )}
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
