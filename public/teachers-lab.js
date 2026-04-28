@@ -1910,10 +1910,11 @@ function toggleRequired() {
 // ※ Google Apps Script 배포 URL을 아래에 붙여넣으세요
 var SHEETS_URL = 'https://script.google.com/macros/s/AKfycbw_NytzSMeQ9g6LYdhA3qKhjUBnK8CKnVvbm-lPP2v4oHjZR2BgQBAkXMPq5etzPlpL/exec';
 
-var reports = JSON.parse(localStorage.getItem('errorReports') || '[]');
+var reports = [];
+localStorage.removeItem('errorReports');
 
 function persistReports() {
-  localStorage.setItem('errorReports', JSON.stringify(reports));
+  // 로컬 저장 비활성화 — 오류 보고는 Google Sheets로만 전송
 }
 
 function initReportQtype() {
@@ -1946,8 +1947,6 @@ function submitReport() {
       body: JSON.stringify(rec)
     }).then(function(r){ return r.json(); })
     .then(function(){
-      reports.unshift(rec);
-      persistReports();
       loadReportsFromSheets();
       document.getElementById('reportType').value    = '';
       document.getElementById('reportQtype').value   = '';
@@ -1955,22 +1954,14 @@ function submitReport() {
       if (btn) { btn.textContent = '📤 보고하기'; btn.disabled = false; }
       alert('오류가 Google Sheets에 보고되었습니다. 감사합니다!');
     }).catch(function(){
-      reports.unshift(rec);
-      persistReports(); renderReports();
       document.getElementById('reportType').value    = '';
       document.getElementById('reportQtype').value   = '';
       document.getElementById('reportContent').value = '';
       if (btn) { btn.textContent = '📤 보고하기'; btn.disabled = false; }
-      alert('오류가 보고되었습니다. (오프라인 저장)');
+      alert('전송에 실패했습니다. 네트워크 연결을 확인해주세요.');
     });
   } else {
-    // URL 미설정 시 로컬 저장
-    reports.unshift(rec);
-    persistReports(); renderReports();
-    document.getElementById('reportType').value    = '';
-    document.getElementById('reportQtype').value   = '';
-    document.getElementById('reportContent').value = '';
-    alert('오류가 보고되었습니다. (SHEETS_URL 미설정 — 로컬 저장)');
+    alert('SHEETS_URL이 설정되지 않았습니다. 관리자에게 문의해주세요.');
   }
 }
 
