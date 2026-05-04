@@ -276,6 +276,193 @@ var selIdx  = 0;
 var editIdx = -1;
 var loadedPromptSetName = localStorage.getItem('loadedPromptSetName') || '';
 
+// ─── 연습문제 제작 STATE ───
+var pracPassage = null;        // { title, text }
+var pracSelectedTypes = [];    // array of typeId strings
+
+// ─── 연습문제 제작 FUNCTIONS ───
+function openPracModal() {
+  var m = document.getElementById('pracModal');
+  var titleEl = document.getElementById('pracMTitle');
+  var textEl  = document.getElementById('pracMText');
+  if (pracPassage) {
+    titleEl.value = pracPassage.title || '';
+    textEl.value  = pracPassage.text  || '';
+  } else {
+    titleEl.value = '';
+    textEl.value  = '';
+  }
+  m.style.display = 'flex';
+  textEl.focus();
+}
+
+function closePracModal() {
+  document.getElementById('pracModal').style.display = 'none';
+}
+
+function savePracPassage() {
+  var title = document.getElementById('pracMTitle').value.trim();
+  var text  = document.getElementById('pracMText').value.trim();
+  if (!text) { alert('지문을 입력해주세요.'); return; }
+  pracPassage = { title: title, text: text };
+  renderPracPassageArea();
+  closePracModal();
+}
+
+function clearPracPassage() {
+  if (pracPassage && !confirm('입력된 지문을 삭제하시겠습니까?')) return;
+  pracPassage = null;
+  renderPracPassageArea();
+}
+
+function renderPracPassageArea() {
+  var el = document.getElementById('pracPassageArea');
+  if (!el) return;
+  if (!pracPassage) {
+    el.innerHTML = '<div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 입력" 버튼으로 지문을 입력하세요</div></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="pc">' +
+    '<div class="pchead"><span class="pnum">1</span>' +
+    '<span style="font-size:13px;font-weight:600;color:var(--ink2);flex:1">' + (pracPassage.title || '제목 없음') + '</span></div>' +
+    '<div class="pprev">' + pracPassage.text + '</div>' +
+    '<div class="pcfoot">' +
+    '<button class="mb" onclick="openPracModal()">✎ 편집</button>' +
+    '</div></div>';
+}
+
+function renderPracTypeCheckboxes() {
+  var el = document.getElementById('pracTypeList');
+  if (!el) return;
+  var types = getActiveQTypes();
+  el.innerHTML = types.map(function(t, i) {
+    var checked = pracSelectedTypes.indexOf(t.id) >= 0 ? ' checked' : '';
+    return '<div class="seocbrow" style="padding:5px 0;">' +
+      '<input type="checkbox" id="prac_' + t.id + '" value="' + t.id + '"' + checked + ' onchange="togglePracType(\'' + t.id + '\')">' +
+      '<label for="prac_' + t.id + '" style="font-size:13px;">' + t.name + '</label></div>';
+  }).join('');
+  updatePracTypeSummary();
+}
+
+function togglePracType(id) {
+  var idx = pracSelectedTypes.indexOf(id);
+  if (idx >= 0) {
+    pracSelectedTypes.splice(idx, 1);
+  } else {
+    pracSelectedTypes.push(id);
+  }
+  updatePracTypeSummary();
+}
+
+function pracSelectAll() {
+  pracSelectedTypes = getActiveQTypes().map(function(t){ return t.id; });
+  renderPracTypeCheckboxes();
+}
+
+function pracSelectNone() {
+  pracSelectedTypes = [];
+  renderPracTypeCheckboxes();
+}
+
+function updatePracTypeSummary() {
+  var el = document.getElementById('pracTypeSummary');
+  if (el) el.textContent = '선택된 유형: ' + pracSelectedTypes.length + '개';
+}
+
+async function startPracGeneration() {
+  try {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('상단에 API 키를 먼저 입력해주세요.'); return; }
+  if (!pracPassage) { alert('지문을 먼저 입력해주세요.'); return; }
+  if (!pracSelectedTypes.length) { alert('문제 유형을 하나 이상 선택해주세요.'); return; }
+
+  var aqt = getActiveQTypes();
+  var assignment = pracSelectedTypes.map(function(tid) {
+    var type = null;
+    for (var j = 0; j < aqt.length; j++) { if (aqt[j].id === tid) { type = aqt[j]; break; } }
+    return type ? { passage: pracPassage, typeId: tid } : null;
+  }).filter(function(a){ return a !== null; });
+
+  if (!assignment.length) { alert('선택된 유형이 없습니다.'); return; }
+
+  switchTab('output');
+  document.getElementById('pbWrap').style.display    = 'block';
+  document.getElementById('pbWrap').classList.add('pulse-glow');
+  document.getElementById('pbLabel').style.display   = 'block';
+  document.getElementById('copyQBtn').style.display  = 'none';
+  document.getElementById('copyABtn').style.display  = 'none';
+  document.getElementById('copyAllBtn').style.display= 'none';
+  document.getElementById('retryFailedBtn').style.display= 'none';
+  _genCancelled = false;
+  document.getElementById('pracGenerateBtn').disabled = true;
+  document.getElementById('cancelBtn').style.display = '';
+
+  var now = new Date();
+  var dateStr = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
+
+  document.getElementById('outputArea').innerHTML =
+    '<div class="slide-fade-in" style="margin-bottom:16px;padding:13px 18px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);">' +
+    '<div style="font-weight:700;font-size:14px;margin-bottom:10px;font-family:\'Playfair Display\',serif;">🔄 연습문제 생성 중... (' + assignment.length + '유형)</div>' +
+    '<div id="statusList"></div></div>';
+
+  var statusEl = document.getElementById('statusList');
+  var rawResults = [];
+
+  for (var i = 0; i < assignment.length; i++) {
+    var item = assignment[i];
+    var type = null;
+    var _aqt = getActiveQTypes();
+    for (var j = 0; j < _aqt.length; j++) { if (_aqt[j].id === item.typeId) { type = _aqt[j]; break; } }
+    if (!type) continue;
+
+    var sid = 'st' + i;
+    statusEl.insertAdjacentHTML('beforeend',
+      '<div class="gi slide-fade-in" id="' + sid + '" style="animation-delay: ' + (Math.min(i, 10) * 0.1) + 's; animation-fill-mode: both;"><div class="spin"></div>' +
+      '<span>' + (i+1) + '번 생성 중 — [' + type.name + ']</span></div>');
+    document.getElementById(sid).scrollIntoView({ behavior:'smooth', block:'nearest' });
+    document.getElementById('pbFill').style.width = Math.round(i/assignment.length*100) + '%';
+    document.getElementById('pbLabel').textContent = (i+1) + ' / ' + assignment.length;
+
+    if (_genCancelled) break;
+    if (i > 0) await wait(8000);
+    if (_genCancelled) break;
+
+    try {
+      var result = await callWithRetry(type, item.passage.text, sid);
+      rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
+      var el = document.getElementById(sid);
+      el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
+      el.style.background  = 'var(--grs)';
+      el.style.borderColor = '#a0d4b4';
+    } catch(err) {
+      rawResults.push({ num:i+1, type:type, result:null, error:err.message, passageTitle: item.passage.title||'' });
+      var el2 = document.getElementById(sid);
+      el2.innerHTML = '<span class="ei">✗</span><span>' + (i+1) + '번 [' + type.name + '] — 실패: ' + err.message + '</span>';
+      el2.style.background = 'var(--acs)';
+    }
+  }
+
+  document.getElementById('pbFill').style.width   = '100%';
+  document.getElementById('pbWrap').classList.remove('pulse-glow');
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('pbLabel').textContent  = '완료 ' + assignment.length + '/' + assignment.length;
+  document.getElementById('pracGenerateBtn').disabled = false;
+
+  _curAssignment = assignment;
+  _curRawResults = rawResults;
+  _curDateStr = dateStr;
+  _curIsRandom = false;
+
+  compileAndRenderOutput();
+
+  } catch(fatalErr) {
+    document.getElementById('pracGenerateBtn').disabled = false;
+    alert('오류가 발생했습니다: ' + fatalErr.message);
+    console.error(fatalErr);
+  }
+}
+
 function renderActivePromptSet() {
   renderActiveCategoryDisplay();
 }
@@ -294,9 +481,22 @@ function switchTab(name) {
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   document.getElementById('panel-' + name).classList.add('active');
-  var order = ['passages','output','report','settings'];
+  var order = ['passages','practice','output','report','settings'];
   var idx = order.indexOf(name);
   if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
+  if (name === 'practice') {
+    renderPracTypeCheckboxes();
+    var sel = document.getElementById('pracActiveCategorySelect');
+    if (sel) sel.value = activeCategory;
+    var disp = document.getElementById('pracActivePromptSetDisplay');
+    if (disp) {
+      var catLabel = activeCategory === '개인설정' ? '개인 프롬프트' : activeCategory;
+      disp.textContent = '적용 프롬프트: [' + catLabel + ']';
+    }
+  }
+  if (name === 'check-table') {
+    document.querySelectorAll('.tab')[5].classList.add('active');
+  }
 }
 
 // ─── ACTIVE CATEGORY (for generation) ───
@@ -313,19 +513,22 @@ function setActiveCategory(cat) {
   sessionStorage.setItem('seumActiveCategory', cat);
   var sel = document.getElementById('activeCategorySelect');
   if (sel) sel.value = cat;
+  var pracSel = document.getElementById('pracActiveCategorySelect');
+  if (pracSel) pracSel.value = cat;
   renderQuotaRows();
   renderSeoTypeRows();
   renderPassageList();
   updateQSum();
   renderActiveCategoryDisplay();
+  renderPracTypeCheckboxes();
 }
 
 function renderActiveCategoryDisplay() {
+  var catLabel = activeCategory === '개인설정' ? '개인 프롬프트' : activeCategory;
   var el = document.getElementById('activePromptSetDisplay');
-  if (el) {
-    var catLabel = activeCategory === '개인설정' ? '개인 프롬프트' : activeCategory;
-    el.textContent = '적용 프롬프트: [' + catLabel + ']';
-  }
+  if (el) el.textContent = '적용 프롬프트: [' + catLabel + ']';
+  var pracDisp = document.getElementById('pracActivePromptSetDisplay');
+  if (pracDisp) pracDisp.textContent = '적용 프롬프트: [' + catLabel + ']';
 }
 
 // ─── SETTINGS CATEGORY ───
@@ -1035,6 +1238,8 @@ function cancelGeneration() {
   _genCancelled = true;
   document.getElementById('cancelBtn').style.display = 'none';
   document.getElementById('generateBtn').disabled = false;
+  var pracBtn = document.getElementById('pracGenerateBtn');
+  if (pracBtn) pracBtn.disabled = false;
   var pbWrap = document.getElementById('pbWrap');
   if (pbWrap) pbWrap.classList.remove('pulse-glow');
   var lbl = document.getElementById('pbLabel');
