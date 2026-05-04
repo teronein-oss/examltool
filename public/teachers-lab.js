@@ -4,7 +4,7 @@ var MASTER_CODE = 'master_andy';
 
 // 클라우드 동기화 대상 코드 — 이 코드로 로그인하면 Firebase와 연동되며, 
 // 로컬 저장 공간 역시 seum2025 등 일반 사용자와 섞이지 않도록 완전히 독립된(격리된) 키를 씁니다.
-var CLOUD_CODES = ['manager1', 'manager2', 'manager3', 'user1'];
+var CLOUD_CODES = ['manager1', 'manager2', 'manager3', 'user1', 'master_andy'];
 
 var COLORS = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','ca','cb','cc','cd','ce','cf'];
 var HEXES  = ['#c0392b','#2980b9','#27ae60','#8e44ad','#d35400','#16a085','#2c3e50','#7f8c8d','#e67e22','#1abc9c','#9b59b6','#34495e','#e74c3c','#3498db','#2ecc71'];

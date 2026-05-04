@@ -14,8 +14,11 @@
   <div class="lockbox">
     <div class="locktitle">Seum <span>Teachers Lab</span></div>
     <div class="locksub">접근 코드를 입력하세요</div>
-    <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
-      onkeydown="if(event.key==='Enter') checkCode()">
+    <div style="position:relative;display:flex;align-items:center;">
+      <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
+        onkeydown="if(event.key==='Enter') checkCode()" style="padding-right:44px;width:100%;box-sizing:border-box;">
+      <button onclick="(function(){var i=document.getElementById('codeInput'),b=document.getElementById('codeToggleBtn');if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}i.focus();})()" id="codeToggleBtn" type="button" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;font-size:18px;padding:0;line-height:1;">👁</button>
+    </div>
     <div class="lockerr" id="codeErr"></div>
     <button class="lockbtn" onclick="checkCode()">Enter</button>
     <div class="lockhint">코드는 관리자에게 문의하세요</div>
