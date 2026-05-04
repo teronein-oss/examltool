@@ -337,21 +337,34 @@ function renderPracTypeCheckboxes() {
   if (!el) return;
   var types = getActiveQTypes();
   el.innerHTML = types.map(function(t, i) {
-    var checked = pracSelectedTypes.indexOf(t.id) >= 0 ? ' checked' : '';
-    return '<div class="seocbrow" style="padding:5px 0;">' +
-      '<input type="checkbox" id="prac_' + t.id + '" value="' + t.id + '"' + checked + ' onchange="togglePracType(\'' + t.id + '\')">' +
-      '<label for="prac_' + t.id + '" style="font-size:13px;">' + t.name + '</label></div>';
+    var checked = pracSelectedTypes.indexOf(t.id) >= 0;
+    var checkedAttr = checked ? ' checked' : '';
+    var activeStyle = checked ? 'background:var(--grs);border-color:#a0d4b4;' : '';
+    return '<div class="qrow" id="pracrow_' + t.id + '" style="cursor:pointer;' + activeStyle + '" onclick="togglePracType(\'' + t.id + '\')">' +
+      '<div class="qtype">' +
+      '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
+      t.name +
+      '</div>' +
+      '<input type="checkbox" id="prac_' + t.id + '" value="' + t.id + '"' + checkedAttr + ' onclick="event.stopPropagation();togglePracType(\'' + t.id + '\')" style="width:16px;height:16px;cursor:pointer;accent-color:var(--gr);">' +
+      '</div>';
   }).join('');
   updatePracTypeSummary();
 }
 
 function togglePracType(id) {
   var idx = pracSelectedTypes.indexOf(id);
+  var nowChecked;
   if (idx >= 0) {
     pracSelectedTypes.splice(idx, 1);
+    nowChecked = false;
   } else {
     pracSelectedTypes.push(id);
+    nowChecked = true;
   }
+  var row = document.getElementById('pracrow_' + id);
+  var cb  = document.getElementById('prac_' + id);
+  if (row) row.style.cssText = 'cursor:pointer;' + (nowChecked ? 'background:var(--grs);border-color:#a0d4b4;' : '');
+  if (cb)  cb.checked = nowChecked;
   updatePracTypeSummary();
 }
 
