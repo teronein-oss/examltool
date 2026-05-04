@@ -277,20 +277,26 @@ var editIdx = -1;
 var loadedPromptSetName = localStorage.getItem('loadedPromptSetName') || '';
 
 // ─── 연습문제 제작 STATE ───
-var pracPassage = null;        // { title, text }
-var pracSelectedTypes = [];    // array of typeId strings
+var pracPassages = [];          // [{ title, text }, ...]
+var pracActiveIdx = -1;         // index of the selected passage (-1 = none)
+var pracEditIdx = -1;           // index being edited in modal (-1 = new)
+var pracSelectedTypes = [];     // array of typeId strings
 
 // ─── 연습문제 제작 FUNCTIONS ───
-function openPracModal() {
+function openPracModal(editIdx) {
+  pracEditIdx = (editIdx === undefined ? -1 : editIdx);
   var m = document.getElementById('pracModal');
   var titleEl = document.getElementById('pracMTitle');
   var textEl  = document.getElementById('pracMText');
-  if (pracPassage) {
-    titleEl.value = pracPassage.title || '';
-    textEl.value  = pracPassage.text  || '';
+  var headEl  = document.querySelector('#pracModal .mdhead span');
+  if (pracEditIdx >= 0 && pracPassages[pracEditIdx]) {
+    titleEl.value = pracPassages[pracEditIdx].title || '';
+    textEl.value  = pracPassages[pracEditIdx].text  || '';
+    if (headEl) headEl.textContent = '지문 편집';
   } else {
     titleEl.value = '';
     textEl.value  = '';
+    if (headEl) headEl.textContent = '지문 추가 (연습문제 제작)';
   }
   m.style.display = 'flex';
   textEl.focus();
@@ -304,32 +310,59 @@ function savePracPassage() {
   var title = document.getElementById('pracMTitle').value.trim();
   var text  = document.getElementById('pracMText').value.trim();
   if (!text) { alert('지문을 입력해주세요.'); return; }
-  pracPassage = { title: title, text: text };
+  if (pracEditIdx >= 0 && pracPassages[pracEditIdx]) {
+    pracPassages[pracEditIdx] = { title: title, text: text };
+  } else {
+    pracPassages.push({ title: title, text: text });
+    if (pracPassages.length === 1) pracActiveIdx = 0; // 첫 지문은 자동 선택
+  }
   renderPracPassageArea();
   closePracModal();
 }
 
-function clearPracPassage() {
-  if (pracPassage && !confirm('입력된 지문을 삭제하시겠습니까?')) return;
-  pracPassage = null;
+function delPracPassage(i) {
+  pracPassages.splice(i, 1);
+  if (pracActiveIdx >= pracPassages.length) pracActiveIdx = pracPassages.length - 1;
+  renderPracPassageArea();
+}
+
+function clearAllPracPassages() {
+  if (pracPassages.length && !confirm('모든 지문을 삭제하시겠습니까?')) return;
+  pracPassages = [];
+  pracActiveIdx = -1;
+  renderPracPassageArea();
+}
+
+function selectPracPassage(i) {
+  pracActiveIdx = i;
   renderPracPassageArea();
 }
 
 function renderPracPassageArea() {
   var el = document.getElementById('pracPassageArea');
   if (!el) return;
-  if (!pracPassage) {
-    el.innerHTML = '<div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 입력" 버튼으로 지문을 입력하세요</div></div>';
+  if (!pracPassages.length) {
+    el.innerHTML = '<div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 추가" 버튼으로 지문을 입력하세요</div></div>';
     return;
   }
-  el.innerHTML =
-    '<div class="pc">' +
-    '<div class="pchead"><span class="pnum">1</span>' +
-    '<span style="font-size:13px;font-weight:600;color:var(--ink2);flex:1">' + (pracPassage.title || '제목 없음') + '</span></div>' +
-    '<div class="pprev">' + pracPassage.text + '</div>' +
-    '<div class="pcfoot">' +
-    '<button class="mb" onclick="openPracModal()">✎ 편집</button>' +
-    '</div></div>';
+  el.innerHTML = pracPassages.map(function(p, i) {
+    var isActive = i === pracActiveIdx;
+    var activeBorder = isActive ? 'border:2px solid var(--gr);background:var(--grs);' : '';
+    var activeBadge  = isActive
+      ? '<span style="background:var(--gr);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px;">✓ 선택됨</span>'
+      : '<span style="font-size:11px;color:var(--ink3);margin-left:6px;">클릭하여 선택</span>';
+    return '<div class="pc" style="cursor:pointer;' + activeBorder + '" onclick="selectPracPassage(' + i + ')">' +
+      '<div class="pchead">' +
+      '<span class="pnum">' + (i+1) + '</span>' +
+      '<span style="font-size:13px;font-weight:600;color:var(--ink2);flex:1">' + (p.title || '제목 없음') + '</span>' +
+      activeBadge +
+      '</div>' +
+      '<div class="pprev">' + p.text + '</div>' +
+      '<div class="pcfoot">' +
+      '<button class="mb" onclick="event.stopPropagation();openPracModal(' + i + ')">✎ 편집</button>' +
+      '<button class="mb d" onclick="event.stopPropagation();delPracPassage(' + i + ')">✕ 삭제</button>' +
+      '</div></div>';
+  }).join('');
 }
 
 function renderPracTypeCheckboxes() {
@@ -387,14 +420,15 @@ async function startPracGeneration() {
   try {
   var key = document.getElementById('apiKeyInput').value.trim();
   if (!key) { alert('상단에 API 키를 먼저 입력해주세요.'); return; }
-  if (!pracPassage) { alert('지문을 먼저 입력해주세요.'); return; }
+  if (!pracPassages.length || pracActiveIdx < 0) { alert('지문을 추가하고 선택해주세요.'); return; }
   if (!pracSelectedTypes.length) { alert('문제 유형을 하나 이상 선택해주세요.'); return; }
 
+  var activePrac = pracPassages[pracActiveIdx];
   var aqt = getActiveQTypes();
   var assignment = pracSelectedTypes.map(function(tid) {
     var type = null;
     for (var j = 0; j < aqt.length; j++) { if (aqt[j].id === tid) { type = aqt[j]; break; } }
-    return type ? { passage: pracPassage, typeId: tid } : null;
+    return type ? { passage: activePrac, typeId: tid } : null;
   }).filter(function(a){ return a !== null; });
 
   if (!assignment.length) { alert('선택된 유형이 없습니다.'); return; }
