@@ -6,14 +6,12 @@ let srRoundData  = {};
 let srPdfTypes   = {};
 let srAnalysisResult = [];
 let srCharts = {};
-let srApiOpen = true;
 let srInitialized = false;
 
 // 최초 탭 진입 시 초기화
 function initScoreAnalysis() {
   if (srInitialized) return;
   srInitialized = true;
-  srLoadApiSettings();
   srAddRound();
   srRestorePdfTypes();
 }
@@ -34,54 +32,14 @@ function srRestorePdfTypes() {
 }
 
 // ══════════════════════════════════════════════
-// API 설정
+// API 키 — 메인 앱에서 공유
 // ══════════════════════════════════════════════
-function srLoadApiSettings() {
-  const p = localStorage.getItem('sr_api_provider') || 'gemini';
-  const radio = document.getElementById(`sr-r-${p}`);
-  if (radio) radio.checked = true;
-  srOnProvider();
-  ['claude','gemini'].forEach(t => {
-    const v = localStorage.getItem(`sr_${t}_api_key`);
-    if (v) {
-      const inp = document.getElementById(`sr-${t}-input`);
-      const saved = document.getElementById(`sr-${t}-saved`);
-      if (inp) inp.value = v;
-      if (saved) saved.textContent = '✓ 저장됨';
-    }
-  });
-}
-
-function srOnProvider() {
-  const radio = document.querySelector('input[name="sr_provider"]:checked');
-  const p = radio?.value || 'gemini';
-  localStorage.setItem('sr_api_provider', p);
-  const cr = document.getElementById('sr-claude-row');
-  const gr = document.getElementById('sr-gemini-row');
-  if (cr) cr.classList.toggle('hidden', p !== 'claude');
-  if (gr) gr.classList.toggle('hidden', p !== 'gemini');
-}
-
-function srSaveKey(t) {
-  const v = document.getElementById(`sr-${t}-input`)?.value.trim();
-  if (!v) { srToast('API 키를 입력해주세요', true); return; }
-  localStorage.setItem(`sr_${t}_api_key`, v);
-  const saved = document.getElementById(`sr-${t}-saved`);
-  if (saved) saved.textContent = '✓ 저장됨';
-  srToast('API 키 저장 완료');
-}
-
 function srGetKey() {
-  const p = localStorage.getItem('sr_api_provider') || 'gemini';
-  return { provider: p, key: localStorage.getItem(`sr_${p}_api_key`) || '' };
-}
-
-function srToggleApi() {
-  srApiOpen = !srApiOpen;
-  const body = document.getElementById('sr-api-body');
-  const btn  = document.getElementById('sr-api-toggle');
-  if (body) body.style.display = srApiOpen ? '' : 'none';
-  if (btn)  btn.textContent = srApiOpen ? '접기 ▲' : '펼치기 ▼';
+  const isClaude = typeof isClaudeModel === 'function' && isClaudeModel();
+  const provider = isClaude ? 'claude' : 'gemini';
+  const key = document.getElementById('apiKeyInput')?.value.trim()
+    || localStorage.getItem(isClaude ? 'claudeKey' : 'geminiKey') || '';
+  return { provider, key };
 }
 
 // ══════════════════════════════════════════════
@@ -596,8 +554,9 @@ async function srCallApiForTypes(base64PDF) {
     if (!res.ok) throw new Error(`Claude 오류 (HTTP ${res.status}): ${d.error?.message || JSON.stringify(d).substring(0,200)}`);
     text = d.content?.[0]?.text || '';
   } else {
+    const geminiModel = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
