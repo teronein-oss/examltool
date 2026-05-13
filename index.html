@@ -318,6 +318,7 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
       <div class="sectitle">
         <div style="display:flex;flex-direction:column;">연습문제 제작 — 지문 입력</div>
         <div style="display:flex;gap:8px;">
+          <button class="abtn" onclick="openImportSetModal()" style="background:var(--bl);">📂 저장된 지문 가져오기</button>
           <button class="abtn" onclick="openPracModal(-1)">+ 지문 추가</button>
           <button class="abtn" onclick="clearAllPracPassages()" style="background:#555;">🗑 전체 삭제</button>
         </div>
@@ -542,6 +543,37 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
     <div class="mdfoot">
       <button class="mb" onclick="closeSavePromptModal()">취소</button>
       <button class="gbtn" onclick="confirmSavePromptSet()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="pracImportModal">
+  <div class="md" style="max-width:460px;">
+    <div class="mdhead">
+      <span>📂 저장된 지문 세트 가져오기</span>
+      <button class="xbtn" onclick="closeImportSetModal()">✕</button>
+    </div>
+    <div class="mdbody">
+      <div class="fl" style="margin-bottom:6px;">지문 입력 페이지에서 저장한 세트를 선택하세요</div>
+      <select id="importSetSelect" style="width:100%;font-family:'Noto Sans KR',sans-serif;font-size:14px;padding:9px 12px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;margin-bottom:14px;">
+        <option value="">— 세트 선택 —</option>
+      </select>
+      <div id="importSetPreview" style="font-size:12px;color:var(--ink3);background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:8px 12px;min-height:36px;margin-bottom:14px;display:none;"></div>
+      <div class="fl" style="margin-bottom:6px;">가져오기 방식</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+          <input type="radio" name="importMode" value="replace" checked style="width:15px;height:15px;accent-color:var(--bl);">
+          <span><strong>교체</strong> — 현재 지문을 모두 지우고 선택한 세트로 대체</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+          <input type="radio" name="importMode" value="append" style="width:15px;height:15px;accent-color:var(--bl);">
+          <span><strong>추가</strong> — 기존 지문을 유지하고 선택한 세트를 뒤에 추가</span>
+        </label>
+      </div>
+    </div>
+    <div class="mdfoot">
+      <button class="mb" onclick="closeImportSetModal()">취소</button>
+      <button class="gbtn" onclick="confirmImportSet()">📂 가져오기</button>
     </div>
   </div>
 </div>

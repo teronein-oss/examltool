@@ -300,6 +300,54 @@ var pracEditIdx = -1;           // index being edited in modal (-1 = new)
 var pracSelectedTypes = [];     // array of typeId strings
 
 // ─── 연습문제 제작 FUNCTIONS ───
+
+function openImportSetModal() {
+  var keys = Object.keys(passageSets);
+  var sel = document.getElementById('importSetSelect');
+  var preview = document.getElementById('importSetPreview');
+  if (!sel) return;
+  // 저장된 세트가 없으면 안내
+  if (!keys.length) {
+    alert('지문 입력 페이지에 저장된 세트가 없습니다.\n먼저 지문 입력 탭에서 지문 세트를 저장해 주세요.');
+    return;
+  }
+  // 드롭다운 채우기
+  sel.innerHTML = '<option value="">— 세트 선택 —</option>' +
+    keys.map(function(k) {
+      return '<option value="' + k.replace(/"/g, '&quot;') + '">' + k + ' (' + passageSets[k].length + '개 지문)</option>';
+    }).join('');
+  if (preview) { preview.style.display = 'none'; preview.textContent = ''; }
+  // 세트 선택 시 미리보기
+  sel.onchange = function() {
+    var key = sel.value;
+    if (!key || !passageSets[key]) { preview.style.display = 'none'; return; }
+    var set = passageSets[key];
+    preview.style.display = '';
+    preview.innerHTML = '<strong>' + key + '</strong> — 지문 ' + set.length + '개:<br>' +
+      set.map(function(p, i) { return (i+1) + '. ' + (p.title || '제목 없음'); }).join('<br>');
+  };
+  document.getElementById('pracImportModal').style.display = 'flex';
+}
+
+function closeImportSetModal() {
+  document.getElementById('pracImportModal').style.display = 'none';
+}
+
+function confirmImportSet() {
+  var key = document.getElementById('importSetSelect').value;
+  if (!key || !passageSets[key]) { alert('세트를 선택해 주세요.'); return; }
+  var mode = document.querySelector('input[name="importMode"]:checked')?.value || 'replace';
+  var imported = passageSets[key].map(function(p) { return { title: p.title || '', text: p.text || '' }; });
+  if (mode === 'replace') {
+    pracPassages = imported;
+  } else {
+    pracPassages = pracPassages.concat(imported);
+  }
+  pracActiveIdx = pracPassages.length ? 0 : -1;
+  closeImportSetModal();
+  renderPracPassageArea();
+}
+
 function openPracModal(editIdx) {
   pracEditIdx = (editIdx === undefined ? -1 : editIdx);
   var m = document.getElementById('pracModal');
