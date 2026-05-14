@@ -615,7 +615,7 @@ async function srStartAnalysis() {
     srRenderResults();
     pw.classList.remove('on');
     const resultSec = document.getElementById('sr-result-section');
-    resultSec.classList.add('on');
+    resultSec.style.display = 'block';
     resultSec.scrollIntoView({ behavior: 'smooth' });
   } catch(e) {
     pw.classList.remove('on');
