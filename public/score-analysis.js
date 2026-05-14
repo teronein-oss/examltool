@@ -588,8 +588,6 @@ async function srCallApiForTypes(base64PDF) {
 let srGlobalRoundStats = {};
 
 async function srStartAnalysis() {
-  const { key } = srGetKey();
-  if (!key) { srToast('API 키를 먼저 입력해주세요', true); return; }
   const validRounds = Object.keys(srRoundData).map(Number).sort((a,b)=>a-b);
   if (!validRounds.length) { srToast('최소 1개 회차의 엑셀을 업로드해주세요', true); return; }
 
