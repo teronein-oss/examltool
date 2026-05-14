@@ -588,8 +588,6 @@ async function srCallApiForTypes(base64PDF) {
 let srGlobalRoundStats = {};
 
 async function srStartAnalysis() {
-  const { key } = srGetKey();
-  if (!key) { srToast('API 키를 먼저 입력해주세요', true); return; }
   const validRounds = Object.keys(srRoundData).map(Number).sort((a,b)=>a-b);
   if (!validRounds.length) { srToast('최소 1개 회차의 엑셀을 업로드해주세요', true); return; }
 
@@ -615,12 +613,12 @@ async function srStartAnalysis() {
     srRenderResults();
     pw.classList.remove('on');
     const resultSec = document.getElementById('sr-result-section');
-    resultSec.classList.add('on');
+    resultSec.style.display = 'block';
     resultSec.scrollIntoView({ behavior: 'smooth' });
   } catch(e) {
     pw.classList.remove('on');
-    srToast('분석 오류: ' + e.message, true);
-    console.error(e);
+    console.error('[시험분석지 오류]', e);
+    alert('분석 오류: ' + e.message + '\n\nF12 콘솔에서 상세 내용을 확인하세요.');
   }
   if (analyzeBtn) analyzeBtn.disabled = false;
 }
