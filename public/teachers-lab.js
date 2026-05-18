@@ -1297,7 +1297,7 @@ async function transformPassage(i, mode) {
         { method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             contents:[{parts:[{text: promptText}]}],
-            generationConfig:{maxOutputTokens:4000, temperature:0.7}
+            generationConfig:{maxOutputTokens:8000, temperature:0.7}
           })
         }
       );
@@ -1573,7 +1573,7 @@ async function callAPI(type, passageText, retryHint) {
       },
       body: JSON.stringify({
         model: model,
-        max_tokens: 4000,
+        max_tokens: 8000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -1591,7 +1591,7 @@ async function callAPI(type, passageText, retryHint) {
       { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{parts:[{text: prompt}]}],
-          generationConfig:{maxOutputTokens:4000, temperature:0.7}
+          generationConfig:{maxOutputTokens:8000, temperature:0.7}
         })
       }
     );
