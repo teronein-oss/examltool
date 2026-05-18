@@ -1741,11 +1741,16 @@ async function startGeneration() {
     try {
       var result = await callWithRetry(type, item.passage.text, sid);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
-      rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
+      rawResults.push({ num:i+1, type:type, result:result||null, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
-      el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
-      el.style.background  = 'var(--grs)';
-      el.style.borderColor = '#a0d4b4';
+      if (result) {
+        el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
+        el.style.background  = 'var(--grs)';
+        el.style.borderColor = '#a0d4b4';
+      } else {
+        el.innerHTML = '<span class="ei">✗</span><span>' + (i+1) + '번 [' + type.name + '] — 실패: 빈 응답 수신</span>';
+        el.style.background = 'var(--acs)';
+      }
     } catch(err) {
       rawResults.push({ num:i+1, type:type, result:null, error:err.message, passageTitle: item.passage.title||'' });
       var el2 = document.getElementById(sid);
