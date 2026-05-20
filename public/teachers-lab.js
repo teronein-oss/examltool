@@ -280,6 +280,36 @@ function getSchoolLabel(cat) {
 }
 function saveSchoolPresets() {
   _originalSetItem.call(localStorage, 'schoolPresets', JSON.stringify(schoolPresets));
+  if (isMaster() && fbDb) fbSaveSharedSchoolPresets();
+}
+
+function fbSaveSharedSchoolPresets() {
+  if (!fbDb || !isMaster()) return;
+  setSyncStatus('syncing', '☁ 저장 중...');
+  fbDb.collection('shared').doc('schoolPresets').set({ presets: schoolPresets })
+    .then(function() { setSyncStatus('syncok', '☁ ' + fbUserId()); })
+    .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); console.error('schoolPresets 저장 오류:', e); });
+}
+
+function fbPullSharedSchoolPresets() {
+  if (!fbDb) return;
+  fbDb.collection('shared').doc('schoolPresets').get()
+    .then(function(doc) {
+      if (!doc.exists || !doc.data() || !doc.data().presets) return;
+      var pulled = doc.data().presets;
+      SCHOOL_NAMES.forEach(function(s) {
+        if (pulled[s] && Array.isArray(pulled[s])) schoolPresets[s] = pulled[s];
+      });
+      _originalSetItem.call(localStorage, 'schoolPresets', JSON.stringify(schoolPresets));
+      // 현재 설정 탭이 학교 카테고리면 editingQTypes도 갱신
+      if (SCHOOL_NAMES.indexOf(settingsCat) >= 0) {
+        editingQTypes = mergeWithDefaultQTypes(JSON.parse(JSON.stringify(schoolPresets[settingsCat] || DEFAULT_TYPES)));
+        renderTypeList();
+        if (editingQTypes.length) selectType(0);
+      }
+      renderSettingsCategoryTabs();
+    })
+    .catch(function(e) { console.error('schoolPresets 불러오기 오류:', e); });
 }
 
 var settingsCat = '개인설정'; // which category the settings editor is currently showing
@@ -2205,6 +2235,7 @@ function checkCode() {
       }
     } else {
       setSyncStatus('syncno', '💾 로컬 저장');
+      if (fbDb) fbPullSharedSchoolPresets();
     }
     showMigrationIfCloud();
     showMasterAdminSection();
@@ -2452,6 +2483,8 @@ function fbApplyData(data) {
   renderTypeList(); selectType(0); renderPassageList(); renderQuotaRows();
   renderSeoTypeRows(); document.getElementById('seoCount').textContent = seoCount;
   renderSetBar(); renderPromptSetBar();
+  // 학교별 공유 프롬프트 동기화 (shared/schoolPresets)
+  fbPullSharedSchoolPresets();
 }
 
 // 로그인 시 해당 코드의 클라우드 데이터를 조용히 불러옴
@@ -2621,8 +2654,9 @@ function clearAllRefFiles() {
         }
       }, 3000);
     } else {
-      // 로컬 코드: 상태 표시만
+      // 로컬 코드: 상태 표시만, 공유 학교 프롬프트는 pull
       setSyncStatus('syncno', '💾 로컬 저장');
+      if (fbDb) fbPullSharedSchoolPresets();
     }
   }
 })();
