@@ -291,11 +291,30 @@ function fbSaveSharedSchoolPresets() {
     .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); console.error('schoolPresets 저장 오류:', e); });
 }
 
+function fbSaveSharedSchoolPresetsManual() {
+  if (!fbDb) { alert('Firebase에 연결되지 않았습니다. 새로고침 후 다시 시도해주세요.'); return; }
+  if (!isMaster()) { alert('관리자만 사용할 수 있습니다.'); return; }
+  setSyncStatus('syncing', '☁ 저장 중...');
+  fbDb.collection('shared').doc('schoolPresets').set({ presets: schoolPresets })
+    .then(function() {
+      setSyncStatus('syncok', '☁ ' + fbUserId());
+      alert('✅ 모든 학교 프롬프트가 서버에 저장되었습니다.\n다른 계정에서 새로고침 또는 재로그인 시 반영됩니다.');
+    })
+    .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); alert('저장 오류: ' + e.message); console.error(e); });
+}
+
 function fbPullSharedSchoolPresets() {
   if (!fbDb) return;
   fbDb.collection('shared').doc('schoolPresets').get()
     .then(function(doc) {
-      if (!doc.exists || !doc.data() || !doc.data().presets) return;
+      if (!doc.exists || !doc.data() || !doc.data().presets) {
+        // 서버에 문서 없음 — master_andy면 현재 로컬 데이터를 서버에 최초 업로드
+        if (isMaster()) {
+          console.log('shared/schoolPresets 없음 → 로컬 데이터 서버 업로드 시작');
+          fbSaveSharedSchoolPresets();
+        }
+        return;
+      }
       var pulled = doc.data().presets;
       SCHOOL_NAMES.forEach(function(s) {
         if (pulled[s] && Array.isArray(pulled[s])) schoolPresets[s] = pulled[s];
