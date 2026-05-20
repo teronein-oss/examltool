@@ -255,12 +255,29 @@ var seoCount    = parseInt(localStorage.getItem('seoCount')      || '1');
 var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo1"]');
 var promptSets  = JSON.parse(localStorage.getItem('promptSets_v1') || '{}');
 
-var SCHOOL_NAMES = ['동백고', '백현고', '청덕고'];
+var SCHOOL_NAMES = ['동백고1', '동백고2', '백현고', '청덕고', '성지고1', '성지고2'];
 // schoolPresets is non-isolated (shared across all user codes on same browser)
 var schoolPresets = JSON.parse(_originalGetItem.call(localStorage, 'schoolPresets') || '{}');
+// Migrate old '동백고' → '동백고1', '동백고2'
+(function() {
+  if (schoolPresets['동백고'] && !schoolPresets['동백고1'] && !schoolPresets['동백고2']) {
+    schoolPresets['동백고1'] = JSON.parse(JSON.stringify(schoolPresets['동백고']));
+    schoolPresets['동백고2'] = JSON.parse(JSON.stringify(schoolPresets['동백고']));
+  }
+})();
 SCHOOL_NAMES.forEach(function(s) {
   if (!schoolPresets[s]) schoolPresets[s] = JSON.parse(JSON.stringify(DEFAULT_TYPES));
 });
+
+function getSchoolLabel(cat) {
+  var labels = {
+    '동백고1': '동백고 1학년', '동백고2': '동백고 2학년',
+    '백현고': '백현고', '청덕고': '청덕고',
+    '성지고1': '성지고 1학년', '성지고2': '성지고 2학년',
+    '기본설정': '기본 설정', '개인설정': '개인 프롬프트'
+  };
+  return labels[cat] || cat;
+}
 function saveSchoolPresets() {
   _originalSetItem.call(localStorage, 'schoolPresets', JSON.stringify(schoolPresets));
 }
@@ -602,8 +619,7 @@ function switchTab(name) {
     if (sel) sel.value = activeCategory;
     var disp = document.getElementById('pracActivePromptSetDisplay');
     if (disp) {
-      var catLabel = activeCategory === '개인설정' ? '개인 프롬프트' : activeCategory;
-      disp.textContent = '적용 프롬프트: [' + catLabel + ']';
+      disp.textContent = '적용 프롬프트: [' + getSchoolLabel(activeCategory) + ']';
     }
   }
   if (name === 'check-table') {
@@ -636,7 +652,7 @@ function setActiveCategory(cat) {
 }
 
 function renderActiveCategoryDisplay() {
-  var catLabel = activeCategory === '개인설정' ? '개인 프롬프트' : activeCategory;
+  var catLabel = getSchoolLabel(activeCategory);
   var el = document.getElementById('activePromptSetDisplay');
   if (el) el.textContent = '적용 프롬프트: [' + catLabel + ']';
   var pracDisp = document.getElementById('pracActivePromptSetDisplay');
@@ -662,18 +678,19 @@ function switchSettingsCat(cat) {
 }
 
 function renderSettingsCategoryTabs() {
-  var tabs = ['동백고', '백현고', '청덕고', '기본설정', '개인설정'];
   var el = document.getElementById('settingsCatTabs');
   if (!el) return;
-  el.innerHTML = tabs.map(function(cat) {
-    var isSchool = SCHOOL_NAMES.indexOf(cat) >= 0;
-    var isActive = cat === settingsCat;
-    var style = isActive
-      ? 'background:var(--ink);color:#fff;border-color:var(--ink);'
-      : 'background:#fff;color:var(--ink2);border-color:var(--bd);';
-    var icon = isSchool ? '🏫 ' : (cat === '개인설정' ? '👤 ' : '📋 ');
-    return '<button onclick="switchSettingsCat(\'' + cat + '\')" style="padding:7px 16px;border-radius:99px;border:1.5px solid;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;transition:all 0.2s;' + style + '">' + icon + cat + '</button>';
+  var schoolOpts = SCHOOL_NAMES.map(function(cat) {
+    return '<option value="' + cat + '"' + (cat === settingsCat ? ' selected' : '') + '>🏫 ' + getSchoolLabel(cat) + '</option>';
   }).join('');
+  var otherOpts = ['기본설정', '개인설정'].map(function(cat) {
+    var icon = cat === '개인설정' ? '👤 ' : '📋 ';
+    return '<option value="' + cat + '"' + (cat === settingsCat ? ' selected' : '') + '>' + icon + getSchoolLabel(cat) + '</option>';
+  }).join('');
+  el.innerHTML = '<select onchange="switchSettingsCat(this.value)" style="font-family:\'Noto Sans KR\',sans-serif;font-size:13px;padding:7px 14px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;cursor:pointer;font-weight:600;min-width:200px;">'
+    + '<optgroup label="🏫 학교별 프롬프트">' + schoolOpts + '</optgroup>'
+    + '<optgroup label="⚙️ 기타">' + otherOpts + '</optgroup>'
+    + '</select>';
 }
 
 function renderSettingsEditorVisibility() {
