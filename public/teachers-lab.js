@@ -1506,13 +1506,14 @@ function toSections(num, type, raw, passageTitle) {
     var condBlock  = extractKorBlock(seo1Full, '< 조건 >');
     // 3) < 보기 > 블록
     var exBlock    = extractKorBlock(seo1Full, '< 보기 >');
+    // 별도 섹션(CONDITIONS:/WORD_BANK:) 우선, 없으면 direction 내 임베드 블록 사용
+    var finalCond1 = conditionsBlock || condBlock;
+    var finalEx1   = wordBankBlock   || exBlock;
     // 출력 순서: 지시문 → 지문 → <조건> → <보기> → 답란
     q.push(seo1Instr || seo1Full.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
     if (passage) { q.push(passage); q.push(''); }
-    if (condBlock) { q.push('< 조건 >'); q.push(condBlock); q.push(''); }
-    else if (conditionsBlock) { q.push('[조건]'); q.push(conditionsBlock); q.push(''); }
-    if (exBlock)   { q.push('< 보기 >'); q.push(exBlock);   q.push(''); }
-    else if (wordBankBlock)   { q.push('[보기]'); q.push(wordBankBlock);   q.push(''); }
+    if (finalCond1) { q.push('< 조건 >'); q.push(finalCond1); q.push(''); }
+    if (finalEx1)   { q.push('< 보기 >'); q.push(finalEx1);   q.push(''); }
     q.push('답 : _________________________________________________________'); q.push('');
 
   } else if (type.id === 'seo2') {
@@ -1522,10 +1523,10 @@ function toSections(num, type, raw, passageTitle) {
     var seo2Instr = (condIdx2 >= 0 ? seo2Full.substring(0, condIdx2) : seo2Full)
       .replace(/답\s*[:：][\s_]*/g, '').replace(/\(A\)[\s_]*/g, '').trim();
     var condBlock2 = extractKorBlock(seo2Full, '< 조건 >');
+    var finalCond2 = conditionsBlock || condBlock2;
     // 출력 순서: 지시문 → <조건> → 지문 → 요약문 → 답란
     q.push(seo2Instr || seo2Full.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
-    if (condBlock2) { q.push('< 조건 >'); q.push(condBlock2); q.push(''); }
-    else if (conditionsBlock) { q.push('[조건]'); q.push(conditionsBlock); q.push(''); }
+    if (finalCond2) { q.push('< 조건 >'); q.push(finalCond2); q.push(''); }
     if (passage)    { q.push(passage); q.push(''); }
     if (summary)    { q.push(summary); q.push(''); }
     q.push('답 : (A) ____________________ [2.0점]');
