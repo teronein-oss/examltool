@@ -1510,7 +1510,9 @@ function toSections(num, type, raw, passageTitle) {
     q.push(seo1Instr || seo1Full.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
     if (passage) { q.push(passage); q.push(''); }
     if (condBlock) { q.push('< 조건 >'); q.push(condBlock); q.push(''); }
+    else if (conditionsBlock) { q.push('[조건]'); q.push(conditionsBlock); q.push(''); }
     if (exBlock)   { q.push('< 보기 >'); q.push(exBlock);   q.push(''); }
+    else if (wordBankBlock)   { q.push('[보기]'); q.push(wordBankBlock);   q.push(''); }
     q.push('답 : _________________________________________________________'); q.push('');
 
   } else if (type.id === 'seo2') {
@@ -1523,6 +1525,7 @@ function toSections(num, type, raw, passageTitle) {
     // 출력 순서: 지시문 → <조건> → 지문 → 요약문 → 답란
     q.push(seo2Instr || seo2Full.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
     if (condBlock2) { q.push('< 조건 >'); q.push(condBlock2); q.push(''); }
+    else if (conditionsBlock) { q.push('[조건]'); q.push(conditionsBlock); q.push(''); }
     if (passage)    { q.push(passage); q.push(''); }
     if (summary)    { q.push(summary); q.push(''); }
     q.push('답 : (A) ____________________ [2.0점]');
