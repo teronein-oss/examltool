@@ -1685,15 +1685,18 @@ async function callAPI(type, passageText, retryHint) {
 
   } else {
     // ── Gemini API ──
+    // thinkingConfig는 Flash 계열만 지원 (Pro는 항상 thinking 활성화, 필드 불필요)
+    var geminiBody2 = {
+      contents:[{parts:[{text: prompt}]}],
+      generationConfig:{maxOutputTokens:16384, temperature:0.7}
+    };
+    if (model.indexOf('flash') >= 0) {
+      geminiBody2.thinkingConfig = {thinkingBudget:2048};
+    }
     var res2 = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
       { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          contents:[{parts:[{text: prompt}]}],
-          generationConfig:{maxOutputTokens:16384, temperature:0.7},
-          // thinking 토큰이 응답 공간을 침범하지 않도록 버짓 제한
-          thinkingConfig:{thinkingBudget:2048}
-        })
+        body: JSON.stringify(geminiBody2)
       }
     );
     if (!res2.ok) {
