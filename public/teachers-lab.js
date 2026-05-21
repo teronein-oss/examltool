@@ -1677,7 +1677,9 @@ async function callAPI(type, passageText, retryHint) {
       { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{parts:[{text: prompt}]}],
-          generationConfig:{maxOutputTokens:4000, temperature:0.7}
+          generationConfig:{maxOutputTokens:16384, temperature:0.7},
+          // thinking 토큰이 응답 공간을 침범하지 않도록 버짓 제한
+          thinkingConfig:{thinkingBudget:2048}
         })
       }
     );
