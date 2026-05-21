@@ -1456,11 +1456,15 @@ function toSections(num, type, raw, passageTitle) {
   var bC       = extractSec(raw,'BLOCK_C') || '';
   var given    = extractSec(raw,'GIVEN_SENTENCE') || '';
   var summary  = extractSec(raw,'SUMMARY')  || '';
-  var direction= extractSec(raw,'DIRECTION')|| type.direction;
+  // QUESTION: 을 DIRECTION: 의 별칭으로 지원
+  var direction= extractSec(raw,'DIRECTION') || extractSec(raw,'QUESTION') || type.direction;
   var choices  = (extractSec(raw,'CHOICES')||'').split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤]/); });
   var answer   = extractSec(raw,'ANSWER')   || '';
   var expl     = extractSec(raw,'EXPLANATION') || '';
-  var modelAns = extractSec(raw,'MODEL_ANSWER') || '';
+  var modelAns = extractSec(raw,'MODEL_ANSWER') || answer || '';
+  // CONDITIONS: / WORD_BANK: 섹션 지원 (사용자 정의 서술형 포맷)
+  var conditionsBlock = extractSec(raw,'CONDITIONS') || '';
+  var wordBankBlock   = extractSec(raw,'WORD_BANK')  || '';
   // 서술형1 특수 섹션
   var condSec  = extractSec(raw,'< 조건 >') || extractSec(raw,'조건') || '';
   var exampleSec = extractSec(raw,'< 보기 >') || extractSec(raw,'보기') || '';
@@ -1568,15 +1572,25 @@ function toSections(num, type, raw, passageTitle) {
     }
 
   } else if (type.id.startsWith('seo')) {
-    var seoFull = direction;
-    var seoCondIdx = seoFull.search(/<\s*조건\s*>/);
-    var seoInstr = (seoCondIdx >= 0 ? seoFull.substring(0, seoCondIdx) : seoFull)
-      .replace(/답\s*[:：][\s_]*/g, '').trim();
-    var seoCondBlock = extractKorBlock(seoFull, '< 조건 >');
-    q.push(seoInstr || seoFull.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
-    if (passage) { q.push(passage); q.push(''); }
-    if (seoCondBlock) { q.push('< 조건 >'); q.push(seoCondBlock); q.push(''); }
-    q.push('답: _________________________________________________'); q.push('');
+    // CONDITIONS:/WORD_BANK: 포맷(사용자 정의) 우선 처리
+    if (conditionsBlock || wordBankBlock) {
+      var qInstr = direction.replace(/답\s*[:：][\s_]*/g, '').trim();
+      q.push(qInstr); q.push('');
+      if (passage) { q.push(passage); q.push(''); }
+      if (conditionsBlock) { q.push('[조건]'); q.push(conditionsBlock); q.push(''); }
+      if (wordBankBlock)   { q.push('[보기]'); q.push(wordBankBlock);   q.push(''); }
+      q.push('답: _________________________________________________'); q.push('');
+    } else {
+      var seoFull = direction;
+      var seoCondIdx = seoFull.search(/<\s*조건\s*>/);
+      var seoInstr = (seoCondIdx >= 0 ? seoFull.substring(0, seoCondIdx) : seoFull)
+        .replace(/답\s*[:：][\s_]*/g, '').trim();
+      var seoCondBlock = extractKorBlock(seoFull, '< 조건 >');
+      q.push(seoInstr || seoFull.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
+      if (passage) { q.push(passage); q.push(''); }
+      if (seoCondBlock) { q.push('< 조건 >'); q.push(seoCondBlock); q.push(''); }
+      q.push('답: _________________________________________________'); q.push('');
+    }
 
   } else {
     // 일반 유형
@@ -1672,9 +1686,14 @@ async function callAPI(type, passageText, retryHint) {
       throw new Error(e2.error && e2.error.message ? e2.error.message : 'HTTP ' + res2.status);
     }
     var data2 = await res2.json();
-    return (data2.candidates && data2.candidates[0] && data2.candidates[0].content &&
-      data2.candidates[0].content.parts && data2.candidates[0].content.parts[0])
-      ? data2.candidates[0].content.parts[0].text : '';
+    // Gemini 2.5+ thinking 모드: parts[0]이 thought block(text 없음), parts[1]이 실제 답변
+    var parts2 = (data2.candidates && data2.candidates[0] && data2.candidates[0].content &&
+      data2.candidates[0].content.parts) ? data2.candidates[0].content.parts : [];
+    var textPart2 = null;
+    for (var pi = 0; pi < parts2.length; pi++) {
+      if (parts2[pi].text) { textPart2 = parts2[pi]; break; }
+    }
+    return textPart2 ? textPart2.text : '';
   }
 }
 
