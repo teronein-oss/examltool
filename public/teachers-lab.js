@@ -1434,6 +1434,13 @@ function cancelGeneration() {
 
 function wait(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
+// Claude가 섹션 키 앞에 추론 텍스트를 출력하는 경우 제거
+function stripLeadingProse(raw) {
+  var m = raw.match(/(?:^|\n)([ \t]*[A-Z][A-Z_]{2,}[ \t]*:)/);
+  if (m && raw.indexOf(m[1]) > 0) return raw.substring(raw.indexOf(m[1])).trimStart();
+  return raw;
+}
+
 function extractSec(raw, key) {
   var m = raw.match(new RegExp('(?:^|\\n)[ \\t]*' + key + ':[ \\t]*([\\s\\S]*?)(?=\\n[ \\t]*[A-Z][A-Z_]*[ \\t]*:|$)', 'i'));
   return m ? m[1].trim() : '';
@@ -1449,6 +1456,7 @@ function extractKorBlock(text, header) {
 
 function toSections(num, type, raw, passageTitle) {
   if (!raw) return { q:'[' + num + '번 생성 실패]\n\n', a:'' };
+  raw = stripLeadingProse(raw);
   var passage  = extractSec(raw,'PASSAGE') || extractSec(raw,'INTRO') || '';
   var intro    = extractSec(raw,'INTRO')   || '';
   var bA       = extractSec(raw,'BLOCK_A') || '';
@@ -1664,6 +1672,7 @@ async function callAPI(type, passageText, retryHint) {
       body: JSON.stringify({
         model: model,
         max_tokens: 4000,
+        system: '지정된 형식(대문자 섹션 키: 로 시작)으로만 응답하세요. 추론 과정, 설명, 서문을 출력하지 마세요.',
         messages: [{ role: 'user', content: prompt }]
       })
     });
