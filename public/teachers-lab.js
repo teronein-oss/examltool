@@ -1441,8 +1441,27 @@ function stripLeadingProse(raw) {
   return raw;
 }
 
+var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE'];
+
+// Gemini 등이 라벨에 마크다운(**굵게**, ## 머리글, - 목록)을 붙이거나 콜론을 빠뜨려도
+// 파싱되도록, 알려진 섹션 라벨 줄을 표준형 "LABEL:" 으로 정규화한다.
+function normalizeLabels(raw) {
+  if (!raw) return raw;
+  var alt = SEC_LABELS.join('|');
+  var reInline = new RegExp('^[ \\t]*[#>\\-]*[ \\t]*\\*{0,2}(' + alt + ')\\*{0,2}[ \\t]*:[ \\t]*\\*{0,2}[ \\t]*');
+  var reAlone  = new RegExp('^[ \\t]*[#>\\-]*[ \\t]*\\*{0,2}(' + alt + ')\\*{0,2}[ \\t]*:?[ \\t]*\\*{0,2}[ \\t]*$');
+  return raw.split('\n').map(function(line){
+    var mi = line.match(reInline);
+    if (mi) return mi[1] + ': ' + line.slice(mi[0].length);
+    var ma = line.match(reAlone);
+    if (ma) return ma[1] + ':';
+    return line;
+  }).join('\n');
+}
+
 function extractSec(raw, key) {
-  var m = raw.match(new RegExp('(?:^|\\n)[ \\t]*' + key + ':[ \\t]*([\\s\\S]*?)(?=\\n[ \\t]*[A-Z][A-Z_]*[ \\t]*:|$)', 'i'));
+  var src = normalizeLabels(raw);
+  var m = src.match(new RegExp('(?:^|\\n)[ \\t]*' + key + ':[ \\t]*([\\s\\S]*?)(?=\\n[ \\t]*[A-Z][A-Z_]*[ \\t]*:|$)', 'i'));
   return m ? m[1].trim() : '';
 }
 
@@ -1657,7 +1676,8 @@ async function callAPI(type, passageText, retryHint) {
   var refSection = refs.length
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
-  var prompt = getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText;
+  var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText;
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
