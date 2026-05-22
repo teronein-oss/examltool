@@ -1465,12 +1465,38 @@ function extractSec(raw, key) {
   return m ? m[1].trim() : '';
 }
 
-// 콜론 없는 한국어 섹션 헤더 (< 조건 >, < 보기 >) 추출 — direction 텍스트 내에서 파싱
+// 콜론 없는 한국어 섹션 헤더 (< 조건 >, < 보기 >) 추출.
+// 줄 단독으로 놓인 표준 헤더만 인식하고, "주어진 <조건>에 맞게..." 같은
+// 문장 내 인라인 토큰은 무시한다.
 function extractKorBlock(text, header) {
-  var escaped = header.replace(/[<>()\[\]]/g, '\\$&').replace(/\s+/g, '\\s*');
-  var stopPat = '(?=<\\s*조건|<\\s*보기|답\\s*[:：]|MODEL_ANSWER|EXPLANATION|$)';
-  var m = text.match(new RegExp(escaped + '\\s*\\n?([\\s\\S]*?)' + stopPat, 'i'));
+  var label = header.replace(/[<>()\[\]\s]/g, ''); // "조건" 또는 "보기"
+  var stopPat = '(?=(?:^|\\n)[ \\t]*<\\s*(?:조건|보기)\\s*>|(?:^|\\n)[ \\t]*답\\s*[:：]|MODEL_ANSWER|EXPLANATION|$)';
+  var re = new RegExp('(?:^|\\n)[ \\t]*<\\s*' + label + '\\s*>[ \\t]*\\n([\\s\\S]*?)' + stopPat, 'i');
+  var m = text.match(re);
   return m ? m[1].replace(/답\s*[:：][\s_]*/g, '').trim() : '';
+}
+
+// 서술형 지시문 정리: 답란/표준 <조건>·<보기> 헤더 줄에서 끊되,
+// "다음 <조건>에 맞게..." 처럼 문장 안에 인라인으로 박힌 토큰에서는 자르지 않는다.
+function cleanSeoInstruction(direction) {
+  var lines = (direction || '').split('\n');
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    var ln = lines[i];
+    if (/^\s*<?\s*(조건|보기)\s*>?\s*$/.test(ln)) break; // 단독 헤더 줄
+    if (/^\s*답\s*[:：]/.test(ln)) break;                 // 답란 줄
+    out.push(ln);
+  }
+  return out.join('\n').replace(/답\s*[:：][\s_]*$/, '').trim();
+}
+
+// 답란 빈칸 라벨 판정: SUMMARY/MODEL_ANSWER의 (A)(B)(C)... 마커로 빈칸 개수를 결정.
+// 마커가 2개 이상이면 다중 빈칸형(요약완성), 아니면 단일 문장형으로 렌더링한다.
+function detectBlankLabels(summary, modelAns) {
+  var src = (summary || '') + '\n' + (modelAns || '');
+  var found = [], re = /\(([A-E])\)/g, m;
+  while ((m = re.exec(src))) { if (found.indexOf(m[1]) < 0) found.push(m[1]); }
+  return found;
 }
 
 function toSections(num, type, raw, passageTitle) {
@@ -1521,45 +1547,6 @@ function toSections(num, type, raw, passageTitle) {
     }).join('\n').trim();
     q.push(cleaned);
 
-  } else if (type.id === 'seo1') {
-    // 서술형1: DIRECTION 텍스트 자체에 <조건>/<보기>가 포함되어 있으므로 그 안에서 분리
-    // DIRECTION = "지시문\n< 조건 >\n...\n< 보기 >\n...\n답 : ___"
-    var seo1Full = direction; // extractSec(DIRECTION)이 MODEL_ANSWER 직전까지 전부 캡처
-    // 1) 지시문: < 조건 > 이전 텍스트
-    var condIdx1 = seo1Full.search(/<\s*조건\s*>/);
-    var seo1Instr = (condIdx1 >= 0 ? seo1Full.substring(0, condIdx1) : seo1Full)
-      .replace(/답\s*[:：][\s_]*/g, '').trim();
-    // 2) < 조건 > 블록 — direction 텍스트 내에서 추출
-    var condBlock  = extractKorBlock(seo1Full, '< 조건 >');
-    // 3) < 보기 > 블록
-    var exBlock    = extractKorBlock(seo1Full, '< 보기 >');
-    // 별도 섹션(CONDITIONS:/WORD_BANK:) 우선, 없으면 direction 내 임베드 블록 사용
-    var finalCond1 = conditionsBlock || condBlock;
-    var finalEx1   = wordBankBlock   || exBlock;
-    // 출력 순서: 지시문 → 지문 → <조건> → <보기> → 답란
-    q.push(seo1Instr || seo1Full.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
-    if (passage) { q.push(passage); q.push(''); }
-    if (finalCond1) { q.push('< 조건 >'); q.push(finalCond1); q.push(''); }
-    if (finalEx1)   { q.push('< 보기 >'); q.push(finalEx1);   q.push(''); }
-    q.push('답 : _________________________________________________________'); q.push('');
-
-  } else if (type.id === 'seo2') {
-    // 서술형2: DIRECTION 안에서 <조건> 분리
-    var seo2Full = direction;
-    var condIdx2 = seo2Full.search(/<\s*조건\s*>/);
-    var seo2Instr = (condIdx2 >= 0 ? seo2Full.substring(0, condIdx2) : seo2Full)
-      .replace(/답\s*[:：][\s_]*/g, '').replace(/\(A\)[\s_]*/g, '').trim();
-    var condBlock2 = extractKorBlock(seo2Full, '< 조건 >');
-    var finalCond2 = conditionsBlock || condBlock2;
-    // 출력 순서: 지시문 → <조건> → 지문 → 요약문 → 답란
-    q.push(seo2Instr || seo2Full.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
-    if (finalCond2) { q.push('< 조건 >'); q.push(finalCond2); q.push(''); }
-    if (passage)    { q.push(passage); q.push(''); }
-    if (summary)    { q.push(summary); q.push(''); }
-    q.push('답 : (A) ____________________ [2.0점]');
-    q.push('     (B) ____________________ [2.0점]');
-    q.push('     (C) ____________________ [2.0점]'); q.push('');
-
   } else if (type.id === 'implication') {
     // 함의추론: UNDERLINE 섹션 → DIRECTION에 구문 삽입
     var ulPhrase = extractSec(raw, 'UNDERLINE') || '';
@@ -1591,36 +1578,38 @@ function toSections(num, type, raw, passageTitle) {
     if (passage) { q.push(passage); q.push(''); }
     choices.forEach(function(c){ q.push(c); }); q.push('');
 
-  } else if (type.id === 'summary' || type.id === 'seo5') {
-    var seo5Dir = direction.replace(/답\s*[:：][\s_]*/g, '').trim();
-    q.push(seo5Dir); q.push('');
+  } else if (type.id === 'summary') {
+    q.push(direction.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
     if (passage) { q.push(passage); q.push(''); }
     if (summary) { q.push('요약: ' + summary); q.push(''); }
-    if (!type.id.startsWith('seo')) {
-      choices.forEach(function(c){ q.push(c); }); q.push('');
-    } else {
-      q.push('답: _________________________________________________'); q.push('');
-    }
+    choices.forEach(function(c){ q.push(c); }); q.push('');
 
   } else if (type.id.startsWith('seo')) {
-    // CONDITIONS:/WORD_BANK: 포맷(사용자 정의) 우선 처리
-    if (conditionsBlock || wordBankBlock) {
-      var qInstr = direction.replace(/답\s*[:：][\s_]*/g, '').trim();
-      q.push(qInstr); q.push('');
-      if (passage) { q.push(passage); q.push(''); }
-      if (conditionsBlock) { q.push('[조건]'); q.push(conditionsBlock); q.push(''); }
-      if (wordBankBlock)   { q.push('[보기]'); q.push(wordBankBlock);   q.push(''); }
-      q.push('답: _________________________________________________'); q.push('');
+    // ── 섹션 기반 서술형 렌더링 (슬롯 번호에 고정하지 않고, 메타프롬프트가 출력한
+    //    섹션 구성으로 레이아웃을 결정한다) ──
+    // 일부 프롬프트는 라벨 없이 SUMMARY 아래에 <조건>/답란을 끼워 넣는다 →
+    // SUMMARY 캡처에 섞인 그 블록을 분리해 요약문만 남긴다.
+    var summaryClean = cleanSeoInstruction(summary);
+    // <조건>/<보기> 임베드 블록은 DIRECTION과 SUMMARY 양쪽에서 탐색
+    var embedSrc = direction + '\n' + summary;
+    // 지시문: 답란/표준 헤더에서만 끊고 인라인 <조건> 토큰은 보존
+    q.push(cleanSeoInstruction(direction) || direction.trim()); q.push('');
+    if (passage) { q.push(passage); q.push(''); }
+    // 요약문(빈칸 포함)이 있으면 표시
+    if (summaryClean) { q.push('요약: ' + summaryClean); q.push(''); }
+    // <조건>: 명시 CONDITIONS 섹션 우선, 없으면 본문 내 임베드 블록
+    var seoCond = conditionsBlock || extractKorBlock(embedSrc, '< 조건 >');
+    if (seoCond) { q.push('< 조건 >'); q.push(seoCond); q.push(''); }
+    // <보기>: 명시 WORD_BANK 섹션 우선, 없으면 본문 내 임베드 블록
+    var seoBank = wordBankBlock || extractKorBlock(embedSrc, '< 보기 >');
+    if (seoBank) { q.push('< 보기 >'); q.push(seoBank); q.push(''); }
+    // 답란: (A)(B)(C)... 마커가 2개 이상이면 다중 빈칸, 아니면 단일 문장
+    var blanks = detectBlankLabels(summaryClean, modelAns);
+    if (blanks.length >= 2) {
+      blanks.forEach(function(lb){ q.push('답 : (' + lb + ') ____________________'); });
+      q.push('');
     } else {
-      var seoFull = direction;
-      var seoCondIdx = seoFull.search(/<\s*조건\s*>/);
-      var seoInstr = (seoCondIdx >= 0 ? seoFull.substring(0, seoCondIdx) : seoFull)
-        .replace(/답\s*[:：][\s_]*/g, '').trim();
-      var seoCondBlock = extractKorBlock(seoFull, '< 조건 >');
-      q.push(seoInstr || seoFull.replace(/답\s*[:：][\s_]*/g, '').trim()); q.push('');
-      if (passage) { q.push(passage); q.push(''); }
-      if (seoCondBlock) { q.push('< 조건 >'); q.push(seoCondBlock); q.push(''); }
-      q.push('답: _________________________________________________'); q.push('');
+      q.push('답 : _________________________________________________'); q.push('');
     }
 
   } else {
