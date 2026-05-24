@@ -1861,6 +1861,37 @@ function toSections(num, type, raw, passageTitle) {
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
       q.push('틀린 표현: _______________  →  바른 표현: _______________'); q.push('');
 
+    } else if (seoRender === 'ext_passage') {
+      var epPassA = extractSec(raw, 'PASSAGE_A')    || '';
+      var epPassB = extractSec(raw, 'PASSAGE_B')    || '';
+      var epDir1  = extractSec(raw, 'DIRECTION_1')  || '';
+      var epDir2  = extractSec(raw, 'DIRECTION_2')  || '';
+      var epBank  = extractSec(raw, 'WORD_BANK')    || wordBankBlock || '';
+      var epMaA   = extractSec(raw, 'MODEL_ANSWER_A') || '';
+      var epMaB   = extractSec(raw, 'MODEL_ANSWER_B') || '';
+
+      // 전체 지시: "다음 글 (A), (B)를 읽고 물음에 답하시오."
+      q.push(dirClean2); q.push('');
+
+      // (A) 지문
+      if (epPassA) { q.push('(A)'); q.push(''); q.push(epPassA); q.push(''); }
+
+      // (B) 지문 (빈칸 포함)
+      if (epPassB) { q.push('(B)'); q.push(''); q.push(epPassB); q.push(''); }
+
+      // (1) 한국어 요지 답란
+      if (epDir1) { q.push(cleanSeoInstruction(epDir1)); q.push(''); }
+      q.push('_______________________________________________'); q.push('');
+
+      // (2) 보기 단어 빈칸 완성 — 빈칸은 이미 (B)에 있음
+      if (epDir2) { q.push(cleanSeoInstruction(epDir2)); q.push(''); }
+      if (epBank) { q.push('< 보기 >'); q.push(epBank); q.push(''); }
+
+      // 정답 (교사용 키)
+      if (epMaA || epMaB) {
+        modelAns = (epMaA ? '(1) ' + epMaA + '\n' : '') + (epMaB ? '(2) ' + epMaB : '');
+      }
+
     } else if (seoRender === 'tb_blank_content') {
       var tbDirA   = extractSec(raw, 'DIRECTION_A')  || '';
       var tbBank   = extractSec(raw, 'WORD_BANK')    || wordBankBlock || '';
