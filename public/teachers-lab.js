@@ -1483,7 +1483,7 @@ function clearAllPassages() {
 function resetAllPassageTypes() {
   if (!passages.length) { alert('지문이 없습니다.'); return; }
   if (!confirm('모든 지문의 선택된 유형을 미선택으로 초기화하시겠습니까?')) return;
-  passages.forEach(function(p) { p.typeId = 'unselected'; });
+  passages.forEach(function(p) { p.typeId = 'unselected'; p.seoTypeId = 'unselected'; });
   persist(); renderPassageList(); updateQSum();
   var isRand = document.getElementById("randomToggle").checked;
   if (!isRand) renderManualCount();
