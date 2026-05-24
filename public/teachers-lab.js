@@ -1174,9 +1174,9 @@ function renderPassageList() {
       var objActive = p.typeId && p.typeId !== 'unselected';
       var seoActive = p.seoTypeId && p.seoTypeId !== 'unselected';
       selArea = '<div style="display:flex;gap:4px;align-items:center;">' +
-        '<select class="ptsel" onchange="setPassageType(' + i + ',this.value)" title="객관식 유형"' +
+        '<select id="ptsobj-' + i + '" class="ptsel" onchange="setPassageType(' + i + ',this.value)" title="객관식 유형"' +
           (seoActive ? ' disabled style="opacity:0.35;cursor:not-allowed;"' : '') + '>' + objOpts + '</select>' +
-        '<select class="ptsel" onchange="setPassageSeoType(' + i + ',this.value)" title="서술형 유형"' +
+        '<select id="ptsseo-' + i + '" class="ptsel" onchange="setPassageSeoType(' + i + ',this.value)" title="서술형 유형"' +
           (objActive ? ' disabled style="opacity:0.35;cursor:not-allowed;"' : ' style="border-color:var(--ac);color:var(--ac);"') + '>' + seoOpts + '</select>' +
         '</div>';
     }
@@ -1193,11 +1193,31 @@ function renderPassageList() {
   }).join('');
 }
 
+function updatePassageSelectDisabled(i) {
+  var objSel = document.getElementById('ptsobj-' + i);
+  var seoSel = document.getElementById('ptsseo-' + i);
+  if (!objSel || !seoSel) return;
+  var p = passages[i];
+  var objActive = p && p.typeId    && p.typeId    !== 'unselected';
+  var seoActive = p && p.seoTypeId && p.seoTypeId !== 'unselected';
+  // 객관식: 서술형이 선택된 경우 비활성
+  objSel.disabled          = !!seoActive;
+  objSel.style.opacity     = seoActive ? '0.35' : '';
+  objSel.style.cursor      = seoActive ? 'not-allowed' : '';
+  // 서술형: 객관식이 선택된 경우 비활성
+  seoSel.disabled          = !!objActive;
+  seoSel.style.opacity     = objActive ? '0.35' : '';
+  seoSel.style.cursor      = objActive ? 'not-allowed' : '';
+  seoSel.style.borderColor = objActive ? '' : 'var(--ac)';
+  seoSel.style.color       = objActive ? '' : 'var(--ac)';
+}
+
 function setPassageSeoType(i, seoTypeId) {
   passages[i].seoTypeId = seoTypeId;
   if (seoTypeId && seoTypeId !== 'unselected') passages[i].typeId = 'unselected';
   persist();
-  renderPassageList(); updateQSum();
+  updatePassageSelectDisabled(i);
+  updateQSum();
 }
 
 function renderQuotaRows() {
@@ -1589,7 +1609,8 @@ function setPassageType(i, typeId) {
   passages[i].typeId = typeId;
   if (typeId && typeId !== 'unselected') passages[i].seoTypeId = 'unselected';
   persist();
-  renderPassageList(); updateQSum();
+  updatePassageSelectDisabled(i);
+  updateQSum();
   var isRand = document.getElementById("randomToggle").checked;
   if (!isRand) renderManualCount();
 }
