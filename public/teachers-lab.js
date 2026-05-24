@@ -1745,6 +1745,10 @@ function toSections(num, type, raw, passageTitle) {
   var DIV = '\u2500'.repeat(60);
 
   var hasContent = !!(passage || intro || bA || given || summary);
+  // seo 유형은 고정 렌더 블록이 따로 있으므로 hasContent 폴백을 건너뜀
+  if (!hasContent && (type.seoRender || (type.id && type.id.startsWith('seo')))) {
+    hasContent = true;
+  }
   if (!choices.length) {
     choices = raw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤]/); });
   }
