@@ -121,6 +121,21 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   </div>
 
   <div id="settingsEditorArea">
+
+  <!-- 객관식 / 서술형 탭 전환 -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;">
+    <button id="settingsPaneObj" onclick="switchSettingsPane('obj')"
+      style="padding:7px 18px;border:1.5px solid var(--bd2);border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--bl);color:#fff;">
+      객관식
+    </button>
+    <button id="settingsPaneSeo" onclick="switchSettingsPane('seo')"
+      style="padding:7px 18px;border:1.5px solid var(--bd2);border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--sf);color:var(--ink2);">
+      서술형
+    </button>
+  </div>
+
+  <!-- 객관식 프롬프트 편집 영역 -->
+  <div id="settingsObjArea">
   <div id="settingsPromptSetBar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:10px 16px;box-shadow:var(--shadow-sm);">
     <div style="display:flex;align-items:center;gap:12px;">
       <span style="font-size:14px;font-weight:700;color:var(--ink);">프롬프트 세트 관리</span>
@@ -168,6 +183,35 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
       </div>
     </div>
   </div>
+  </div><!-- end settingsObjArea -->
+
+  <!-- 서술형 프롬프트 편집 영역 -->
+  <div id="settingsSeoArea" style="display:none;">
+  <div class="sgrid">
+    <div>
+      <div class="tlist">
+        <div class="tlhead">서술형 유형 목록 <span style="font-size:11px;font-weight:400;color:var(--ink3);">(전 학교 공통)</span></div>
+        <div id="seoTypeListEl"></div>
+      </div>
+    </div>
+    <div class="pe">
+      <div class="pehead">
+        <div class="pebadge" style="background:var(--ac);"></div>
+        <div class="petitle">서술형 유형 편집</div>
+      </div>
+      <div class="pebody">
+        <div class="fl">유형 이름</div>
+        <input class="fi" id="seoEditName" type="text" placeholder="예: 주제문 영작_1">
+        <div class="fl">출제 방향 지시</div>
+        <input class="fi" id="seoEditDirection" type="text" placeholder="예: 다음 글의 주제를 조건에 맞게 영어로 쓰시오.">
+        <div class="fl">메타프롬프트 (AI 출제 지침)</div>
+        <textarea class="fta" id="seoEditPrompt" rows="18"></textarea>
+        <button class="gbtn" onclick="saveSeoCurrentType()">✓ 저장</button>
+      </div>
+    </div>
+  </div>
+  </div><!-- end settingsSeoArea -->
+
   </div><!-- end settingsEditorArea -->
 
   <div id="migrationSection" style="display:none;margin-top:20px;border-top:2px solid var(--bd2);padding-top:16px;">

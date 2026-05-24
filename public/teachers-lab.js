@@ -11,6 +11,46 @@ var HEXES  = ['#c0392b','#2980b9','#27ae60','#8e44ad','#d35400','#16a085','#2c3e
 
 var EXPL = '\nEXPLANATION:\n[정답 근거]: 본문에서 정답의 근거가 되는 핵심 문장 또는 논리 설명\n[오답 분석]:\n② [이 선택지가 틀린 이유]\n③ [이 선택지가 틀린 이유]\n④ [이 선택지가 틀린 이유]\n⑤ [이 선택지가 틀린 이유]';
 
+// ─── 서술형 전용 공통 카탈로그 (학교별 분리 없음) ───
+var SEO_DEFAULT_TYPES = [
+  { id:'seo_topic_1', name:'주제문 영작_1', seoRender:'topic',
+    direction:'[서술형] 다음 글의 주제를 조건에 맞게 영어로 쓰시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 주제를 포괄하는 영어 문장(8~12단어)\n- 정답 문장의 핵심 단어 4~5개를 원형으로 WORD_BANK에 제시\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[출제용 영어 지문]\nDIRECTION:\n다음 글의 주제를 <조건>에 맞게 영어로 쓰시오. [5.0점]\nCONDITIONS:\no <보기> 단어를 모두 사용할 것 (어형 변화 가능)\no 필요한 단어를 추가하여 ( )단어의 완전한 문장으로 쓸 것\nWORD_BANK:\n[단어1, 단어2, 단어3, 단어4]\nMODEL_ANSWER:\n[모범 답안 영문장]\nEXPLANATION:\n[정답]: [모범 답안]\n[해설]: 지문 핵심 주제 및 사용된 어형 변화 설명\n[정답 문장 해석]:' },
+  { id:'seo_topic_2', name:'주제문 영작_2', seoRender:'topic',
+    direction:'[서술형] 다음 글의 주제를 조건에 맞게 영어로 쓰시오.',
+    prompt:'주제문 영작_2 프롬프트를 직접 입력하세요.' },
+  { id:'seo_blanks_1', name:'빈칸영작_1', seoRender:'blanks',
+    direction:'[서술형] 다음 빈칸에 알맞은 말을 영어로 쓰시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문의 핵심 문장에 빈칸(____________________)을 만들어 출제\n- 조건에 맞는 단어/구를 본문에서 찾아 쓰는 형태\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[빈칸(____________________)이 포함된 영어 지문]\nDIRECTION:\n다음 글의 빈칸에 들어갈 말을 <조건>에 맞게 쓰시오. [4.0점]\nCONDITIONS:\no 본문에서 찾아 쓸 것\no ( )단어로 쓸 것\nMODEL_ANSWER:\n[정답 단어/구]\nEXPLANATION:\n[정답]: [답]\n[해설]: 빈칸에 해당 표현이 들어가는 문맥적 근거 설명\n[지문 관련 해석]:' },
+  { id:'seo_blanks_2', name:'빈칸영작_2', seoRender:'blanks',
+    direction:'[서술형] 다음 빈칸에 알맞은 말을 영어로 쓰시오.',
+    prompt:'빈칸영작_2 프롬프트를 직접 입력하세요.' },
+  { id:'seo_summary_2', name:'요약문 빈칸 2개', seoRender:'summary2',
+    direction:'[서술형] 요약문의 빈칸 (A)(B)를 완성하시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 논리를 담은 요약 영문장에 (A)(B) 빈칸 2개 설정\n- 본문 단어를 품사/어형 변형해야 정답이 되도록 출제\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글의 내용을 요약할 때, 빈칸 (A)(B)에 알맞은 말을 쓰시오. [각 2.0점]\nSUMMARY:\n[(A)(B) 빈칸이 포함된 요약 영문장]\nCONDITIONS:\no 본문 단어를 활용할 것 (품사·어형 변화 가능)\nMODEL_ANSWER:\n(A): [정답] (B): [정답]\nEXPLANATION:\n[정답]: (A) [답], (B) [답]\n[해설]: 각 빈칸의 정답이 본문에서 도출되는 근거 설명\n[요약문 전체 해석]:' },
+  { id:'seo_summary_3', name:'요약문 빈칸 3개', seoRender:'summary3',
+    direction:'[서술형] 요약문의 빈칸 (A)(B)(C)를 완성하시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 논리를 담은 요약 영문장에 (A)(B)(C) 빈칸 3개 설정\n- 본문 단어를 품사/어형 변형해야 정답이 되도록 출제\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글의 요지를 주어진 <조건>에 맞게 완성하시오. [각 2.0점]\nSUMMARY:\n[(A)(B)(C) 빈칸이 포함된 요약 영문장]\nCONDITIONS:\no 본문 단어를 활용할 것 (품사·어형 변화 필수)\nMODEL_ANSWER:\n(A): [정답] (B): [정답] (C): [정답]\nEXPLANATION:\n[정답]: (A) [답], (B) [답], (C) [답]\n[해설]: 각 빈칸의 정답이 본문에서 도출되는 근거와 어형 변화 설명\n[요약문 전체 해석]:' },
+  { id:'seo_content', name:'내용영작', seoRender:'content',
+    direction:'[서술형] 다음 질문에 영어로 답하시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 내용에 대한 영어 질문 1개 출제\n- 완전한 영어 문장으로 답하도록 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오. [5.0점]\n[Q]: [영어 질문]\nMODEL_ANSWER:\n[완전한 영어 문장 답변]\nEXPLANATION:\n[정답]: [답변]\n[해설]: 질문의 답이 본문 어디서 도출되었는지 설명\n[지문 관련 해석]:' },
+  { id:'seo_topic_plus_content2', name:'내용 + 주제', seoRender:'topic_plus',
+    direction:'[서술형] 주제문 영작 + 내용 문제 2개',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 동일 지문에서 서술형 문제 3개를 한 번에 출제\n- (1) 주제문 영작: 보기+조건 제시형\n- (2) 내용 문제1: 빈칸 또는 요약 형태\n- (3) 내용 문제2: 질문 답변 형태\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION_TOPIC:\n다음 글의 주제를 <조건>에 맞게 영어로 쓰시오. [5.0점]\nCONDITIONS_TOPIC:\no <보기> 단어를 모두 사용할 것 (어형 변화 가능)\nWORD_BANK:\n[단어1, 단어2, 단어3, 단어4]\nMODEL_ANSWER_TOPIC:\n[주제문 영작 모범 답안]\nDIRECTION_Q1:\n다음 글의 빈칸에 알맞은 말을 본문에서 찾아 쓰시오. [4.0점]\n[빈칸이 포함된 문장 또는 요약문]\nCONDITIONS_Q1:\no ( )단어로 쓸 것\nMODEL_ANSWER_Q1:\n[내용 문제1 정답]\nDIRECTION_Q2:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오. [4.0점]\n[Q]: [영어 질문]\nMODEL_ANSWER_Q2:\n[내용 문제2 정답]\nEXPLANATION:\n[주제 정답]: [주제문]\n[내용1 정답]: [답1]\n[내용2 정답]: [답2]\n[해설]: 각 문제의 근거 및 어형 변화 설명\n[지문 전체 해석]:' },
+  { id:'seo_grammar_1', name:'어법 서술형_1', seoRender:'grammar',
+    direction:'[서술형] 어법상 틀린 부분을 찾아 바르게 고쳐 쓰시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 내 어법상 틀린 표현 1~2개를 선정하여 어법 오류 서술형 출제\n- 학생이 오류를 찾아 올바른 형태로 고쳐 쓰도록 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[어법 오류가 포함된 영어 지문 (오류 부분에 밑줄 표시 ______)]\nDIRECTION:\n다음 글에서 어법상 틀린 부분을 <조건>에 맞게 찾아 고쳐 쓰시오. [5.0점]\nCONDITIONS:\no 틀린 표현 1개를 찾아 쓸 것\no 바르게 고친 표현도 함께 쓸 것\nMODEL_ANSWER:\n[틀린 표현] → [바른 표현]\nEXPLANATION:\n[정답]: [틀린 표현] → [바른 표현]\n[해설]: 해당 어법이 틀린 이유와 올바른 형태의 문법적 근거 설명\n[지문 관련 해석]:' },
+  { id:'seo_grammar_2', name:'어법 서술형_2', seoRender:'grammar',
+    direction:'[서술형] 어법상 틀린 부분을 찾아 바르게 고쳐 쓰시오.',
+    prompt:'어법 서술형_2 프롬프트를 직접 입력하세요.' },
+  { id:'seo_compose_1', name:'조건영작_1', seoRender:'compose',
+    direction:'[서술형] 다음 우리말을 조건에 맞게 영작하시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 핵심 내용과 연관된 한국어 문장 제시\n- 어휘/구조 조건을 포함하여 영작 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 우리말을 주어진 <조건>에 맞게 영작하시오. [5.0점]\n[우리말]: [한국어 문장]\nCONDITIONS:\no [어휘 조건]\no [구조/어법 조건]\nMODEL_ANSWER:\n[모범 답안 영문장]\nEXPLANATION:\n[정답]: [모범 답안]\n[해설]: 주어진 조건이 충족된 문법적 근거 설명\n[우리말 해석 확인]:' },
+  { id:'seo_compose_2', name:'조건영작_2', seoRender:'compose',
+    direction:'[서술형] 다음 우리말을 조건에 맞게 영작하시오.',
+    prompt:'조건영작_2 프롬프트를 직접 입력하세요.' },
+];
+
 var DEFAULT_TYPES = [
   { id:'topic', name:'주제', direction:'다음 글의 주제로 가장 적절한 것은?',
     prompt:'당신은 대한민국 수능(CSAT) 영어 영역 출제 위원입니다.\n아래 [수능 주제 추론 출제 매뉴얼]에 따라 고품질 주제 문항 1개를 제작하십시오.\n## 출제 매뉴얼\n- 정답은 지문을 관통하는 핵심 아이디어를 포괄하는 명사구로 작성\n- 오답은 지엽적 사실, 잘못된 초점, 반대 방향, 과도한 일반화 사용\n- 정답 번호는 매번 ①~⑤ 중 랜덤하게 다르게 설정\n## ★ 출력 절대 규칙\n1. 아래 출력 형식 외 내용 불가. PASSAGE에 한국어 절대 금지\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글의 주제로 가장 적절한 것은?\nCHOICES:\n① [선지]\n② [선지]\n③ [선지]\n④ [선지]\n⑤ [선지]\nANSWER: [정답 번호]\nEXPLANATION:\n[정답]: [정답 번호]\n[정답인 이유 해설]: 지문의 주제와 정답 선지가 연결되는 이유를 간결하게 설명\n[선택지 해석]:\n① [1번 선지 해석]\n② [2번 선지 해석]\n③ [3번 선지 해석]\n④ [4번 선지 해석]\n⑤ [5번 선지 해석]' },
@@ -57,56 +97,41 @@ var DEFAULT_TYPES = [
   { id:'summary', name:'요약문', direction:'다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?',
     prompt:'당신은 대한민국 수능 영어 요약문 완성 문항 출제자입니다.\n## 출제 매뉴얼\n- 지문 요약 문장 작성 및 (A), (B) 두 빈칸 생성\n- 정답을 포함한 5개 선지(①~⑤)를 생성\n## ★ 출력 절대 규칙\n1. 표(Table) 형태 사용 금지\n2. PASSAGE 및 SUMMARY에 한국어 해석 일체 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nSUMMARY:\n[빈칸 (A), (B)가 포함된 요약 문장]\nDIRECTION:\n다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?\nCHOICES:\n① (A) ___ (B) ___\n② (A) ___ (B) ___\n③ (A) ___ (B) ___\n④ (A) ___ (B) ___\n⑤ (A) ___ (B) ___\nANSWER: [정답 번호]\nEXPLANATION:\n[정답]: [정답 번호]\n[정답인 이유 해설]: 요약문의 (A), (B) 빈칸에 해당 단어쌍이 들어가야 하는 핵심 근거를 간결하게 설명\n[선택지 해석]:\n① (A) [단어 뜻] / (B) [단어 뜻]\n② (A) [단어 뜻] / (B) [단어 뜻]\n③ (A) [단어 뜻] / (B) [단어 뜻]\n④ (A) [단어 뜻] / (B) [단어 뜻]\n⑤ (A) [단어 뜻] / (B) [단어 뜻]' },
 
-  { id:'seo_topic', name:'주제문 영작', kichul:false, direction:'[서술형] 다음 글의 주제를 조건에 맞게 영어로 쓰시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 주제를 포괄하는 영어 문장(8~12단어)\n- 정답 문장의 핵심 단어 4~5개를 원형으로 WORD_BANK에 제시\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[출제용 영어 지문]\nDIRECTION:\n다음 글의 주제를 <조건>에 맞게 영어로 쓰시오. [5.0점]\nCONDITIONS:\no <보기> 단어를 모두 사용할 것 (어형 변화 가능)\no 필요한 단어를 추가하여 ( )단어의 완전한 문장으로 쓸 것\nWORD_BANK:\n[단어1, 단어2, 단어3, 단어4]\nMODEL_ANSWER:\n[모범 답안 영문장]\nEXPLANATION:\n[정답]: [모범 답안]\n[해설]: 지문 핵심 주제 및 사용된 어형 변화 설명\n[정답 문장 해석]:' },
-
-  { id:'seo_summary_3', name:'요약문 빈칸 3칸', kichul:false, direction:'[서술형] 요약문의 빈칸 (A)(B)(C)를 완성하시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 논리를 담은 요약 영문장에 (A)(B)(C) 빈칸 3개 설정\n- 본문 단어를 품사/어형 변형해야 정답이 되도록 출제\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글의 요지를 주어진 <조건>에 맞게 완성하시오. [각 2.0점]\nSUMMARY:\n[(A)(B)(C) 빈칸이 포함된 요약 영문장]\nCONDITIONS:\no 본문 단어를 활용할 것 (품사·어형 변화 필수)\nMODEL_ANSWER:\n(A): [정답] (B): [정답] (C): [정답]\nEXPLANATION:\n[정답]: (A) [답], (B) [답], (C) [답]\n[해설]: 각 빈칸의 정답이 본문에서 도출되는 근거와 어형 변화 설명\n[요약문 전체 해석]:' },
-
-  { id:'seo_summary_2', name:'요약문 빈칸 2칸', kichul:false, direction:'[서술형] 요약문의 빈칸 (A)(B)를 완성하시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 논리를 담은 요약 영문장에 (A)(B) 빈칸 2개 설정\n- 본문 단어를 품사/어형 변형해야 정답이 되도록 출제\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글의 내용을 요약할 때, 빈칸 (A)(B)에 알맞은 말을 쓰시오. [각 2.0점]\nSUMMARY:\n[(A)(B) 빈칸이 포함된 요약 영문장]\nCONDITIONS:\no 본문 단어를 활용할 것 (품사·어형 변화 가능)\nMODEL_ANSWER:\n(A): [정답] (B): [정답]\nEXPLANATION:\n[정답]: (A) [답], (B) [답]\n[해설]: 각 빈칸의 정답이 본문에서 도출되는 근거 설명\n[요약문 전체 해석]:' },
-
-  { id:'seo_blanks', name:'빈칸 영작', kichul:false, direction:'[서술형] 다음 빈칸에 알맞은 말을 영어로 쓰시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문의 핵심 문장에 빈칸(____________________)을 만들어 출제\n- 조건에 맞는 단어/구를 본문에서 찾아 쓰는 형태\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[빈칸(____________________이 포함된 영어 지문]\nDIRECTION:\n다음 글의 빈칸에 들어갈 말을 <조건>에 맞게 쓰시오. [4.0점]\nCONDITIONS:\no 본문에서 찾아 쓸 것\no ( )단어로 쓸 것\nMODEL_ANSWER:\n[정답 단어/구]\nEXPLANATION:\n[정답]: [답]\n[해설]: 빈칸에 해당 표현이 들어가는 문맥적 근거 설명\n[지문 관련 해석]:' },
-
-  { id:'seo_compose', name:'조건 영작', kichul:false, direction:'[서술형] 다음 우리말을 조건에 맞게 영작하시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 핵심 내용과 연관된 한국어 문장 제시\n- 어휘/구조 조건을 포함하여 영작 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 우리말을 주어진 <조건>에 맞게 영작하시오. [5.0점]\n[우리말]: [한국어 문장]\nCONDITIONS:\no [어휘 조건]\no [구조/어법 조건]\nMODEL_ANSWER:\n[모범 답안 영문장]\nEXPLANATION:\n[정답]: [모범 답안]\n[해설]: 주어진 조건이 충족된 문법적 근거 설명\n[우리말 해석 확인]:' },
-
-  { id:'seo_qa', name:'질문 답변', kichul:false, direction:'[서술형] 다음 질문에 영어로 답하시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 내용에 대한 영어 질문 1개 출제\n- 완전한 영어 문장으로 답하도록 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오. [5.0점]\n[Q]: [영어 질문]\nMODEL_ANSWER:\n[완전한 영어 문장 답변]\nEXPLANATION:\n[정답]: [답변]\n[해설]: 질문의 답이 본문 어디서 도출되었는지 설명\n[지문 관련 해석]:' },
-
-  { id:'seo_grammar', name:'어법 서술형', kichul:false, direction:'[서술형] 어법상 틀린 부분을 찾아 바르게 고쳐 쓰시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 내 어법상 틀린 표현 1~2개를 선정하여 어법 오류 서술형 출제\n- 학생이 오류를 찾아 올바른 형태로 고쳐 쓰도록 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[어법 오류가 포함된 영어 지문 (오류 부분에 밑줄 표시 ______)]\nDIRECTION:\n다음 글에서 어법상 틀린 부분을 <조건>에 맞게 찾아 고쳐 쓰시오. [5.0점]\nCONDITIONS:\no 틀린 표현 1개를 찾아 쓸 것\no 바르게 고친 표현도 함께 쓸 것\nMODEL_ANSWER:\n[틀린 표현] → [바른 표현]\nEXPLANATION:\n[정답]: [틀린 표현] → [바른 표현]\n[해설]: 해당 어법이 틀린 이유와 올바른 형태의 문법적 근거 설명\n[지문 관련 해석]:' },
-
-  { id:'seo_content_kr', name:'내용 서술(한글)', kichul:false, direction:'[서술형] 다음 글의 내용을 조건에 맞게 한글로 서술하시오.',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문의 핵심 내용이나 특정 정보를 한글로 서술하도록 출제\n- 조건(단어 수, 포함 내용 등)을 제시하여 서술 범위를 명확히 지정\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글을 읽고, <조건>에 맞게 한글로 서술하시오. [5.0점]\nCONDITIONS:\no [서술 범위 조건 (예: 글쓴이의 주장과 그 이유)]\no [분량 조건 (예: 30~50자 이내)]\nMODEL_ANSWER:\n[모범 한글 답안]\nEXPLANATION:\n[정답]: [모범 답안]\n[해설]: 답안이 도출된 본문 근거 설명\n[채점 기준]: 핵심 내용 포함 여부 및 분량 준수 여부' },
-
-  { id:'seo_topic_plus_content2', name:'주제+내용 2문제', kichul:false, direction:'[서술형] 주제문 영작 + 내용 문제 2개',
-    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 동일 지문에서 서술형 문제 3개를 한 번에 출제\n- (1) 주제문 영작: 보기+조건 제시형\n- (2) 내용 문제1: 빈칸 또는 요약 형태\n- (3) 내용 문제2: 질문 답변 형태\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION_TOPIC:\n다음 글의 주제를 <조건>에 맞게 영어로 쓰시오. [5.0점]\nCONDITIONS_TOPIC:\no <보기> 단어를 모두 사용할 것 (어형 변화 가능)\nWORD_BANK:\n[단어1, 단어2, 단어3, 단어4]\nMODEL_ANSWER_TOPIC:\n[주제문 영작 모범 답안]\nDIRECTION_Q1:\n다음 글의 빈칸에 알맞은 말을 본문에서 찾아 쓰시오. [4.0점]\n[빈칸이 포함된 문장 또는 요약문]\nCONDITIONS_Q1:\no ( )단어로 쓸 것\nMODEL_ANSWER_Q1:\n[내용 문제1 정답]\nDIRECTION_Q2:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오. [4.0점]\n[Q]: [영어 질문]\nMODEL_ANSWER_Q2:\n[내용 문제2 정답]\nEXPLANATION:\n[주제 정답]: [주제문]\n[내용1 정답]: [답1]\n[내용2 정답]: [답2]\n[해설]: 각 문제의 근거 및 어형 변화 설명\n[지문 전체 해석]:' }
 ];
+
+// ─── 서술형 전용 공통 타입 (전역, 학교 비분리) ───
+var globalSeoTypes = (function() {
+  var saved = JSON.parse(localStorage.getItem('globalSeoTypes') || 'null');
+  if (!saved || !Array.isArray(saved)) return JSON.parse(JSON.stringify(SEO_DEFAULT_TYPES));
+  // SEO_DEFAULT_TYPES에 있지만 저장본에 없는 신규 항목 추가
+  var savedIds = saved.map(function(t){ return t.id; });
+  SEO_DEFAULT_TYPES.forEach(function(dt) {
+    if (savedIds.indexOf(dt.id) < 0) saved.push(JSON.parse(JSON.stringify(dt)));
+  });
+  // seoRender 필드 보강 (구버전 저장본)
+  saved.forEach(function(t) {
+    if (!t.seoRender) {
+      var def = SEO_DEFAULT_TYPES.filter(function(d){ return d.id === t.id; })[0];
+      if (def) t.seoRender = def.seoRender;
+    }
+  });
+  return saved;
+}());
+
+function saveGlobalSeoTypes() {
+  localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
+}
+
+function getActiveSeoTypes() {
+  return JSON.parse(JSON.stringify(globalSeoTypes));
+}
 
 // ─── STATE ───
 function mergeWithDefaultQTypes(savedTypes) {
   if (!savedTypes) return JSON.parse(JSON.stringify(DEFAULT_TYPES));
 
-  // 구형 seo1~5: 커스텀 프롬프트를 신규 유형으로 이전한 뒤 제거
-  var legacySeoMap = { seo1:'seo_topic', seo2:'seo_blanks', seo3:'seo_compose', seo4:'seo_qa', seo5:'seo_summary_2' };
-  var defaultPromptById = {};
-  DEFAULT_TYPES.forEach(function(dt){ defaultPromptById[dt.id] = dt.prompt; });
-  // 1) 레거시 커스텀 프롬프트 수집
-  var legacyCustom = {};
-  savedTypes.forEach(function(t){
-    var newId = legacySeoMap[t.id];
-    if (newId && t.prompt && t.prompt !== defaultPromptById[t.id]) legacyCustom[newId] = t.prompt;
-  });
-  // 2) 레거시 항목 제거
-  savedTypes = savedTypes.filter(function(t){ return !legacySeoMap[t.id]; });
-  // 3) 신규 유형에 커스텀 프롬프트 이전 (아직 기본값인 경우만)
-  savedTypes.forEach(function(t){
-    if (legacyCustom[t.id] && (!t.prompt || t.prompt === defaultPromptById[t.id])) {
-      t.prompt = legacyCustom[t.id];
-    }
-  });
+  // seo_* 항목은 이제 globalSeoTypes에서 관리 → schoolPresets에서 제거
+  savedTypes = savedTypes.filter(function(t){ return !t.id.startsWith('seo'); });
 
   // 저장된 목록에 없는 새 유형 자동 병합
   var savedIds = savedTypes.map(function(t){ return t.id; });
@@ -114,14 +139,13 @@ function mergeWithDefaultQTypes(savedTypes) {
     if (savedIds.indexOf(dt.id) < 0) savedTypes.push(JSON.parse(JSON.stringify(dt)));
   });
 
-  // 배열을 DEFAULT_TYPES 순서대로 강제 재정렬 (사용자 화면에서 항상 일관성 유지)
+  // DEFAULT_TYPES 순서대로 재정렬
   var orderMap = {};
   DEFAULT_TYPES.forEach(function(dt, idx) { orderMap[dt.id] = idx; });
   savedTypes.sort(function(a, b) {
     var idxA = orderMap[a.id] !== undefined ? orderMap[a.id] : 999;
     var idxB = orderMap[b.id] !== undefined ? orderMap[b.id] : 999;
-    if (idxA !== idxB) return idxA - idxB;
-    return 0;
+    return idxA - idxB;
   });
 
   return savedTypes;
@@ -289,15 +313,22 @@ var qTypes = mergeWithDefaultQTypes(JSON.parse(localStorage.getItem('qTypes_v5')
 var passages    = JSON.parse(localStorage.getItem('passages')    || '[]');
 var quotas      = JSON.parse(localStorage.getItem('quotas')      || 'null') || {};
 var seoCount    = parseInt(localStorage.getItem('seoCount')      || '1');
-var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo_topic"]');
-// 구형 seo1~5 id → 신규 카탈로그 id 마이그레이션
+var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo_topic_1"]');
+// 구형 seo id → 신규 카탈로그 id 마이그레이션
 (function migrateSeoSelected() {
-  var idMap = { seo1:'seo_topic', seo2:'seo_summary_3', seo3:'seo_compose', seo4:'seo_qa', seo5:'seo_summary_2' };
+  var idMap = {
+    seo1:'seo_topic_1', seo2:'seo_blanks_1', seo3:'seo_compose_1', seo4:'seo_content', seo5:'seo_summary_2',
+    seo_topic:'seo_topic_1', seo_blanks:'seo_blanks_1', seo_compose:'seo_compose_1',
+    seo_qa:'seo_content', seo_grammar:'seo_grammar_1', seo_content_kr:'seo_content',
+    seo_summary_3:'seo_summary_3', seo_summary_2:'seo_summary_2', seo_topic_plus_content2:'seo_topic_plus_content2'
+  };
   var changed = false;
   seoSelected = seoSelected.map(function(id) {
-    if (idMap[id]) { changed = true; return idMap[id]; }
+    if (idMap[id] && idMap[id] !== id) { changed = true; return idMap[id]; }
     return id;
   });
+  // 중복 제거
+  seoSelected = seoSelected.filter(function(id, idx){ return seoSelected.indexOf(id) === idx; });
   if (changed) localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
 }());
 var promptSets  = JSON.parse(localStorage.getItem('promptSets_v1') || '{}');
@@ -756,6 +787,67 @@ function renderActiveCategoryDisplay() {
 }
 
 // ─── SETTINGS CATEGORY ───
+var settingsPaneMode = 'obj'; // 'obj' | 'seo'
+var editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
+
+function switchSettingsPane(mode) {
+  settingsPaneMode = mode;
+  var objArea  = document.getElementById('settingsObjArea');
+  var seoArea  = document.getElementById('settingsSeoArea');
+  var btnObj   = document.getElementById('settingsPaneObj');
+  var btnSeo   = document.getElementById('settingsPaneSeo');
+  if (objArea) objArea.style.display = mode === 'obj' ? '' : 'none';
+  if (seoArea) seoArea.style.display = mode === 'seo' ? '' : 'none';
+  if (btnObj) { btnObj.style.background = mode === 'obj' ? 'var(--bl)' : 'var(--sf)'; btnObj.style.color = mode === 'obj' ? '#fff' : 'var(--ink2)'; }
+  if (btnSeo) { btnSeo.style.background = mode === 'seo' ? 'var(--ac)' : 'var(--sf)'; btnSeo.style.color = mode === 'seo' ? '#fff' : 'var(--ink2)'; }
+  if (mode === 'seo') {
+    editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
+    renderSeoTypeEditor();
+  } else {
+    renderTypeList();
+    if (editingQTypes.length) selectType(selIdx < editingQTypes.length ? selIdx : 0);
+  }
+}
+
+function renderSeoTypeEditor() {
+  var el = document.getElementById('seoTypeListEl');
+  if (!el) return;
+  el.innerHTML = editingSeoTypes.map(function(t, i) {
+    return '<div class="ti' + (i===seoSelIdx?' active':'') + '" onclick="selectSeoType(' + i + ')">' +
+      '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
+      '<span class="tname">' + t.name + '</span>' +
+      '<span class="tcode">' + t.id + '</span></div>';
+  }).join('');
+}
+
+var seoSelIdx = 0;
+
+function selectSeoType(i) {
+  seoSelIdx = i;
+  renderSeoTypeEditor();
+  var t = editingSeoTypes[i];
+  var nameEl = document.getElementById('seoEditName');
+  var dirEl  = document.getElementById('seoEditDirection');
+  var promEl = document.getElementById('seoEditPrompt');
+  if (nameEl) nameEl.value = t.name;
+  if (dirEl)  dirEl.value  = t.direction || '';
+  if (promEl) promEl.value = t.prompt || '';
+}
+
+function saveSeoCurrentType() {
+  var nameEl = document.getElementById('seoEditName');
+  var dirEl  = document.getElementById('seoEditDirection');
+  var promEl = document.getElementById('seoEditPrompt');
+  if (nameEl) editingSeoTypes[seoSelIdx].name      = nameEl.value;
+  if (dirEl)  editingSeoTypes[seoSelIdx].direction = dirEl.value;
+  if (promEl) editingSeoTypes[seoSelIdx].prompt    = promEl.value;
+  globalSeoTypes = JSON.parse(JSON.stringify(editingSeoTypes));
+  saveGlobalSeoTypes();
+  renderSeoTypeEditor();
+  renderSeoTypeRows();
+  alert('서술형 프롬프트가 저장되었습니다.');
+}
+
 function switchSettingsCat(cat) {
   settingsCat = cat;
   if (SCHOOL_NAMES.indexOf(cat) >= 0) {
@@ -875,7 +967,7 @@ function selectType(i) {
   document.getElementById('editDirection').value      = t.direction;
   document.getElementById('editPrompt').value         = t.prompt;
   var kichulRow = document.getElementById('editKichulRow');
-  if (kichulRow) kichulRow.style.display = t.id.startsWith('seo') ? '' : 'none';
+  if (kichulRow) kichulRow.style.display = 'none'; // 기출 체크박스: 객관식 탭에서는 항상 숨김
   var kichulEl = document.getElementById('editKichul');
   if (kichulEl) kichulEl.checked = !!t.kichul;
   if (t.reference && !t.references) {
@@ -1063,17 +1155,27 @@ function renderPassageList() {
     return;
   }
   var isRand = document.getElementById('randomToggle').checked;
+  var objTypes = getActiveQTypes();
+  var seoTypes = getActiveSeoTypes();
   el.innerHTML = passages.map(function(p, i) {
-    var sel = '';
+    var selArea = '';
     if (!isRand) {
-      var opts = '<option value="unselected"' + (p.typeId === 'unselected' ? ' selected' : '') + '>미선택</option>' + getActiveQTypes().map(function(t) {
-        return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + typeDisplayName(t) + '</option>';
-      }).join('');
-      sel = '<select class="ptsel" onchange="setPassageType(' + i + ',this.value)">' + opts + '</select>';
+      var objOpts = '<option value="unselected"' + ((!p.typeId || p.typeId === 'unselected') ? ' selected' : '') + '>객관식 없음</option>' +
+        objTypes.map(function(t) {
+          return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
+        }).join('');
+      var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
+        seoTypes.map(function(t) {
+          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
+        }).join('');
+      selArea = '<div style="display:flex;gap:4px;align-items:center;">' +
+        '<select class="ptsel" onchange="setPassageType(' + i + ',this.value)" title="객관식 유형">' + objOpts + '</select>' +
+        '<select class="ptsel" style="border-color:var(--ac);color:var(--ac);" onchange="setPassageSeoType(' + i + ',this.value)" title="서술형 유형">' + seoOpts + '</select>' +
+        '</div>';
     }
     return '<div class="pc">' +
       '<div class="pchead"><span class="pnum">' + (i+1) + '</span>' +
-      '<span style="font-size:13px;font-weight:600;color:var(--ink2);flex:1">' + (p.title||'제목 없음') + '</span>' + sel + '</div>' +
+      '<span style="font-size:13px;font-weight:600;color:var(--ink2);flex:1">' + (p.title||'제목 없음') + '</span>' + selArea + '</div>' +
       '<div class="pprev">' + p.text + '</div>' +
       '<div class="pcfoot" style="flex-wrap:wrap;">' +
       '<button class="mb" onclick="editPassage(' + i + ')">✎ 편집</button>' +
@@ -1082,6 +1184,10 @@ function renderPassageList() {
       '<button class="mb d" onclick="delPassage(' + i + ')">✕ 삭제</button>' +
       '</div></div>';
   }).join('');
+}
+
+function setPassageSeoType(i, seoTypeId) {
+  passages[i].seoTypeId = seoTypeId; persist();
 }
 
 function renderQuotaRows() {
@@ -1102,12 +1208,12 @@ function renderQuotaRows() {
 }
 
 function renderSeoTypeRows() {
-  var seoTypes = getActiveQTypes().filter(function(t){ return t.id.startsWith('seo'); });
+  var seoTypes = getActiveSeoTypes();
   document.getElementById('seoTypeRows').innerHTML = seoTypes.map(function(t) {
     var chk = seoSelected.indexOf(t.id) >= 0 ? ' checked' : '';
     return '<div class="seocbrow">' +
       '<input type="checkbox" id="scb_' + t.id + '" value="' + t.id + '"' + chk + ' onchange="onSeoCheck(this)">' +
-      '<label for="scb_' + t.id + '">' + typeDisplayName(t) + '</label></div>';
+      '<label for="scb_' + t.id + '">' + t.name + '</label></div>';
   }).join('');
 }
 
@@ -1119,40 +1225,49 @@ function chgQ(id, d) {
 
 function renderManualCount() {
   var aqt = getActiveQTypes();
-  var nonSeoTypes = aqt.filter(function(t){ return !t.id.startsWith('seo'); });
-  var allSeoTypes = aqt.filter(function(t){ return t.id.startsWith('seo'); });
+  var seoTypes = getActiveSeoTypes();
 
-  // 모든 유형 카운트 (일반 + 서술형 포함)
-  var counts = {};
-  aqt.forEach(function(t){ counts[t.id] = 0; });
+  // 객관식 카운트
+  var objCounts = {};
+  aqt.forEach(function(t){ objCounts[t.id] = 0; });
   passages.forEach(function(p){
-    var tid = p.typeId || (aqt[0] ? aqt[0].id : '');
-    if (counts[tid] !== undefined) counts[tid]++;
-    else counts[tid] = 1;
+    var tid = p.typeId;
+    if (tid && tid !== 'unselected') {
+      if (objCounts[tid] !== undefined) objCounts[tid]++;
+      else objCounts[tid] = 1;
+    }
+  });
+  // 서술형 카운트
+  var seoCounts = {};
+  seoTypes.forEach(function(t){ seoCounts[t.id] = 0; });
+  passages.forEach(function(p){
+    var sid = p.seoTypeId;
+    if (sid && sid !== 'unselected') {
+      if (seoCounts[sid] !== undefined) seoCounts[sid]++;
+      else seoCounts[sid] = 1;
+    }
   });
 
-  // 일반 유형 rows
-  var rows = nonSeoTypes.map(function(t, i) {
-    var n = counts[t.id] || 0;
-    var bg  = n > 0 ? 'var(--grs)'  : 'var(--sf2)';
-    var col = n > 0 ? 'var(--gr)'   : 'var(--ink3)';
+  // 객관식 rows
+  var rows = aqt.map(function(t, i) {
+    var n = objCounts[t.id] || 0;
+    var bg  = n > 0 ? 'var(--grs)' : 'var(--sf2)';
+    var col = n > 0 ? 'var(--gr)'  : 'var(--ink3)';
     var op  = n > 0 ? '' : 'opacity:0.45;';
     return '<div class="qrow" style="' + op + '">' +
-      '<div class="qtype"><div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' + typeDisplayName(t) + '</div>' +
+      '<div class="qtype"><div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' + t.name + '</div>' +
       '<div class="qctrl"><div class="qnum" style="min-width:28px;text-align:center;background:' + bg + ';border-radius:3px;padding:2px 6px;border:1px solid var(--bd);color:' + col + ';font-weight:700;">' + n + '</div></div></div>';
   }).join('');
 
-  // 서술형 rows (랜덤 OFF 시 항상 표시)
-  if (allSeoTypes.length) {
+  // 서술형 rows
+  var activeSeoRows = seoTypes.filter(function(t){ return seoCounts[t.id] > 0; });
+  if (activeSeoRows.length) {
     rows += '<div style="margin:10px 0 5px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--ac);">[서술형] 배정 현황</div>';
-    allSeoTypes.forEach(function(t, i) {
-      var n = counts[t.id] || 0;
-      var bg  = n > 0 ? 'var(--acs)'   : 'var(--sf2)';
-      var col = n > 0 ? 'var(--ac)'    : 'var(--ink3)';
-      var op  = n > 0 ? '' : 'opacity:0.45;';
-      rows += '<div class="qrow" style="' + op + 'border-color:' + (n>0?'#f0c0bb':'var(--bd)') + ';">' +
-        '<div class="qtype"><div class="tdot ' + COLORS[(nonSeoTypes.length + i) % COLORS.length] + '"></div>' + typeDisplayName(t) + '</div>' +
-        '<div class="qctrl"><div class="qnum" style="min-width:28px;text-align:center;background:' + bg + ';border-radius:3px;padding:2px 6px;border:1px solid ' + (n>0?'#f0c0bb':'var(--bd)') + ';color:' + col + ';font-weight:700;">' + n + '</div></div></div>';
+    activeSeoRows.forEach(function(t, i) {
+      var n = seoCounts[t.id] || 0;
+      rows += '<div class="qrow" style="border-color:#f0c0bb;">' +
+        '<div class="qtype"><div class="tdot ' + COLORS[(aqt.length + i) % COLORS.length] + '"></div>' + t.name + '</div>' +
+        '<div class="qctrl"><div class="qnum" style="min-width:28px;text-align:center;background:var(--acs);border-radius:3px;padding:2px 6px;border:1px solid #f0c0bb;color:var(--ac);font-weight:700;">' + n + '</div></div></div>';
     });
   }
 
@@ -1161,9 +1276,14 @@ function renderManualCount() {
 
 function updateQSum() {
   var isRand = document.getElementById('randomToggle').checked;
-  var total = isRand
-    ? Object.values(quotas).reduce(function(s,v){ return s+v; }, 0)
-    : passages.filter(function(p){ return p.typeId !== 'unselected'; }).length;
+  var total;
+  if (isRand) {
+    total = Object.values(quotas).reduce(function(s,v){ return s+v; }, 0);
+  } else {
+    var objCount = passages.filter(function(p){ return p.typeId && p.typeId !== 'unselected'; }).length;
+    var seoCount2 = passages.filter(function(p){ return p.seoTypeId && p.seoTypeId !== 'unselected'; }).length;
+    total = objCount + seoCount2;
+  }
   document.getElementById('quotaSummary').textContent = '총 ' + total + '문항 · 지문 ' + passages.length + '개 입력됨';
   if (!isRand) renderManualCount();
 }
@@ -1635,14 +1755,15 @@ function toSections(num, type, raw, passageTitle) {
     if (summary) { q.push('요약: ' + summary); q.push(''); }
     choices.forEach(function(c){ q.push(c); }); q.push('');
 
-  } else if (type.id.startsWith('seo')) {
-    // ── seo 렌더링: 새 카탈로그 유형은 id별 고정 렌더, 구형(seo1~5)은 레거시 분기 ──
+  } else if (type.id.startsWith('seo') || type.seoRender) {
+    // ── 서술형 렌더링: seoRender 필드 기반 고정 렌더 ──
     var seoCond2 = conditionsBlock || extractKorBlock(direction + '\n' + summary, '< 조건 >');
     var seoBank2 = wordBankBlock   || extractKorBlock(direction + '\n' + summary, '< 보기 >');
     var sumClean2 = cleanSeoInstruction(summary);
     var dirClean2 = cleanSeoInstruction(direction) || direction.trim();
+    var seoRender = type.seoRender || '';
 
-    if (type.id === 'seo_topic') {
+    if (seoRender === 'topic') {
       // 지문 → 지시문 → < 조건 > → < 보기 > → 답란 1개
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
@@ -1650,8 +1771,7 @@ function toSections(num, type, raw, passageTitle) {
       if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
 
-    } else if (type.id === 'seo_summary_3') {
-      // 지문 → 지시문 → 요약문 → < 조건 > → 답란 (A)(B)(C)
+    } else if (seoRender === 'summary3') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       if (sumClean2) { q.push(sumClean2); q.push(''); }
@@ -1660,8 +1780,7 @@ function toSections(num, type, raw, passageTitle) {
       q.push('답 : (B) ____________________');
       q.push('답 : (C) ____________________'); q.push('');
 
-    } else if (type.id === 'seo_summary_2') {
-      // 지문 → 지시문 → 요약문 → < 조건 > → 답란 (A)(B)
+    } else if (seoRender === 'summary2') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       if (sumClean2) { q.push(sumClean2); q.push(''); }
@@ -1669,43 +1788,30 @@ function toSections(num, type, raw, passageTitle) {
       q.push('답 : (A) ____________________');
       q.push('답 : (B) ____________________'); q.push('');
 
-    } else if (type.id === 'seo_blanks') {
-      // 지문 → 지시문(빈칸 포함) → < 조건 > → 답란 1개
+    } else if (seoRender === 'blanks') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
 
-    } else if (type.id === 'seo_compose') {
-      // 지문 → 지시문(우리말 포함) → < 조건 > → 답란 1개
+    } else if (seoRender === 'compose') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
 
-    } else if (type.id === 'seo_qa') {
-      // 지문 → 지시문(질문 포함) → 답란 1개
+    } else if (seoRender === 'content') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       q.push('답 : _________________________________________________'); q.push('');
 
-    } else if (type.id === 'seo_grammar') {
-      // 지문 → 지시문 → < 조건 > → 답란 (틀린표현 → 바른표현)
+    } else if (seoRender === 'grammar') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
       q.push('틀린 표현: _______________  →  바른 표현: _______________'); q.push('');
 
-    } else if (type.id === 'seo_content_kr') {
-      // 지문 → 지시문 → < 조건 > → 한글 서술 답란
-      if (passage) { q.push(passage); q.push(''); }
-      q.push(dirClean2); q.push('');
-      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
-      q.push('답 : _________________________________________________');
-      q.push('      _________________________________________________'); q.push('');
-
-    } else if (type.id === 'seo_topic_plus_content2') {
-      // 지문 → [주제파트] → [내용Q1파트] → [내용Q2파트]
+    } else if (seoRender === 'topic_plus' || type.id === 'seo_topic_plus_content2') {
       var dirTopic  = extractSec(raw, 'DIRECTION_TOPIC')  || '';
       var condTopic = extractSec(raw, 'CONDITIONS_TOPIC') || '';
       var bank3     = extractSec(raw, 'WORD_BANK') || wordBankBlock || '';
@@ -1718,24 +1824,16 @@ function toSections(num, type, raw, passageTitle) {
       var maQ2      = extractSec(raw, 'MODEL_ANSWER_Q2') || '';
 
       if (passage) { q.push(passage); q.push(''); }
-
-      // 주제파트
       if (dirTopic) { q.push(cleanSeoInstruction(dirTopic)); q.push(''); }
       if (condTopic) { q.push('< 조건 >'); q.push(condTopic); q.push(''); }
       if (bank3) { q.push('< 보기 >'); q.push(bank3); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
-
-      // 내용Q1
       if (dirQ1) { q.push(cleanSeoInstruction(dirQ1)); q.push(''); }
       if (condQ1) { q.push('< 조건 >'); q.push(condQ1); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
-
-      // 내용Q2
       if (dirQ2) { q.push(cleanSeoInstruction(dirQ2)); q.push(''); }
       if (condQ2) { q.push('< 조건 >'); q.push(condQ2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
-
-      // 복합 모범 답안 합성
       if (maTop || maQ1 || maQ2) {
         modelAns = (maTop ? '① 주제: ' + maTop + '\n' : '') +
                    (maQ1  ? '② 내용1: ' + maQ1 + '\n' : '') +
@@ -1743,28 +1841,12 @@ function toSections(num, type, raw, passageTitle) {
       }
 
     } else {
-      // ── 레거시(seo1~5) 3-분기 자동 추론 렌더 ──
+      // 알 수 없는 seo 유형 — 기본 단일 답란 렌더
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
-      if (seoBank2) {
-        q.push('< 보기 >'); q.push(seoBank2); q.push('');
-        if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
-        q.push('답 : (A) ____________________'); q.push('');
-        if (sumClean2) { q.push(sumClean2); q.push(''); }
-      } else if (sumClean2) {
-        q.push(sumClean2); q.push('');
-        if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
-        var blanks = detectBlankLabels(sumClean2, modelAns);
-        if (blanks.length >= 2) {
-          blanks.forEach(function(lb){ q.push('답 : (' + lb + ') ____________________'); });
-          q.push('');
-        } else {
-          q.push('답 : _________________________________________________'); q.push('');
-        }
-      } else {
-        if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
-        q.push('답 : _________________________________________________'); q.push('');
-      }
+      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
+      q.push('답 : _________________________________________________'); q.push('');
     }
 
   } else {
@@ -1959,10 +2041,13 @@ async function startGeneration() {
       }
     }
   } else {
-    // 랜덤 OFF: 지문 카드 배정 그대로 사용 (서술형 포함)
+    // 랜덤 OFF: 지문 카드 배정 (객관식 + 서술형 각각)
     passages.forEach(function(p) {
-      if (p.typeId !== 'unselected') {
-        assignment.push({ passage: p, typeId: p.typeId || getActiveQTypes()[0].id });
+      if (p.typeId && p.typeId !== 'unselected') {
+        assignment.push({ passage: p, typeId: p.typeId, isSeo: false });
+      }
+      if (p.seoTypeId && p.seoTypeId !== 'unselected') {
+        assignment.push({ passage: p, typeId: p.seoTypeId, isSeo: true });
       }
     });
   }
@@ -1995,8 +2080,13 @@ async function startGeneration() {
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
     var type = null;
-    var _aqt = getActiveQTypes();
-    for (var j=0; j<_aqt.length; j++) { if (_aqt[j].id === item.typeId) { type = _aqt[j]; break; } }
+    if (item.isSeo) {
+      var _ast = getActiveSeoTypes();
+      for (var j=0; j<_ast.length; j++) { if (_ast[j].id === item.typeId) { type = _ast[j]; break; } }
+    } else {
+      var _aqt = getActiveQTypes();
+      for (var j=0; j<_aqt.length; j++) { if (_aqt[j].id === item.typeId) { type = _aqt[j]; break; } }
+    }
     if (!type) continue;
 
     var sid = 'st' + i;
