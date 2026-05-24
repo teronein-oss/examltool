@@ -816,14 +816,27 @@ function renderSeoTypeEditor() {
   var el = document.getElementById('seoTypeListEl');
   if (!el) return;
   el.innerHTML = editingSeoTypes.map(function(t, i) {
-    return '<div class="ti' + (i===seoSelIdx?' active':'') + '" onclick="selectSeoType(' + i + ')">' +
+    return '<div class="ti' + (i===seoSelIdx?' active':'') + '" onclick="selectSeoType(' + i + ')" style="display:flex;align-items:center;gap:6px;">' +
+      '<input type="checkbox"' + (t.done ? ' checked' : '') +
+        ' onclick="event.stopPropagation();toggleSeoDone(' + i + ')"' +
+        ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--gr);" title="프롬프트 완료 표시">' +
       '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
-      '<span class="tname">' + t.name + '</span>' +
+      '<span class="tname">' + t.name + (t.done ? ' ✓' : '') + '</span>' +
       '<span class="tcode">' + t.id + '</span></div>';
   }).join('');
 }
 
 var seoSelIdx = 0;
+
+function toggleSeoDone(i) {
+  editingSeoTypes[i].done = !editingSeoTypes[i].done;
+  var matchId = editingSeoTypes[i].id;
+  for (var j = 0; j < globalSeoTypes.length; j++) {
+    if (globalSeoTypes[j].id === matchId) { globalSeoTypes[j].done = editingSeoTypes[i].done; break; }
+  }
+  saveGlobalSeoTypes();
+  renderSeoTypeEditor();
+}
 
 function selectSeoType(i) {
   seoSelIdx = i;
@@ -1169,7 +1182,8 @@ function renderPassageList() {
         }).join('');
       var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
         seoTypes.map(function(t) {
-          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
+          var label = t.name + (t.done ? ' (완료)' : '');
+          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + label + '</option>';
         }).join('');
       var objActive = p.typeId && p.typeId !== 'unselected';
       var seoActive = p.seoTypeId && p.seoTypeId !== 'unselected';
