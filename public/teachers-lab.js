@@ -1168,9 +1168,13 @@ function renderPassageList() {
         seoTypes.map(function(t) {
           return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
+      var objActive = p.typeId && p.typeId !== 'unselected';
+      var seoActive = p.seoTypeId && p.seoTypeId !== 'unselected';
       selArea = '<div style="display:flex;gap:4px;align-items:center;">' +
-        '<select class="ptsel" onchange="setPassageType(' + i + ',this.value)" title="객관식 유형">' + objOpts + '</select>' +
-        '<select class="ptsel" style="border-color:var(--ac);color:var(--ac);" onchange="setPassageSeoType(' + i + ',this.value)" title="서술형 유형">' + seoOpts + '</select>' +
+        '<select class="ptsel" onchange="setPassageType(' + i + ',this.value)" title="객관식 유형"' +
+          (seoActive ? ' disabled style="opacity:0.35;cursor:not-allowed;"' : '') + '>' + objOpts + '</select>' +
+        '<select class="ptsel" onchange="setPassageSeoType(' + i + ',this.value)" title="서술형 유형"' +
+          (objActive ? ' disabled style="opacity:0.35;cursor:not-allowed;"' : ' style="border-color:var(--ac);color:var(--ac);"') + '>' + seoOpts + '</select>' +
         '</div>';
     }
     return '<div class="pc">' +
@@ -1187,7 +1191,9 @@ function renderPassageList() {
 }
 
 function setPassageSeoType(i, seoTypeId) {
-  passages[i].seoTypeId = seoTypeId; persist();
+  passages[i].seoTypeId = seoTypeId;
+  if (seoTypeId && seoTypeId !== 'unselected') passages[i].typeId = 'unselected';
+  persist();
 }
 
 function renderQuotaRows() {
@@ -1576,7 +1582,9 @@ async function transformPassage(i, mode) {
 }
 
 function setPassageType(i, typeId) {
-  passages[i].typeId = typeId; persist();
+  passages[i].typeId = typeId;
+  if (typeId && typeId !== 'unselected') passages[i].seoTypeId = 'unselected';
+  persist();
   var isRand = document.getElementById("randomToggle").checked;
   if (!isRand) renderManualCount();
 }
