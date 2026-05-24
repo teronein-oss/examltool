@@ -75,6 +75,12 @@ var DEFAULT_TYPES = [
   { id:'seo_qa', name:'질문 답변', kichul:false, direction:'[서술형] 다음 질문에 영어로 답하시오.',
     prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 내용에 대한 영어 질문 1개 출제\n- 완전한 영어 문장으로 답하도록 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오. [5.0점]\n[Q]: [영어 질문]\nMODEL_ANSWER:\n[완전한 영어 문장 답변]\nEXPLANATION:\n[정답]: [답변]\n[해설]: 질문의 답이 본문 어디서 도출되었는지 설명\n[지문 관련 해석]:' },
 
+  { id:'seo_grammar', name:'어법 서술형', kichul:false, direction:'[서술형] 어법상 틀린 부분을 찾아 바르게 고쳐 쓰시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문 내 어법상 틀린 표현 1~2개를 선정하여 어법 오류 서술형 출제\n- 학생이 오류를 찾아 올바른 형태로 고쳐 쓰도록 유도\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[어법 오류가 포함된 영어 지문 (오류 부분에 밑줄 표시 ______)]\nDIRECTION:\n다음 글에서 어법상 틀린 부분을 <조건>에 맞게 찾아 고쳐 쓰시오. [5.0점]\nCONDITIONS:\no 틀린 표현 1개를 찾아 쓸 것\no 바르게 고친 표현도 함께 쓸 것\nMODEL_ANSWER:\n[틀린 표현] → [바른 표현]\nEXPLANATION:\n[정답]: [틀린 표현] → [바른 표현]\n[해설]: 해당 어법이 틀린 이유와 올바른 형태의 문법적 근거 설명\n[지문 관련 해석]:' },
+
+  { id:'seo_content_kr', name:'내용 서술(한글)', kichul:false, direction:'[서술형] 다음 글의 내용을 조건에 맞게 한글로 서술하시오.',
+    prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 지문의 핵심 내용이나 특정 정보를 한글로 서술하도록 출제\n- 조건(단어 수, 포함 내용 등)을 제시하여 서술 범위를 명확히 지정\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION:\n다음 글을 읽고, <조건>에 맞게 한글로 서술하시오. [5.0점]\nCONDITIONS:\no [서술 범위 조건 (예: 글쓴이의 주장과 그 이유)]\no [분량 조건 (예: 30~50자 이내)]\nMODEL_ANSWER:\n[모범 한글 답안]\nEXPLANATION:\n[정답]: [모범 답안]\n[해설]: 답안이 도출된 본문 근거 설명\n[채점 기준]: 핵심 내용 포함 여부 및 분량 준수 여부' },
+
   { id:'seo_topic_plus_content2', name:'주제+내용 2문제', kichul:false, direction:'[서술형] 주제문 영작 + 내용 문제 2개',
     prompt:'당신은 고등학교 영어 내신 서술형 출제 전문가입니다.\n## 매뉴얼\n- 동일 지문에서 서술형 문제 3개를 한 번에 출제\n- (1) 주제문 영작: 보기+조건 제시형\n- (2) 내용 문제1: 빈칸 또는 요약 형태\n- (3) 내용 문제2: 질문 답변 형태\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nDIRECTION_TOPIC:\n다음 글의 주제를 <조건>에 맞게 영어로 쓰시오. [5.0점]\nCONDITIONS_TOPIC:\no <보기> 단어를 모두 사용할 것 (어형 변화 가능)\nWORD_BANK:\n[단어1, 단어2, 단어3, 단어4]\nMODEL_ANSWER_TOPIC:\n[주제문 영작 모범 답안]\nDIRECTION_Q1:\n다음 글의 빈칸에 알맞은 말을 본문에서 찾아 쓰시오. [4.0점]\n[빈칸이 포함된 문장 또는 요약문]\nCONDITIONS_Q1:\no ( )단어로 쓸 것\nMODEL_ANSWER_Q1:\n[내용 문제1 정답]\nDIRECTION_Q2:\n위 글을 읽고, 다음 질문에 완전한 영어 문장으로 답하시오. [4.0점]\n[Q]: [영어 질문]\nMODEL_ANSWER_Q2:\n[내용 문제2 정답]\nEXPLANATION:\n[주제 정답]: [주제문]\n[내용1 정답]: [답1]\n[내용2 정답]: [답2]\n[해설]: 각 문제의 근거 및 어형 변화 설명\n[지문 전체 해석]:' }
 ];
@@ -82,7 +88,11 @@ var DEFAULT_TYPES = [
 // ─── STATE ───
 function mergeWithDefaultQTypes(savedTypes) {
   if (!savedTypes) return JSON.parse(JSON.stringify(DEFAULT_TYPES));
-  
+
+  // 구형 seo1~5 항목 제거 (신규 카탈로그 유형으로 대체됨)
+  var legacySeoIds = ['seo1','seo2','seo3','seo4','seo5'];
+  savedTypes = savedTypes.filter(function(t){ return legacySeoIds.indexOf(t.id) < 0; });
+
   // 저장된 목록에 없는 새 유형 자동 병합
   var savedIds = savedTypes.map(function(t){ return t.id; });
   DEFAULT_TYPES.forEach(function(dt) {
@@ -849,6 +859,8 @@ function selectType(i) {
   document.getElementById('editName').value           = t.name;
   document.getElementById('editDirection').value      = t.direction;
   document.getElementById('editPrompt').value         = t.prompt;
+  var kichulRow = document.getElementById('editKichulRow');
+  if (kichulRow) kichulRow.style.display = t.id.startsWith('seo') ? '' : 'none';
   var kichulEl = document.getElementById('editKichul');
   if (kichulEl) kichulEl.checked = !!t.kichul;
   if (t.reference && !t.references) {
@@ -1662,6 +1674,21 @@ function toSections(num, type, raw, passageTitle) {
       q.push(dirClean2); q.push('');
       q.push('답 : _________________________________________________'); q.push('');
 
+    } else if (type.id === 'seo_grammar') {
+      // 지문 → 지시문 → < 조건 > → 답란 (틀린표현 → 바른표현)
+      if (passage) { q.push(passage); q.push(''); }
+      q.push(dirClean2); q.push('');
+      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      q.push('틀린 표현: _______________  →  바른 표현: _______________'); q.push('');
+
+    } else if (type.id === 'seo_content_kr') {
+      // 지문 → 지시문 → < 조건 > → 한글 서술 답란
+      if (passage) { q.push(passage); q.push(''); }
+      q.push(dirClean2); q.push('');
+      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      q.push('답 : _________________________________________________');
+      q.push('      _________________________________________________'); q.push('');
+
     } else if (type.id === 'seo_topic_plus_content2') {
       // 지문 → [주제파트] → [내용Q1파트] → [내용Q2파트]
       var dirTopic  = extractSec(raw, 'DIRECTION_TOPIC')  || '';
@@ -2344,7 +2371,7 @@ function reloadMemoryForUser() {
   passages    = JSON.parse(localStorage.getItem('passages')    || '[]');
   quotas      = JSON.parse(localStorage.getItem('quotas')      || 'null') || {};
   seoCount    = parseInt(localStorage.getItem('seoCount')      || '1');
-  seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo1"]');
+  seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo_topic"]');
   promptSets  = JSON.parse(localStorage.getItem('promptSets_v1') || '{}');
 
   autoHealStorage(); // 덩치 큰 레퍼런스 무조건 복구/압축 진행 (이미 위에 선언됨)
