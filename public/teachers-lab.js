@@ -49,6 +49,9 @@ var SEO_DEFAULT_TYPES = [
   { id:'seo_compose_2', name:'조건영작_2', seoRender:'compose',
     direction:'[서술형] 다음 우리말을 조건에 맞게 영작하시오.',
     prompt:'조건영작_2 프롬프트를 직접 입력하세요.' },
+  { id:'seo_tb_blank_content', name:'교과서 빈칸+내용_DB2', seoRender:'tb_blank_content',
+    direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'교과서 빈칸+내용_DB2 프롬프트를 직접 입력하세요.\n\n## ★ 출력 절대 규칙\n아래 섹션 라벨을 반드시 순서대로 사용할 것 (표 사용 금지)\n\n## 출력 형식\nPASSAGE:\n[지문 (우리말 밑줄 문장 포함)]\nDIRECTION_A:\n(1) 윗글의 밑줄 친 우리말 해석을 바탕으로 <보기>에 주어진 단어를 한 번씩만 모두 사용하여 <조건>에 맞게 영어로 완성하시오.\nWORD_BANK:\n[단어1 / 단어2 / ...]\nCONDITIONS_A:\n필요시 단어를 변형할 것\nMODEL_ANSWER_A:\n[정답 문장]\nDIRECTION_B:\n(2) 다음 질문에 대한 답을 주어진 <조건>에 맞게 영어 문장으로 완성하시오.\nCONDITIONS_B:\n· 주어진 단어로 문장을 시작할 것\n· 본문의 내용을 근거로 작성할 것\nQUESTION_A:\n[첫 번째 질문 전체 텍스트]\nSTARTER_A:\n[Q1 답의 시작 단어/구, 예: It]\nQUESTION_B:\n[두 번째 질문 전체 텍스트]\nSTARTER_B:\n[Q2 답의 시작 단어/구, 예: It]\nMODEL_ANSWER_B:\n➀ [Q1 정답 문장]\n➁ [Q2 정답 문장]\nEXPLANATION:\n[해설]' },
 ];
 
 var DEFAULT_TYPES = [
@@ -1818,6 +1821,48 @@ function toSections(num, type, raw, passageTitle) {
       q.push(dirClean2); q.push('');
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
       q.push('틀린 표현: _______________  →  바른 표현: _______________'); q.push('');
+
+    } else if (seoRender === 'tb_blank_content') {
+      var tbDirA   = extractSec(raw, 'DIRECTION_A')  || '';
+      var tbBank   = extractSec(raw, 'WORD_BANK')    || wordBankBlock || '';
+      var tbCondA  = extractSec(raw, 'CONDITIONS_A') || conditionsBlock || '';
+      var tbMaA    = extractSec(raw, 'MODEL_ANSWER_A') || '';
+      var tbDirB   = extractSec(raw, 'DIRECTION_B')  || '';
+      var tbCondB  = extractSec(raw, 'CONDITIONS_B') || '';
+      var tbQa     = extractSec(raw, 'QUESTION_A')   || '';
+      var tbStA    = extractSec(raw, 'STARTER_A')    || '';
+      var tbQb     = extractSec(raw, 'QUESTION_B')   || '';
+      var tbStB    = extractSec(raw, 'STARTER_B')    || '';
+      var tbMaB    = extractSec(raw, 'MODEL_ANSWER_B') || '';
+
+      // 전체 지시 + 지문
+      q.push(dirClean2); q.push('');
+      if (passage) { q.push(passage); q.push(''); }
+
+      // (1) 빈칸 영작
+      if (tbDirA) { q.push(cleanSeoInstruction(tbDirA)); q.push(''); }
+      if (tbBank)  { q.push('< 보기 >'); q.push(tbBank);  q.push(''); }
+      if (tbCondA) { q.push('< 조건 >'); q.push(tbCondA); q.push(''); }
+      q.push('_____________________________________________________________________.'); q.push('');
+
+      // (2) 내용 문제 2개
+      if (tbDirB) { q.push(cleanSeoInstruction(tbDirB)); q.push(''); }
+      if (tbCondB) { q.push('< 조건 >'); q.push(tbCondB); q.push(''); }
+      if (tbQa) {
+        q.push('Q. ' + tbQa);
+        q.push('➀ ' + (tbStA ? tbStA + ' ' : '') + '__________________________________________');
+        q.push('');
+      }
+      if (tbQb) {
+        q.push('Q. ' + tbQb);
+        q.push('➁ ' + (tbStB ? tbStB + ' ' : '') + '__________________________________________');
+        q.push('');
+      }
+
+      // 정답 (교사용 키)
+      if (tbMaA || tbMaB) {
+        modelAns = (tbMaA ? '(1) ' + tbMaA + '\n' : '') + (tbMaB ? '(2)\n' + tbMaB : '');
+      }
 
     } else if (seoRender === 'topic_plus' || type.id === 'seo_topic_plus_content2') {
       var dirTopic  = extractSec(raw, 'DIRECTION_TOPIC')  || '';
