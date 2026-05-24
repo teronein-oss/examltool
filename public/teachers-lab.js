@@ -89,9 +89,24 @@ var DEFAULT_TYPES = [
 function mergeWithDefaultQTypes(savedTypes) {
   if (!savedTypes) return JSON.parse(JSON.stringify(DEFAULT_TYPES));
 
-  // 구형 seo1~5 항목 제거 (신규 카탈로그 유형으로 대체됨)
-  var legacySeoIds = ['seo1','seo2','seo3','seo4','seo5'];
-  savedTypes = savedTypes.filter(function(t){ return legacySeoIds.indexOf(t.id) < 0; });
+  // 구형 seo1~5: 커스텀 프롬프트를 신규 유형으로 이전한 뒤 제거
+  var legacySeoMap = { seo1:'seo_topic', seo2:'seo_blanks', seo3:'seo_compose', seo4:'seo_qa', seo5:'seo_summary_2' };
+  var defaultPromptById = {};
+  DEFAULT_TYPES.forEach(function(dt){ defaultPromptById[dt.id] = dt.prompt; });
+  // 1) 레거시 커스텀 프롬프트 수집
+  var legacyCustom = {};
+  savedTypes.forEach(function(t){
+    var newId = legacySeoMap[t.id];
+    if (newId && t.prompt && t.prompt !== defaultPromptById[t.id]) legacyCustom[newId] = t.prompt;
+  });
+  // 2) 레거시 항목 제거
+  savedTypes = savedTypes.filter(function(t){ return !legacySeoMap[t.id]; });
+  // 3) 신규 유형에 커스텀 프롬프트 이전 (아직 기본값인 경우만)
+  savedTypes.forEach(function(t){
+    if (legacyCustom[t.id] && (!t.prompt || t.prompt === defaultPromptById[t.id])) {
+      t.prompt = legacyCustom[t.id];
+    }
+  });
 
   // 저장된 목록에 없는 새 유형 자동 병합
   var savedIds = savedTypes.map(function(t){ return t.id; });
