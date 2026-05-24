@@ -1197,6 +1197,7 @@ function setPassageSeoType(i, seoTypeId) {
   passages[i].seoTypeId = seoTypeId;
   if (seoTypeId && seoTypeId !== 'unselected') passages[i].typeId = 'unselected';
   persist();
+  renderPassageList(); updateQSum();
 }
 
 function renderQuotaRows() {
@@ -1588,6 +1589,7 @@ function setPassageType(i, typeId) {
   passages[i].typeId = typeId;
   if (typeId && typeId !== 'unselected') passages[i].seoTypeId = 'unselected';
   persist();
+  renderPassageList(); updateQSum();
   var isRand = document.getElementById("randomToggle").checked;
   if (!isRand) renderManualCount();
 }
