@@ -1662,7 +1662,7 @@ function stripLeadingProse(raw) {
   return raw;
 }
 
-var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2'];
+var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B'];
 
 // Gemini 등이 라벨에 마크다운(**굵게**, ## 머리글, - 목록)을 붙이거나 콜론을 빠뜨려도
 // 파싱되도록, 알려진 섹션 라벨 줄을 표준형 "LABEL:" 으로 정규화한다.
@@ -1682,7 +1682,7 @@ function normalizeLabels(raw) {
 
 function extractSec(raw, key) {
   var src = normalizeLabels(raw);
-  var m = src.match(new RegExp('(?:^|\\n)[ \\t]*' + key + ':[ \\t]*([\\s\\S]*?)(?=\\n[ \\t]*[A-Z][A-Z_]*[ \\t]*:|$)', 'i'));
+  var m = src.match(new RegExp('(?:^|\\n)[ \\t]*' + key + ':[ \\t]*([\\s\\S]*?)(?=\\n[ \\t]*[A-Z][A-Z0-9_]*[ \\t]*:|$)', 'i'));
   return m ? m[1].trim() : '';
 }
 
@@ -1862,15 +1862,13 @@ function toSections(num, type, raw, passageTitle) {
       q.push('틀린 표현: _______________  →  바른 표현: _______________'); q.push('');
 
     } else if (seoRender === 'ext_passage') {
-      var epPassA = extractSec(raw, 'PASSAGE_A')    || '';
-      var epPassB = extractSec(raw, 'PASSAGE_B')    || '';
-      var epDir1  = extractSec(raw, 'DIRECTION_1')  || '';
-      var epDir2  = extractSec(raw, 'DIRECTION_2')  || '';
-      var epBank  = extractSec(raw, 'WORD_BANK')    || wordBankBlock || '';
+      var epPassA = extractSec(raw, 'PASSAGE_A')      || '';
+      var epPassB = extractSec(raw, 'PASSAGE_B')      || '';
+      var epBank  = extractSec(raw, 'WORD_BANK')      || wordBankBlock || '';
       var epMaA   = extractSec(raw, 'MODEL_ANSWER_A') || '';
       var epMaB   = extractSec(raw, 'MODEL_ANSWER_B') || '';
 
-      // 전체 지시: "다음 글 (A), (B)를 읽고 물음에 답하시오."
+      // 전체 지시
       q.push(dirClean2); q.push('');
 
       // (A) 지문
@@ -1879,15 +1877,15 @@ function toSections(num, type, raw, passageTitle) {
       // (B) 지문 (빈칸 포함)
       if (epPassB) { q.push('(B)'); q.push(''); q.push(epPassB); q.push(''); }
 
-      // (1) 한국어 요지 답란
-      if (epDir1) { q.push(cleanSeoInstruction(epDir1)); q.push(''); }
+      // (1) 한국어 요지 — 고정 지시문 + 답란
+      q.push('(1) 윗글 (A)의 요지를 한 문장의 우리말로 적으시오.'); q.push('');
       q.push('_______________________________________________'); q.push('');
 
-      // (2) 보기 단어 빈칸 완성 — 빈칸은 이미 (B)에 있음
-      if (epDir2) { q.push(cleanSeoInstruction(epDir2)); q.push(''); }
+      // (2) 보기 단어 빈칸 완성 — 고정 지시문, 빈칸은 이미 (B)에 있음
+      q.push('(2) 윗글 (B)의 빈칸에 들어갈 말을 <보기>에 주어진 단어를 한 번씩만 모두 사용하여 완성하시오.'); q.push('');
       if (epBank) { q.push('< 보기 >'); q.push(epBank); q.push(''); }
 
-      // 정답 (교사용 키)
+      // 정답 (교사용 키) — modelAns만, EXPLANATION 미포함
       if (epMaA || epMaB) {
         modelAns = (epMaA ? '(1) ' + epMaA + '\n' : '') + (epMaB ? '(2) ' + epMaB : '');
       }
@@ -1999,7 +1997,9 @@ function toSections(num, type, raw, passageTitle) {
   if (answer) { a.push('\u25b6 정답: ' + answer.trim()); a.push(''); }
   if (type.id.startsWith('seo')) {
     if (modelAns) { a.push('\u25b6 모범 답안:'); a.push(modelAns); a.push(''); }
-    a.push(expl || '[채점 기준 없음]');
+    if (type.seoRender !== 'ext_passage') {
+      a.push(expl || '[채점 기준 없음]');
+    }
   } else {
     a.push(expl || '[해설 없음]');
   }
