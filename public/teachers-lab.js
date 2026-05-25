@@ -52,6 +52,9 @@ var SEO_DEFAULT_TYPES = [
   { id:'seo_ext_passage', name:'외부지문+추가제시문_DB2', seoRender:'ext_passage',
     direction:'다음 글을 읽고, 물음에 답하시오.',
     prompt:'외부지문+추가제시문_DB2 프롬프트를 직접 입력하세요.' },
+  { id:'seo_kor_content_add', name:'한글서술형_지문내용추가_DB2', seoRender:'kor_content_add',
+    direction:'다음 글을 읽고 물음에 답하시오.',
+    prompt:'한글서술형_지문내용추가_DB2 프롬프트를 직접 입력하세요.' },
   { id:'seo_tb_blank_content', name:'교과서 빈칸+내용_DB2', seoRender:'tb_blank_content',
     direction:'다음 글을 읽고, 물음에 답하시오.',
     prompt:'교과서 빈칸+내용_DB2 프롬프트를 직접 입력하세요.\n\n## ★ 출력 절대 규칙\n아래 섹션 라벨을 반드시 순서대로 사용할 것 (표 사용 금지)\n\n## 출력 형식\nPASSAGE:\n[지문 (우리말 밑줄 문장 포함)]\nDIRECTION_A:\n(1) 윗글의 밑줄 친 우리말 해석을 바탕으로 <보기>에 주어진 단어를 한 번씩만 모두 사용하여 <조건>에 맞게 영어로 완성하시오.\nWORD_BANK:\n[단어1 / 단어2 / ...]\nCONDITIONS_A:\n필요시 단어를 변형할 것\nMODEL_ANSWER_A:\n[정답 문장]\nDIRECTION_B:\n(2) 다음 질문에 대한 답을 주어진 <조건>에 맞게 영어 문장으로 완성하시오.\nCONDITIONS_B:\n· 주어진 단어로 문장을 시작할 것\n· 본문의 내용을 근거로 작성할 것\nQUESTION_A:\n[첫 번째 질문 전체 텍스트]\nSTARTER_A:\n[Q1 답의 시작 단어/구, 예: It]\nQUESTION_B:\n[두 번째 질문 전체 텍스트]\nSTARTER_B:\n[Q2 답의 시작 단어/구, 예: It]\nMODEL_ANSWER_B:\n➀ [Q1 정답 문장]\n➁ [Q2 정답 문장]\nEXPLANATION:\n[해설]' },
@@ -1662,7 +1665,7 @@ function stripLeadingProse(raw) {
   return raw;
 }
 
-var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B'];
+var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2'];
 
 // Gemini 등이 라벨에 마크다운(**굵게**, ## 머리글, - 목록)을 붙이거나 콜론을 빠뜨려도
 // 파싱되도록, 알려진 섹션 라벨 줄을 표준형 "LABEL:" 으로 정규화한다.
@@ -1892,6 +1895,26 @@ function toSections(num, type, raw, passageTitle) {
       // 정답 (교사용 키) — modelAns만, EXPLANATION 미포함
       if (epMaA || epMaB) {
         modelAns = (epMaA ? '(1) ' + epMaA + '\n' : '') + (epMaB ? '(2) ' + epMaB : '');
+      }
+
+    } else if (seoRender === 'kor_content_add') {
+      var kcaPassage = extractSec(raw, 'PASSAGE')        || passage || '';
+      var kcaDir1    = extractSec(raw, 'DIRECTION_1')    || '';
+      var kcaDir2    = extractSec(raw, 'DIRECTION_2')    || '';
+      var kcaMa1     = extractSec(raw, 'MODEL_ANSWER_1') || '';
+      var kcaMa2     = extractSec(raw, 'MODEL_ANSWER_2') || '';
+
+      // 전체 지시
+      q.push(dirClean2); q.push('');
+      // 지문 — (A)(B) 표지 포함
+      if (kcaPassage) { q.push(kcaPassage); q.push(''); }
+      // (1) 질문 + ① ② 답란 (DIRECTION_1에 포함)
+      if (kcaDir1) { q.push(cleanSeoInstruction(kcaDir1)); q.push(''); }
+      // (2) 질문
+      if (kcaDir2) { q.push(cleanSeoInstruction(kcaDir2)); q.push(''); }
+      // 정답 (교사용 키)
+      if (kcaMa1 || kcaMa2) {
+        modelAns = (kcaMa1 ? '(1)\n' + kcaMa1 + '\n' : '') + (kcaMa2 ? '(2) ' + kcaMa2 : '');
       }
 
     } else if (seoRender === 'tb_blank_content') {
