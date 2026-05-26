@@ -834,11 +834,17 @@ function updateSeoEditorVisibility() {
 function renderSeoTypeEditor() {
   var el = document.getElementById('seoTypeListEl');
   if (!el) return;
+  var master = isMaster();
   el.innerHTML = editingSeoTypes.map(function(t, i) {
-    return '<div class="ti' + (i===seoSelIdx?' active':'') + '" onclick="selectSeoType(' + i + ')" style="display:flex;align-items:center;gap:6px;">' +
-      '<input type="checkbox"' + (t.done ? ' checked' : '') +
-        ' onclick="event.stopPropagation();toggleSeoDone(' + i + ')"' +
-        ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--gr);" title="프롬프트 완료 표시">' +
+    var checkbox = master
+      ? '<input type="checkbox"' + (t.done ? ' checked' : '') +
+          ' onclick="event.stopPropagation();toggleSeoDone(' + i + ')"' +
+          ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--gr);" title="프롬프트 완료 표시">'
+      : '';
+    var clickHandler = master ? 'onclick="selectSeoType(' + i + ')"' : '';
+    var cursorStyle  = master ? '' : 'cursor:default;';
+    return '<div class="ti' + (i===seoSelIdx&&master?' active':'') + '" ' + clickHandler + ' style="display:flex;align-items:center;gap:6px;' + cursorStyle + '">' +
+      checkbox +
       '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
       '<span class="tname">' + t.name + (t.done ? ' ✓' : '') + '</span></div>';
   }).join('');
