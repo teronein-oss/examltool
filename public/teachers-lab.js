@@ -129,6 +129,7 @@ var globalSeoTypes = (function() {
 
 function saveGlobalSeoTypes() {
   localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
+  if (isMaster() && fbDb) fbSaveSharedSeoTypes();
 }
 
 function getActiveSeoTypes() {
@@ -388,6 +389,41 @@ function fbSaveSharedSchoolPresetsManual() {
       alert('✅ 모든 학교 프롬프트가 서버에 저장되었습니다.\n다른 계정에서 새로고침 또는 재로그인 시 반영됩니다.');
     })
     .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); alert('저장 오류: ' + e.message); console.error(e); });
+}
+
+function fbSaveSharedSeoTypes() {
+  if (!fbDb || !isMaster()) return;
+  fbDb.collection('shared').doc('seoTypes').set({ types: globalSeoTypes })
+    .catch(function(e) { console.error('seoTypes 저장 오류:', e); });
+}
+
+function fbPullSharedSeoTypes() {
+  if (!fbDb) return;
+  fbDb.collection('shared').doc('seoTypes').get()
+    .then(function(doc) {
+      if (!doc.exists || !doc.data() || !Array.isArray(doc.data().types)) {
+        if (isMaster()) fbSaveSharedSeoTypes();
+        return;
+      }
+      var pulled = doc.data().types;
+      // 신규 항목 보강 (서버에 없는 SEO_DEFAULT_TYPES 항목 추가)
+      var pulledIds = pulled.map(function(t){ return t.id; });
+      SEO_DEFAULT_TYPES.forEach(function(dt) {
+        if (pulledIds.indexOf(dt.id) < 0) pulled.push(JSON.parse(JSON.stringify(dt)));
+      });
+      // seoRender 필드 보강
+      pulled.forEach(function(t) {
+        if (!t.seoRender) {
+          var def = SEO_DEFAULT_TYPES.filter(function(d){ return d.id === t.id; })[0];
+          if (def) t.seoRender = def.seoRender;
+        }
+      });
+      globalSeoTypes = pulled;
+      localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
+      if (typeof editingSeoTypes !== 'undefined') editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
+      renderSeoTypeRows();
+    })
+    .catch(function(e) { console.error('seoTypes 불러오기 오류:', e); });
 }
 
 function fbPullSharedSchoolPresets() {
@@ -2971,6 +3007,8 @@ function fbApplyData(data) {
   renderSetBar(); renderPromptSetBar();
   // 학교별 공유 프롬프트 동기화 (shared/schoolPresets)
   fbPullSharedSchoolPresets();
+  // 서술형 공유 프롬프트 동기화 (shared/seoTypes)
+  fbPullSharedSeoTypes();
 }
 
 // 로그인 시 해당 코드의 클라우드 데이터를 조용히 불러옴
