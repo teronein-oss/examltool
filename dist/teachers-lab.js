@@ -1090,33 +1090,6 @@ function saveCurrentType() {
   alert('저장되었습니다.' + (_curRefs.length ? '\n레퍼런스 파일 ' + _curRefs.length + '개도 함께 저장됩니다.' : ''));
 }
 
-// ─── 객관식 프롬프트 전체 학교 통일 ───
-function copyChungdeokPrompts() {
-  if (!isMaster()) { alert('관리자만 실행할 수 있습니다.'); return; }
-  var src = schoolPresets['청덕고'];
-  if (!src || !src.length) { alert('청덕고 프리셋이 비어있습니다.'); return; }
-
-  var targets = SCHOOL_NAMES.filter(function(s){ return s !== '청덕고'; });
-  var updated = [];
-
-  targets.forEach(function(school) {
-    if (!schoolPresets[school]) schoolPresets[school] = JSON.parse(JSON.stringify(DEFAULT_TYPES));
-    schoolPresets[school].forEach(function(t) {
-      // 객관식 유형만 (seo_* 제외)
-      if (t.id && t.id.startsWith('seo')) return;
-      var srcType = src.filter(function(s){ return s.id === t.id; })[0];
-      if (srcType) {
-        t.prompt    = srcType.prompt;
-        t.direction = srcType.direction;
-      }
-    });
-    updated.push(school);
-  });
-
-  saveSchoolPresets();
-  alert('✅ 청덕고 기준으로 객관식 프롬프트가 전체 학교에 적용되었습니다.\n\n대상: ' + updated.join(', ') + '\n\n(서술형 프롬프트는 건드리지 않았습니다)\n⚠️ 상단 "🚀 서버에 올리기" 버튼으로 다른 계정에도 반영하세요.');
-}
-
 // ─── MASTER ADMIN ───
 function isMaster() {
   return sessionStorage.getItem('seumUserId') === MASTER_CODE;
