@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seum Teachers Lab</title>
-<link rel="stylesheet" href="/teachers-lab.css">
 <!-- Firebase v10 Compat SDK (teachers-lab.js용) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script type="module" crossorigin src="/assets/index-3FphS8-T.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C44dFJCs.css">
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -17,8 +17,11 @@
   <div class="lockbox">
     <div class="locktitle">Seum <span>Teachers Lab</span></div>
     <div class="locksub">접근 코드를 입력하세요</div>
-    <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
-      onkeydown="if(event.key==='Enter') checkCode()">
+    <div style="position:relative;display:flex;align-items:center;">
+      <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
+        onkeydown="if(event.key==='Enter') checkCode()" style="padding-right:44px;width:100%;box-sizing:border-box;">
+      <button onclick="(function(){var i=document.getElementById('codeInput'),b=document.getElementById('codeToggleBtn');if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}i.focus();})()" id="codeToggleBtn" type="button" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;font-size:18px;padding:0;line-height:1;">👁</button>
+    </div>
     <div class="lockerr" id="codeErr"></div>
     <button class="lockbtn" onclick="checkCode()">Enter</button>
     <div class="lockhint">코드는 관리자에게 문의하세요</div>
@@ -52,10 +55,12 @@
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('passages')">📝 지문 입력 <span class="tcnt" id="passageCount">0</span></button>
+  <button class="tab" onclick="switchTab('practice')">✏️ 연습문제 제작</button>
   <button class="tab" onclick="switchTab('output')">📄 문항 출력</button>
   <button class="tab" onclick="switchTab('report')">🐛 오류 보고</button>
   <button class="tab" onclick="switchTab('settings')">⚙️ 프롬프트 설정</button>
-  <button class="tab" onclick="switchTab('check-table')">📊 유형 트래커</button>
+  <button class="tab" onclick="switchTab('check-table')">📊 출제공방</button>
+  <button class="tab" onclick="switchTab('analysis');initScoreAnalysis()">📈 시험분석지</button>
 </div>
 
 <div class="panel" id="panel-settings">
@@ -100,7 +105,7 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   <!-- Category selector -->
   <div style="margin-bottom:12px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 16px;">
     <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:10px;letter-spacing:.4px;text-transform:uppercase;">프롬프트 카테고리 선택</div>
-    <div id="settingsCatTabs" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <div id="settingsCatTabs"></div>
   </div>
 
   <!-- Info box for non-master users on personal prompts -->
@@ -116,6 +121,21 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   </div>
 
   <div id="settingsEditorArea">
+
+  <!-- 객관식 / 서술형 탭 전환 -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;">
+    <button id="settingsPaneObj" onclick="switchSettingsPane('obj')"
+      style="padding:7px 18px;border:1.5px solid var(--bd2);border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--bl);color:#fff;">
+      객관식
+    </button>
+    <button id="settingsPaneSeo" onclick="switchSettingsPane('seo')"
+      style="padding:7px 18px;border:1.5px solid var(--bd2);border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--sf);color:var(--ink2);">
+      서술형
+    </button>
+  </div>
+
+  <!-- 객관식 프롬프트 편집 영역 -->
+  <div id="settingsObjArea">
   <div id="settingsPromptSetBar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:10px 16px;box-shadow:var(--shadow-sm);">
     <div style="display:flex;align-items:center;gap:12px;">
       <span style="font-size:14px;font-weight:700;color:var(--ink);">프롬프트 세트 관리</span>
@@ -143,6 +163,10 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         <input class="fi" id="editName" type="text" placeholder="예: 빈칸추론">
         <div class="fl">출제 방향 지시</div>
         <input class="fi" id="editDirection" type="text" placeholder="예: 다음 빈칸에 들어갈 말로 가장 적절한 것은?">
+        <div id="editKichulRow" style="display:none;align-items:center;gap:8px;margin:8px 0 4px;">
+          <input type="checkbox" id="editKichul" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ac);">
+          <label for="editKichul" style="font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">기출 유형 <span style="font-weight:400;color:var(--ink3);">— 체크 시 유형 이름 옆에 (기출) 표시</span></label>
+        </div>
         <div class="fl">메타프롬프트 (AI 출제 지침)</div>
         <textarea class="fta" id="editPrompt" rows="16"></textarea>
         <div class="fl" style="margin-top:4px;">레퍼런스 파일 <span style="font-weight:400;color:var(--ink3);text-transform:none;letter-spacing:0;">(선택 — 여러 파일 추가 가능, 출제 시 AI 참고 자료로 제공됩니다)</span></div>
@@ -159,6 +183,40 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
       </div>
     </div>
   </div>
+  </div><!-- end settingsObjArea -->
+
+  <!-- 서술형 프롬프트 편집 영역 -->
+  <div id="settingsSeoArea" style="display:none;">
+  <div class="sgrid">
+    <div>
+      <div class="tlist">
+        <div class="tlhead">서술형 유형 목록 <span style="font-size:11px;font-weight:400;color:var(--ink3);">(전 학교 공통)</span></div>
+        <div id="seoTypeListEl"></div>
+      </div>
+    </div>
+    <div id="seoLockedMsg" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:60px 20px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);">
+      <div style="font-size:48px;">🔒</div>
+      <div style="font-size:16px;font-weight:700;color:var(--ink);">관리자 전용</div>
+      <div style="font-size:13px;color:var(--ink3);">서술형 프롬프트 수정은 관리자만 할 수 있습니다.</div>
+    </div>
+    <div id="seoEditorPanel" class="pe">
+      <div class="pehead">
+        <div class="pebadge" style="background:var(--ac);"></div>
+        <div class="petitle">서술형 유형 편집</div>
+      </div>
+      <div class="pebody">
+        <div class="fl">유형 이름</div>
+        <input class="fi" id="seoEditName" type="text" placeholder="예: 주제문 영작_1">
+        <div class="fl">출제 방향 지시</div>
+        <input class="fi" id="seoEditDirection" type="text" placeholder="예: 다음 글의 주제를 조건에 맞게 영어로 쓰시오.">
+        <div class="fl">메타프롬프트 (AI 출제 지침)</div>
+        <textarea class="fta" id="seoEditPrompt" rows="18"></textarea>
+        <button class="gbtn" onclick="saveSeoCurrentType()">✓ 저장</button>
+      </div>
+    </div>
+  </div>
+  </div><!-- end settingsSeoArea -->
+
   </div><!-- end settingsEditorArea -->
 
   <div id="migrationSection" style="display:none;margin-top:20px;border-top:2px solid var(--bd2);padding-top:16px;">
@@ -187,6 +245,12 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
       <span style="font-size:16px;">🔐</span>
       <span style="font-family:'Playfair Display',serif;font-weight:700;color:#fff;font-size:15px;">관리자 전용 프롬프트 편집</span>
       <span style="font-size:11px;background:var(--ac);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;">master_andy</span>
+      <span style="font-size:11px;background:#4f6ef7;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px;">📂 <span id="adminCatLabel">개인설정</span></span>
+    </div>
+
+    <div style="background:#e8f4e8;border:1px solid #7bc47b;border-radius:var(--r);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <span style="font-size:12px;color:#2d6a2d;">☁️ <strong>학교별 프롬프트 서버 동기화</strong> — 이 버튼으로 현재 로컬에 저장된 모든 학교 프롬프트를 서버에 올립니다. 다른 계정들이 즉시 반영됩니다.</span>
+      <button onclick="fbSaveSharedSchoolPresetsManual()" style="background:#2d6a2d;color:#fff;border:none;border-radius:99px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;">🚀 서버에 올리기</button>
     </div>
 
     <div style="background:var(--gds);border:1px solid #d4b86a;border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:12px;color:#78530a;">
@@ -228,9 +292,16 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         <span style="font-size:12px;font-weight:700;color:var(--ink3);">출제 프롬프트:</span>
         <select id="activeCategorySelect" onchange="setActiveCategory(this.value)" style="font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:6px 10px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;cursor:pointer;font-weight:600;">
           <option value="개인설정">👤 개인 설정</option>
-          <option value="동백고">🏫 동백고</option>
+          <optgroup label="🏫 동백고">
+            <option value="동백고1">동백고 1학년</option>
+            <option value="동백고2">동백고 2학년</option>
+          </optgroup>
           <option value="백현고">🏫 백현고</option>
           <option value="청덕고">🏫 청덕고</option>
+          <optgroup label="🏫 성지고">
+            <option value="성지고1">성지고 1학년</option>
+            <option value="성지고2">성지고 2학년</option>
+          </optgroup>
           <option value="기본설정">📋 기본 설정</option>
         </select>
         <span id="activePromptSetDisplay" style="font-size:12px;font-weight:600;color:var(--gr);">적용 프롬프트: [개인 설정]</span>
@@ -295,6 +366,60 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   </div>
 </div>
 
+<div class="panel" id="panel-practice">
+  <div class="playout">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);">
+        <span style="font-size:12px;font-weight:700;color:var(--ink3);">출제 프롬프트:</span>
+        <select id="pracActiveCategorySelect" onchange="setActiveCategory(this.value)" style="font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:6px 10px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;cursor:pointer;font-weight:600;">
+          <option value="개인설정">👤 개인 설정</option>
+          <optgroup label="🏫 동백고">
+            <option value="동백고1">동백고 1학년</option>
+            <option value="동백고2">동백고 2학년</option>
+          </optgroup>
+          <option value="백현고">🏫 백현고</option>
+          <option value="청덕고">🏫 청덕고</option>
+          <optgroup label="🏫 성지고">
+            <option value="성지고1">성지고 1학년</option>
+            <option value="성지고2">성지고 2학년</option>
+          </optgroup>
+          <option value="기본설정">📋 기본 설정</option>
+        </select>
+        <span id="pracActivePromptSetDisplay" style="font-size:12px;font-weight:600;color:var(--gr);">적용 프롬프트: [개인 설정]</span>
+      </div>
+      <div class="sectitle">
+        <div style="display:flex;flex-direction:column;">연습문제 제작 — 지문 입력</div>
+        <div style="display:flex;gap:8px;">
+          <button class="abtn" onclick="openImportSetModal()" style="background:var(--bl);">📂 저장된 지문 가져오기</button>
+          <button class="abtn" onclick="openPracModal(-1)">+ 지문 추가</button>
+          <button class="abtn" onclick="clearAllPracPassages()" style="background:#555;">🗑 전체 삭제</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--bl);background:var(--bls);border:1px solid #a0b8e0;border-radius:var(--r);padding:8px 12px;margin-bottom:10px;">
+        💡 지문을 클릭하면 <strong>선택(활성화)</strong>됩니다. 선택된 지문으로 문제를 제작합니다.
+      </div>
+      <div id="pracPassageArea">
+        <div class="empty"><div class="eic">📖</div><div class="eti">지문이 없습니다</div><div>"+ 지문 추가" 버튼으로 지문을 입력하세요</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="scard">
+        <div class="schead">📋 유형 선택 (복수 선택 가능)</div>
+        <div class="scbody">
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;">하나의 지문으로 여러 유형의 문제를 동시에 제작합니다.</div>
+          <div id="pracTypeList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;"></div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button onclick="pracSelectAll()" style="font-size:11px;padding:4px 10px;border:1px solid var(--bd2);border-radius:6px;background:var(--sf);color:var(--ink3);cursor:pointer;">전체 선택</button>
+            <button onclick="pracSelectNone()" style="font-size:11px;padding:4px 10px;border:1px solid var(--bd2);border-radius:6px;background:var(--sf);color:var(--ink3);cursor:pointer;">전체 해제</button>
+          </div>
+          <div class="qsum" id="pracTypeSummary">선택된 유형: 0개</div>
+          <button class="genbtn" id="pracGenerateBtn" onclick="startPracGeneration()">🚀 연습문제 생성</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="panel" id="panel-output">
   <div class="otbar">
     <button class="tbtn" onclick="switchTab('passages')">← 다시 생성</button>
@@ -333,7 +458,6 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   <div style="max-width:1200px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--bd);">
       <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;">🐛 오류 보고</div>
-      <button class="tbtn" onclick="clearReports()" style="color:var(--ac);border-color:#f0c0bb;">🗑 전체 삭제</button>
     </div>
     <div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:20px;">
       <div style="padding:12px 18px;background:var(--sf2);border-bottom:1px solid var(--bd);font-weight:700;font-size:13px;">✏️ 오류 보고하기</div>
@@ -357,10 +481,7 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         <button class="gbtn" onclick="submitReport()">📤 보고하기</button>
       </div>
     </div>
-    <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:12px;">📋 보고된 오류 목록</div>
-    <div id="reportList">
-      <div class="empty"><div class="eic">✅</div><div class="eti">보고된 오류가 없습니다</div></div>
-    </div>
+    <div id="reportList" style="display:none;"></div>
   </div>
 </div>
 
@@ -498,8 +619,228 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   </div>
 </div>
 
+<div class="mo" id="pracImportModal">
+  <div class="md" style="max-width:460px;">
+    <div class="mdhead">
+      <span>📂 저장된 지문 세트 가져오기</span>
+      <button class="xbtn" onclick="closeImportSetModal()">✕</button>
+    </div>
+    <div class="mdbody">
+      <div class="fl" style="margin-bottom:6px;">지문 입력 페이지에서 저장한 세트를 선택하세요</div>
+      <select id="importSetSelect" style="width:100%;font-family:'Noto Sans KR',sans-serif;font-size:14px;padding:9px 12px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;margin-bottom:14px;">
+        <option value="">— 세트 선택 —</option>
+      </select>
+      <div id="importSetPreview" style="font-size:12px;color:var(--ink3);background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:8px 12px;min-height:36px;margin-bottom:14px;display:none;"></div>
+      <div class="fl" style="margin-bottom:6px;">가져오기 방식</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+          <input type="radio" name="importMode" value="replace" checked style="width:15px;height:15px;accent-color:var(--bl);">
+          <span><strong>교체</strong> — 현재 지문을 모두 지우고 선택한 세트로 대체</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+          <input type="radio" name="importMode" value="append" style="width:15px;height:15px;accent-color:var(--bl);">
+          <span><strong>추가</strong> — 기존 지문을 유지하고 선택한 세트를 뒤에 추가</span>
+        </label>
+      </div>
+    </div>
+    <div class="mdfoot">
+      <button class="mb" onclick="closeImportSetModal()">취소</button>
+      <button class="gbtn" onclick="confirmImportSet()">📂 가져오기</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="pracModal">
+  <div class="md">
+    <div class="mdhead">
+      <span>지문 입력 (연습문제 제작)</span>
+      <button class="xbtn" onclick="closePracModal()">✕</button>
+    </div>
+    <div class="mdbody">
+      <div class="fl">지문 번호 / 제목 (선택)</div>
+      <input class="fi" id="pracMTitle" type="text" placeholder="예: 지문 1, Unit 3-A ...">
+      <div class="fl">원본 지문 붙여넣기</div>
+      <textarea class="fta" id="pracMText" rows="14" placeholder="여기에 원본 지문을 붙여넣으세요..."></textarea>
+    </div>
+    <div class="mdfoot">
+      <button class="mb" onclick="closePracModal()">취소</button>
+      <button class="gbtn" onclick="savePracPassage()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ★ 시험분석지 패널 -->
+<div class="panel" id="panel-analysis">
+  <div style="max-width:1000px;">
+
+    <!-- 회차별 데이터 업로드 -->
+    <div style="margin-bottom:12px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;">
+      <div style="padding:11px 18px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-weight:700;font-size:13px;color:var(--ink);">📋 회차별 데이터 업로드</div>
+        <div style="display:flex;gap:15px;align-items:center;font-size:13px;">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:500;">
+            <input type="radio" name="sr_desc_mode" value="include" checked onchange="document.getElementById('sr-desc-score-settings').style.display='flex'"> 서술형 포함
+          </label>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:500;">
+            <input type="radio" name="sr_desc_mode" value="exclude" onchange="document.getElementById('sr-desc-score-settings').style.display='none'"> 서술형 미포함
+          </label>
+        </div>
+      </div>
+      <div id="sr-desc-score-settings" style="background:var(--sf2);padding:10px 18px;font-size:13px;display:flex;gap:20px;align-items:center;border-bottom:1px solid var(--bd);">
+        <div style="font-weight:700;color:var(--ink);">환산 기준 배점</div>
+        <label style="display:flex;align-items:center;gap:5px;">
+          객관식 만점: <input type="number" id="sr-obj-max-score" value="80" style="width:55px;padding:5px;border:1px solid var(--bd);border-radius:6px;outline:none;"> 점
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;">
+          서술형 만점: <input type="number" id="sr-desc-max-score" value="20" style="width:55px;padding:5px;border:1px solid var(--bd);border-radius:6px;outline:none;"> 점
+        </label>
+        <div style="color:var(--ink3);font-size:11px;">※ OMR 맞춤 개수(O/X) 기준으로 객관식 점수를 환산합니다.</div>
+      </div>
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;">
+        <div id="sr-rounds-list" style="display:flex;flex-direction:column;gap:14px;"></div>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:4px;">
+          <button id="sr-btn-add" onclick="srAddRound()" style="background:var(--sf);border:1.5px solid var(--bl);border-radius:8px;color:var(--bl);padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">+ 회차 추가</button>
+          <button id="sr-btn-demo" onclick="srGenerateDemoData()" style="background:var(--sf);border:1.5px solid var(--gr);border-radius:8px;color:var(--gr);padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🎲 5회차 데모 (10명)</button>
+          <button id="sr-btn-analyze" onclick="srStartAnalysis()" style="flex:1;background:var(--ink);color:#fff;border:none;border-radius:8px;padding:13px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;">▶ 분석 시작</button>
+        </div>
+        <div class="sr-progress-wrap" id="sr-progress-wrap">
+          <div id="sr-prog-text" style="font-size:13px;color:var(--bl);margin-bottom:8px;">준비 중...</div>
+          <div style="background:var(--bd);border-radius:4px;height:6px;"><div id="sr-prog-bar" style="height:100%;border-radius:4px;background:var(--bl);transition:width .3s;width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 결과 -->
+    <div id="sr-result-section" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;">📊 분석 결과</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--ink3);">반</span>
+          <select id="sr-class-select" onchange="srOnClassChange()" style="border:1.5px solid var(--bd);border-radius:8px;padding:7px 14px;font-size:13px;font-family:inherit;color:var(--ink);background:#fff;cursor:pointer;outline:none;"><option value="ALL">전체</option></select>
+          <span style="font-size:13px;color:var(--ink3);">학생</span>
+          <select id="sr-student-select" onchange="srOnStudentChange()" style="border:1.5px solid var(--bd);border-radius:8px;padding:7px 14px;font-size:13px;font-family:inherit;color:var(--ink);background:#fff;cursor:pointer;outline:none;min-width:200px;"></select>
+          <button onclick="srSaveCurPNG()" style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">⬇ PNG 저장</button>
+          <button onclick="srSaveAllPNG()" style="background:var(--bl);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">⬇ 전체 PNG</button>
+        </div>
+      </div>
+      <div id="sr-student-single" style="display:flex;justify-content:center;"></div>
+    </div>
+
+  </div><!-- end max-width -->
+  <div id="sr-toast"></div>
+</div><!-- end panel-analysis -->
+
+<style>
+/* ── 시험분석지 전용 스타일 ── */
+.hidden { display: none !important; }
+
+.sr-progress-wrap { display: none; background: var(--bls); border-radius: 8px; padding: 14px 20px; margin-top: 4px; }
+.sr-progress-wrap.on { display: block; }
+
+/* 회차 패널 */
+.sr-round-panel { border: 1.5px solid var(--bd); border-radius: var(--r); overflow: hidden; background: var(--sf); }
+.sr-rp-head { background: var(--ink); color: #fff; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sr-rp-label { font-size: 14px; font-weight: 700; }
+.sr-rp-status { font-size: 12px; opacity: .75; flex: 1; margin-left: 10px; }
+.sr-rp-del { background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.sr-rp-del:hover { background: rgba(225,29,72,.7); }
+.sr-rp-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+.sr-rp-class-row { display: flex; gap: 10px; align-items: center; }
+.sr-rp-class-row label { font-size: 13px; color: var(--ink3); white-space: nowrap; }
+.sr-rp-class-row input { border: 1px solid var(--bd); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; outline: none; flex: 1; max-width: 200px; }
+.sr-rp-class-row input:focus { border-color: var(--bl); }
+.sr-rp-uploads { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+
+.sr-upload-btn { display: flex; align-items: center; gap: 8px; background: var(--sf2); border: 1.5px dashed var(--bl); border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--bl); cursor: pointer; transition: all .2s; font-family: inherit; min-width: 180px; }
+.sr-upload-btn:hover { background: var(--bls); border-color: var(--ink); }
+.sr-upload-btn.done { border-style: solid; border-color: var(--gr); background: var(--grs); color: var(--gr); }
+.sr-icon { font-size: 17px; }
+.sr-file-name { font-size: 11px; opacity: .8; display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sr-pdf-tag { font-size: 12px; border-radius: 20px; padding: 3px 12px; border: 1px solid; margin-left: auto; }
+.sr-pdf-tag.wait  { background: var(--bls); color: var(--bl); border-color: var(--bl); }
+.sr-pdf-tag.doing { background: var(--gds); color: var(--gd); border-color: var(--gd); }
+.sr-pdf-tag.done  { background: var(--grs); color: var(--gr); border-color: var(--gr); }
+.sr-pdf-tag.err   { background: var(--acs); color: var(--ac); border-color: var(--ac); cursor: pointer; }
+
+.sr-excel-preview { font-size: 12px; color: var(--ink3); background: var(--sf2); border-radius: 6px; padding: 8px 12px; line-height: 1.6; }
+.sr-excel-preview strong { color: var(--ink); }
+
+/* 미리보기 래퍼 */
+.sr-student-preview-wrap { background: var(--sf); border: 1.5px solid var(--bd); border-radius: var(--r); overflow: hidden; max-width: 820px; width: 100%; }
+.sr-preview-bar { background: var(--sf2); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bd); }
+.sr-preview-bar span { font-size: 13px; font-weight: 600; }
+.sr-btn-save-one { background: var(--ink); color: #fff; border: none; border-radius: 6px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.sr-scale-wrap { transform-origin: top left; }
+
+/* Toast */
+#sr-toast { position: fixed; bottom: 24px; right: 24px; background: var(--ink); color: #fff; padding: 12px 20px; border-radius: var(--r); font-size: 13px; font-weight: 600; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 9999; max-width: 320px; pointer-events: none; }
+#sr-toast.show { transform: translateY(0); opacity: 1; }
+#sr-toast.err { background: var(--ac); }
+
+/* ── A4 카드 (PNG 출력용 — 전역 필요) ── */
+.student-card { width: 794px; height: 1123px; background: #fff; border: 1px solid #E8EEF7; padding: 20px 30px; font-family: 'Noto Sans KR', sans-serif; display: flex; flex-direction: column; gap: 10px; overflow: hidden; box-sizing: border-box; color: #1B2E4B; }
+.sec-title { font-size: 14px; font-weight: 700; color: #1B2E4B; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.sec-title::before { content: ''; display: inline-block; width: 4px; height: 14px; background: #1B2E4B; }
+.score-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+.score-table th { background: #1B2E4B; color: #fff; padding: 8px; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.1); }
+.score-table th:last-child { border-right: none; }
+.score-table td { border-bottom: 1px solid #E8EEF7; padding: 10px; font-weight: 700; }
+.score-table .tc-round { color: #1B2E4B; }
+.score-table .tc-score { font-size: 15px; }
+.score-table .tc-score small { font-size: 11px; font-weight: 400; color: #888; }
+.score-table .tc-pct { color: #4A7CC7; }
+.badge-new { background: #4A7CC7; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+.analysis-wrap { display: flex; gap: 15px; height: 160px; }
+.chart-box { flex: 1; border: 1px solid #E8EEF7; border-radius: 8px; padding: 10px; position: relative; }
+.chart-title { font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+.chart-wrap { height: 110px; width: 100%; position: absolute; top: 30px; left: 0; padding: 0 10px; box-sizing: border-box; }
+.diff-boxes { flex: 1.5; display: flex; gap: 8px; background: #F8FAFD; padding: 10px; border-radius: 8px; }
+.diff-box { flex: 1; border-radius: 8px; border: 2px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #fff; }
+.diff-box .r-lbl { font-size: 11px; font-weight: 600; }
+.diff-box .r-score { font-size: 20px; font-weight: 700; line-height: 1; }
+.diff-box .r-score small { font-size: 11px; font-weight: 400; }
+.diff-box .r-badge { font-size: 10px; padding: 3px 6px; border-radius: 10px; font-weight: 700; border: 1px solid; background: #fff; line-height: 1.2; text-align: center; }
+.diff-hard { border-color: #FFCDD2; background: #FFF5F5; }
+.diff-hard .r-lbl,.diff-hard .r-score,.diff-hard .r-badge { color: #D32F2F; }
+.diff-hard .r-badge { border-color: #D32F2F; }
+.diff-mhard { border-color: #FFE082; background: #FFFDF5; }
+.diff-mhard .r-lbl,.diff-mhard .r-score,.diff-mhard .r-badge { color: #F57F17; }
+.diff-mhard .r-badge { border-color: #F57F17; }
+.diff-normal { border-color: #A5D6A7; background: #F5FFF5; }
+.diff-normal .r-lbl,.diff-normal .r-score,.diff-normal .r-badge { color: #2E7D32; }
+.diff-normal .r-badge { border-color: #2E7D32; }
+.diff-easy { border-color: #90CAF9; background: #F5FAFF; }
+.diff-easy .r-lbl,.diff-easy .r-score,.diff-easy .r-badge { color: #1565C0; }
+.diff-easy .r-badge { border-color: #1565C0; }
+.weak-wrap { display: flex; gap: 8px; }
+.weak-box { flex: 1; border: 1px solid #E8EEF7; border-top: 2px solid #C0392B; border-radius: 6px; padding: 7px 10px; }
+.weak-lbl { font-size: 10px; color: #888; margin-bottom: 2px; }
+.weak-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: #1B2E4B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.weak-rate { font-size: 20px; font-weight: 700; color: #C0392B; }
+.type-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+.type-cell { border: 1px solid #E8EEF7; border-radius: 4px; padding: 4px 6px; display: flex; align-items: center; gap: 6px; }
+.type-cell-name { font-size: 10px; font-weight: 700; color: #1B2E4B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.type-cell-rate { font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.dist-wrap { margin-top: auto; padding-top: 0; }
+.dist-header { display: flex; padding-left: 80px; margin-bottom: 6px; }
+.dist-h-col { flex: 1; text-align: center; }
+.dist-h-lbl { font-size: 11px; font-weight: 600; color: #888; margin-bottom: 2px; }
+.dist-h-stats { display: flex; justify-content: center; gap: 6px; font-size: 10px; color: #888; }
+.dist-h-stats span { font-weight: 700; }
+.dist-max { color: #C0392B; font-size: 11px; }
+.dist-min { color: #27AE60; font-size: 11px; }
+.dist-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; }
+.dist-table th { width: 80px; background: #1B2E4B; color: #fff; padding: 5px; font-weight: 600; text-align: left; padding-left: 8px; border-bottom: 1px solid #fff; }
+.dist-table td { width: calc((100% - 80px) / 5); padding: 6px; border-bottom: 1px solid #E8EEF7; color: #E67E22; font-weight: 700; position: relative; }
+.my-badge { position: absolute; right: 8%; top: 50%; transform: translateY(-50%); background: #C0392B; color: #fff; font-size: 8px; padding: 2px 4px; border-radius: 4px; }
+</style>
+
 <!-- Teachers Lab JS (global scope) -->
 <script src="/teachers-lab.js"></script>
+<!-- 시험분석지 JS -->
+<script src="/score-analysis.js?v=2"></script>
 <!-- React entry: check-table + Tailwind -->
+<script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
