@@ -1090,6 +1090,33 @@ function saveCurrentType() {
   alert('저장되었습니다.' + (_curRefs.length ? '\n레퍼런스 파일 ' + _curRefs.length + '개도 함께 저장됩니다.' : ''));
 }
 
+// ─── 객관식 프롬프트 전체 학교 통일 ───
+function copyChungdeokPrompts() {
+  if (!isMaster()) { alert('관리자만 실행할 수 있습니다.'); return; }
+  var src = schoolPresets['청덕고'];
+  if (!src || !src.length) { alert('청덕고 프리셋이 비어있습니다.'); return; }
+
+  var targets = SCHOOL_NAMES.filter(function(s){ return s !== '청덕고'; });
+  var updated = [];
+
+  targets.forEach(function(school) {
+    if (!schoolPresets[school]) schoolPresets[school] = JSON.parse(JSON.stringify(DEFAULT_TYPES));
+    schoolPresets[school].forEach(function(t) {
+      // 객관식 유형만 (seo_* 제외)
+      if (t.id && t.id.startsWith('seo')) return;
+      var srcType = src.filter(function(s){ return s.id === t.id; })[0];
+      if (srcType) {
+        t.prompt    = srcType.prompt;
+        t.direction = srcType.direction;
+      }
+    });
+    updated.push(school);
+  });
+
+  saveSchoolPresets();
+  alert('✅ 청덕고 기준으로 객관식 프롬프트가 전체 학교에 적용되었습니다.\n\n대상: ' + updated.join(', ') + '\n\n(서술형 프롬프트는 건드리지 않았습니다)\n⚠️ 상단 "🚀 서버에 올리기" 버튼으로 다른 계정에도 반영하세요.');
+}
+
 // ─── MASTER ADMIN ───
 function isMaster() {
   return sessionStorage.getItem('seumUserId') === MASTER_CODE;
@@ -1965,9 +1992,18 @@ function toSections(num, type, raw, passageTitle) {
       // 지문 — (A)(B) 표지 포함
       if (kcaPassage) { q.push(kcaPassage); q.push(''); }
       // (1) 질문 + ① ② 답란 (DIRECTION_1에 포함)
-      if (kcaDir1) { q.push(cleanSeoInstruction(kcaDir1)); q.push(''); }
+      if (kcaDir1) {
+        q.push(cleanSeoInstruction(kcaDir1)); q.push('');
+      } else {
+        q.push('(1) 윗글의 내용을 본문에서 찾아 우리말로 적으시오.'); q.push('');
+        q.push('①'); q.push(''); q.push('②'); q.push('');
+      }
       // (2) 질문
-      if (kcaDir2) { q.push(cleanSeoInstruction(kcaDir2)); q.push(''); }
+      if (kcaDir2) {
+        q.push(cleanSeoInstruction(kcaDir2)); q.push('');
+      } else {
+        q.push('(2) 윗글의 밑줄 친 부분의 이유를 본문에서 찾아 우리말로 적으시오.'); q.push('');
+      }
       // 정답 (교사용 키)
       if (kcaMa1 || kcaMa2) {
         modelAns = (kcaMa1 ? '(1)\n' + kcaMa1 + '\n' : '') + (kcaMa2 ? '(2) ' + kcaMa2 : '');
@@ -2080,7 +2116,8 @@ function toSections(num, type, raw, passageTitle) {
   if (answer) { a.push('\u25b6 정답: ' + answer.trim()); a.push(''); }
   if (type.id.startsWith('seo')) {
     if (modelAns) { a.push('\u25b6 모범 답안:'); a.push(modelAns); a.push(''); }
-    if (type.seoRender !== 'ext_passage') {
+    var suppressExpl = ['ext_passage', 'kor_content_add'];
+    if (suppressExpl.indexOf(type.seoRender) === -1) {
       a.push(expl || '[채점 기준 없음]');
     }
   } else {
