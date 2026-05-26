@@ -812,9 +812,22 @@ function switchSettingsPane(mode) {
   if (mode === 'seo') {
     editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
     renderSeoTypeEditor();
+    updateSeoEditorVisibility();
   } else {
     renderTypeList();
     if (editingQTypes.length) selectType(selIdx < editingQTypes.length ? selIdx : 0);
+  }
+}
+
+function updateSeoEditorVisibility() {
+  var editorPanel = document.getElementById('seoEditorPanel');
+  var lockedMsg   = document.getElementById('seoLockedMsg');
+  if (isMaster()) {
+    if (editorPanel) editorPanel.style.display = '';
+    if (lockedMsg)   lockedMsg.style.display   = 'none';
+  } else {
+    if (editorPanel) editorPanel.style.display = 'none';
+    if (lockedMsg)   lockedMsg.style.display   = 'flex';
   }
 }
 
@@ -856,6 +869,7 @@ function selectSeoType(i) {
 }
 
 function saveSeoCurrentType() {
+  if (!isMaster()) { alert('관리자만 수정할 수 있습니다.'); return; }
   var nameEl = document.getElementById('seoEditName');
   var dirEl  = document.getElementById('seoEditDirection');
   var promEl = document.getElementById('seoEditPrompt');
