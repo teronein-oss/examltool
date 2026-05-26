@@ -2143,7 +2143,7 @@ async function callAPI(type, passageText, retryHint) {
       generationConfig:{maxOutputTokens:16384, temperature:0.7}
     };
     if (model.indexOf('flash') >= 0) {
-      geminiBody2.thinkingConfig = {thinkingBudget:2048};
+      geminiBody2.generationConfig.thinkingConfig = {thinkingBudget:2048};
     }
     var res2 = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
