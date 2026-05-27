@@ -1791,7 +1791,7 @@ function toSections(num, type, raw, passageTitle) {
   var summary  = extractSec(raw,'SUMMARY')  || '';
   // QUESTION: 을 DIRECTION: 의 별칭으로 지원
   var direction= extractSec(raw,'DIRECTION') || extractSec(raw,'QUESTION') || type.direction;
-  var choices  = (extractSec(raw,'CHOICES')||'').split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤]/); });
+  var choices  = (extractSec(raw,'CHOICES')||'').split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
   var answer   = extractSec(raw,'ANSWER')   || '';
   var expl     = extractSec(raw,'EXPLANATION') || '';
   var modelAns = extractSec(raw,'MODEL_ANSWER') || answer || '';
@@ -1809,7 +1809,7 @@ function toSections(num, type, raw, passageTitle) {
     hasContent = true;
   }
   if (!choices.length) {
-    choices = raw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤]/); });
+    choices = raw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
   }
 
   // ── 문제부 ──
@@ -2139,6 +2139,10 @@ function toSections(num, type, raw, passageTitle) {
         expl = raw.slice(hsIdx + '[해설]'.length, hsEnd).trim();
       }
     }
+    // 정답에 '[정답]' 접두어가 붙어있으면 제거
+    if (answer) answer = answer.replace(/^\[정답\]\s*/, '').trim();
+    // 해설이 '[해설]'로 시작하면 제거
+    if (expl && expl.indexOf('[해설]') === 0) expl = expl.slice('[해설]'.length).trim();
   }
 
   q.push(DIV); q.push('');
