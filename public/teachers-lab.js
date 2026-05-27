@@ -2125,6 +2125,22 @@ function toSections(num, type, raw, passageTitle) {
     choices.forEach(function(c){ q.push(c); }); q.push('');
   }
 
+  // grammar_ab 후처리: ANSWER:/EXPLANATION: 미사용 시 [정답]/[해설] 마커에서 추출
+  if (type.id === 'grammar_ab') {
+    if (!answer) {
+      var jdM = raw.match(/\[정답\]\s*([①②③④⑤➀➁➂➃➄]|\d+)/);
+      if (jdM) answer = jdM[1];
+    }
+    if (!expl) {
+      var hsIdx = raw.indexOf('[해설]');
+      if (hsIdx >= 0) {
+        var ktIdx = raw.indexOf('[출제 카테고리]');
+        var hsEnd = ktIdx >= 0 ? ktIdx : raw.length;
+        expl = raw.slice(hsIdx + '[해설]'.length, hsEnd).trim();
+      }
+    }
+  }
+
   q.push(DIV); q.push('');
 
   // ── 해설부 ──
