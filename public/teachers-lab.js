@@ -2062,6 +2062,50 @@ function toSections(num, type, raw, passageTitle) {
       q.push('답 : _________________________________________________'); q.push('');
     }
 
+  } else if (type.id === 'grammar_ab') {
+    // 어법 선택형: 커스텀 메타프롬프트가 [정답]/[해설] 형식으로 PASSAGE: 안에 전부 넣는 경우 처리
+    var gramPassage = passage;
+    var gramChoices = choices.slice();
+
+    if (gramPassage && (gramPassage.indexOf('[정답]') >= 0 || gramPassage.indexOf('[해설]') >= 0)) {
+      var g_jd  = gramPassage.indexOf('[정답]');
+      var g_hs  = gramPassage.indexOf('[해설]');
+      var g_kt  = gramPassage.indexOf('[출제 카테고리]');
+
+      // 선택지 추출 (➀➁➂➃➄ 또는 ①②③④⑤ 모두 지원)
+      var g_ch = gramPassage.split('\n').filter(function(l){
+        return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/);
+      });
+      if (g_ch.length) gramChoices = g_ch;
+
+      // 정답 번호 추출
+      if (g_jd >= 0) {
+        var g_jdLine = gramPassage.slice(g_jd).split('\n')[0];
+        var g_jdM = g_jdLine.match(/[①②③④⑤➀➁➂➃➄]|\d+/);
+        if (g_jdM) answer = g_jdM[0];
+      }
+
+      // 해설 추출
+      if (g_hs >= 0) {
+        var g_end = g_kt >= 0 ? g_kt : gramPassage.length;
+        expl = gramPassage.slice(g_hs + '[해설]'.length, g_end).trim();
+      }
+
+      // 영어 지문만 남기기 (한국어 줄 또는 선택지 줄 직전까지)
+      var g_lines = gramPassage.split('\n');
+      var g_cut = g_lines.length;
+      for (var gi = 0; gi < g_lines.length; gi++) {
+        if (/[가-힣]/.test(g_lines[gi]) || g_lines[gi].trim().match(/^[①②③④⑤➀➁➂➃➄]/)) {
+          g_cut = gi; break;
+        }
+      }
+      gramPassage = g_lines.slice(0, g_cut).join('\n').trim();
+    }
+
+    q.push(direction); q.push('');
+    if (gramPassage) { q.push(gramPassage); q.push(''); }
+    gramChoices.forEach(function(c){ q.push(c); }); q.push('');
+
   } else {
     // 일반 유형
     q.push(direction); q.push('');
