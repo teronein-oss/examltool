@@ -58,6 +58,9 @@ var SEO_DEFAULT_TYPES = [
   { id:'seo_tb_blank_content', name:'교과서 빈칸+내용_DB2', seoRender:'tb_blank_content',
     direction:'다음 글을 읽고, 물음에 답하시오.',
     prompt:'교과서 빈칸+내용_DB2 프롬프트를 직접 입력하세요.\n\n## ★ 출력 절대 규칙\n아래 섹션 라벨을 반드시 순서대로 사용할 것 (표 사용 금지)\n\n## 출력 형식\nPASSAGE:\n[지문 (우리말 밑줄 문장 포함)]\nDIRECTION_A:\n(1) 윗글의 밑줄 친 우리말 해석을 바탕으로 <보기>에 주어진 단어를 한 번씩만 모두 사용하여 <조건>에 맞게 영어로 완성하시오.\nWORD_BANK:\n[단어1 / 단어2 / ...]\nCONDITIONS_A:\n필요시 단어를 변형할 것\nMODEL_ANSWER_A:\n[정답 문장]\nDIRECTION_B:\n(2) 다음 질문에 대한 답을 주어진 <조건>에 맞게 영어 문장으로 완성하시오.\nCONDITIONS_B:\n· 주어진 단어로 문장을 시작할 것\n· 본문의 내용을 근거로 작성할 것\nQUESTION_A:\n[첫 번째 질문 전체 텍스트]\nSTARTER_A:\n[Q1 답의 시작 단어/구, 예: It]\nQUESTION_B:\n[두 번째 질문 전체 텍스트]\nSTARTER_B:\n[Q2 답의 시작 단어/구, 예: It]\nMODEL_ANSWER_B:\n➀ [Q1 정답 문장]\n➁ [Q2 정답 문장]\nEXPLANATION:\n[해설]' },
+  { id:'seo_tb_blank_write_bh', name:'교과서 빈칸 영작_BH', seoRender:'tb_blank_write_bh',
+    direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'여기에 메타프롬프트를 붙여넣으세요.\n\n## ★ 출력 절대 규칙 (반드시 유지)\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식(**굵게**, ## 머리글, - 목록) 금지, 순수 텍스트로만 출력\n\n## 출력 형식\nPASSAGE:\n[지문]\nDIRECTION:\n다음 글을 읽고, 물음에 답하시오.\nWORD_BANK:\n[단어1 / 단어2 / ...]\nCONDITIONS:\n[조건]\nMODEL_ANSWER:\n[정답 문장]\nEXPLANATION:\n[해설]' },
   { id:'seo_summary_4_bh', name:'교과서 요약문 빈칸4개_BH', seoRender:'summary4',
     direction:'[서술형] 윗글의 내용을 다음과 같이 요약하고자 한다. 빈칸 (A)~(D)에 들어갈 알맞은 말을 본문에서 찾아 각각 1~2단어로 쓰시오.',
     prompt:'여기에 메타프롬프트를 붙여넣으세요.\n\n---\n\n## ★ 출력 절대 규칙 (반드시 유지)\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식(**굵게**, ## 머리글, - 목록) 금지, 순수 텍스트로만 출력\n\n## 출력 형식\nPASSAGE:\n[가공된 본문 — 220~260단어]\nDIRECTION:\n윗글의 내용을 다음과 같이 요약하고자 한다. 빈칸 (A)~(D)에 들어갈 알맞은 말을 본문에서 찾아 각각 1~2단어로 쓰시오.\nSUMMARY:\n[(A)(B)(C)(D) 빈칸이 포함된 요약문 — 60~80단어]\nMODEL_ANSWER:\n(A): [정답]\n(B): [정답]\n(C): [정답]\n(D): [정답]\nEXPLANATION:\n(A) 정답: [답] / 출처: [본문 문장] / 난이도: ★☆☆ / 출제 의도: [설명]\n(B) 정답: [답] / 출처: [본문 문장] / 난이도: ★★☆ / 출제 의도: [설명]\n(C) 정답: [답] / 출처: [본문 문장] / 난이도: ★★☆ / 출제 의도: [설명]\n(D) 정답: [답] / 출처: [본문 문장] / 난이도: ★★★ / 출제 의도: [설명]' },
@@ -948,6 +951,12 @@ function switchSettingsCat(cat) {
 function renderSettingsCategoryTabs() {
   var el = document.getElementById('settingsCatTabs');
   if (!el) return;
+  // 비master: 카테고리 드롭다운 숨김, 개인설정으로 고정
+  if (!isMaster()) {
+    el.innerHTML = '';
+    if (settingsCat !== '개인설정') { settingsCat = '개인설정'; }
+    return;
+  }
   var schoolOpts = SCHOOL_NAMES.map(function(cat) {
     return '<option value="' + cat + '"' + (cat === settingsCat ? ' selected' : '') + '>🏫 ' + getSchoolLabel(cat) + '</option>';
   }).join('');
@@ -1245,9 +1254,8 @@ function renderPassageList() {
           return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
-        seoTypes.map(function(t) {
-          var label = t.name + (t.done ? ' (완료)' : '');
-          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + label + '</option>';
+        seoTypes.filter(function(t) { return !!t.done; }).map(function(t) {
+          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       var objActive = p.typeId && p.typeId !== 'unselected';
       var seoActive = p.seoTypeId && p.seoTypeId !== 'unselected';
@@ -1994,6 +2002,14 @@ function toSections(num, type, raw, passageTitle) {
       if (kcaMa1 || kcaMa2) {
         modelAns = (kcaMa1 ? '(1)\n' + kcaMa1 + '\n' : '') + (kcaMa2 ? '(2) ' + kcaMa2 : '');
       }
+
+    } else if (seoRender === 'tb_blank_write_bh') {
+      // 교과서 빈칸 영작_BH: 지문 + 지시문 + 보기 + 조건 + 답란 1개
+      if (passage) { q.push(passage); q.push(''); }
+      q.push(dirClean2); q.push('');
+      if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
+      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      q.push('_____________________________________________________________________.'); q.push('');
 
     } else if (seoRender === 'tb_blank_content') {
       var tbDirA   = extractSec(raw, 'DIRECTION_A')  || '';
