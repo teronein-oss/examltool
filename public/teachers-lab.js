@@ -902,6 +902,7 @@ function toggleSeoDone(i) {
   }
   saveGlobalSeoTypes();
   renderSeoTypeEditor();
+  renderPassageList();
 }
 
 function selectSeoType(i) {
