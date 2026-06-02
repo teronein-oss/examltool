@@ -1022,6 +1022,9 @@ function renderSettingsEditorVisibility() {
     var saveBtn2 = document.querySelector('#settingsEditorArea .gbtn');
     if (saveBtn2) saveBtn2.style.display = '';
   }
+  // 전체 학교 적용 버튼: master 전용
+  var allSchoolBtn = document.getElementById('applyAllSchoolsBtn');
+  if (allSchoolBtn) allSchoolBtn.style.display = isMaster() ? '' : 'none';
 }
 
 // ─── API KEY ───
@@ -1128,6 +1131,47 @@ function saveCurrentType() {
   renderTypeList();
   renderQuotaRows();
   alert('저장되었습니다.' + (_curRefs.length ? '\n레퍼런스 파일 ' + _curRefs.length + '개도 함께 저장됩니다.' : ''));
+}
+
+function saveTypeToAllSchools() {
+  if (!isMaster()) { alert('관리자만 사용할 수 있습니다.'); return; }
+
+  var typeId   = editingQTypes[selIdx].id;
+  var newName  = document.getElementById('editName').value;
+  var newDir   = document.getElementById('editDirection').value;
+  var newProm  = document.getElementById('editPrompt').value;
+  var newRefs  = _curRefs.length ? _curRefs : [];
+  var kichulEl = document.getElementById('editKichul');
+  var newKichul = kichulEl ? kichulEl.checked : false;
+
+  var targets = SCHOOL_NAMES.join(', ');
+  if (!confirm('[' + (newName || typeId) + '] 항목의 프롬프트를 모든 학교 설정에 적용합니다.\n\n대상: ' + targets + '\n\n계속하시겠습니까?')) return;
+
+  SCHOOL_NAMES.forEach(function(school) {
+    // 학교 프리셋이 없으면 DEFAULT_TYPES 기반으로 초기화
+    if (!schoolPresets[school] || !schoolPresets[school].length) {
+      schoolPresets[school] = JSON.parse(JSON.stringify(DEFAULT_TYPES));
+    }
+    var found = false;
+    schoolPresets[school].forEach(function(t) {
+      if (t.id === typeId) {
+        t.name       = newName;
+        t.direction  = newDir;
+        t.prompt     = newProm;
+        t.references = newRefs;
+        t.reference  = '';
+        t.kichul     = newKichul;
+        found = true;
+      }
+    });
+    // 해당 id가 없으면 추가
+    if (!found) {
+      schoolPresets[school].push({ id: typeId, name: newName, direction: newDir, prompt: newProm, references: newRefs, reference: '', kichul: newKichul });
+    }
+  });
+
+  saveSchoolPresets();
+  alert('[' + (newName || typeId) + '] 항목이 모든 학교(' + SCHOOL_NAMES.length + '개)에 적용·저장되었습니다.');
 }
 
 // ─── MASTER ADMIN ───

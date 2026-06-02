@@ -179,7 +179,10 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
           <div class="reflist" id="refList"></div>
         </div>
         <input type="file" id="refFileInput" accept=".txt,.md,.csv" multiple style="display:none" onchange="onRefFileChange(this)">
-        <button class="gbtn" onclick="saveCurrentType()">✓ 저장</button>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="gbtn" style="flex:1;" onclick="saveCurrentType()">✓ 저장</button>
+          <button id="applyAllSchoolsBtn" class="gbtn" style="flex:1;background:var(--ac);" onclick="saveTypeToAllSchools()">🌐 전체 학교 적용</button>
+        </div>
       </div>
     </div>
   </div>
