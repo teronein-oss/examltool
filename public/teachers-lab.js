@@ -2393,6 +2393,7 @@ async function startGeneration() {
 
   if (!assignment.length) { alert('생성할 문항이 없습니다. 문항 수를 설정해주세요.'); return; }
 
+  logUsage(assignment);
   switchTab('output');
   document.getElementById('pbWrap').style.display    = 'block';
   document.getElementById('pbWrap').classList.add('pulse-glow');
@@ -3156,6 +3157,91 @@ function fbPullData(silent) {
       setSyncStatus('syncok', '☁ ' + uid);
     })
     .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); console.error(e); });
+}
+
+// ─── 사용량 로그 ───
+function logUsage(assignment) {
+  if (!fbDb || !fbUserId()) return;
+  var typeCounts = {};
+  assignment.forEach(function(item) {
+    typeCounts[item.typeId] = (typeCounts[item.typeId] || 0) + 1;
+  });
+  fbDb.collection('usage_logs').add({
+    uid: fbUserId(),
+    ts: new Date().toISOString(),
+    total: assignment.length,
+    types: typeCounts,
+    isRandom: !!(document.getElementById('randomToggle') && document.getElementById('randomToggle').checked)
+  }).catch(function(e){ console.warn('usage log failed', e); });
+}
+
+function loadUsageStats() {
+  if (!isMaster() || !fbDb) return;
+  var el = document.getElementById('usageStatsContent');
+  if (el) el.textContent = '로딩 중...';
+  fbDb.collection('usage_logs').orderBy('ts', 'desc').limit(500).get()
+    .then(function(snap) {
+      var logs = [];
+      snap.forEach(function(d) { logs.push(d.data()); });
+      renderUsageStats(logs);
+    })
+    .catch(function(e) {
+      if (el) el.textContent = '오류: ' + e.message;
+    });
+}
+
+function renderUsageStats(logs) {
+  var el = document.getElementById('usageStatsContent');
+  if (!el) return;
+
+  // 모든 유형 이름 맵 (객관식 + 서술형)
+  var typeNameMap = {};
+  DEFAULT_TYPES.forEach(function(t){ typeNameMap[t.id] = t.name; });
+  getActiveSeoTypes().forEach(function(t){ typeNameMap[t.id] = t.name; });
+
+  // uid별 집계
+  var byUid = {};
+  logs.forEach(function(log) {
+    if (!log.uid) return;
+    if (!byUid[log.uid]) byUid[log.uid] = { sessions:0, total:0, types:{}, lastTs:'' };
+    var u = byUid[log.uid];
+    u.sessions++;
+    u.total += (log.total || 0);
+    if (log.ts > u.lastTs) u.lastTs = log.ts;
+    Object.keys(log.types || {}).forEach(function(tid) {
+      u.types[tid] = (u.types[tid] || 0) + log.types[tid];
+    });
+  });
+
+  if (!Object.keys(byUid).length) {
+    el.innerHTML = '<div style="color:var(--ink3);padding:16px 0;">아직 생성 기록이 없습니다.</div>';
+    return;
+  }
+
+  // 최신 활동 순 정렬
+  var uids = Object.keys(byUid).sort(function(a,b){ return byUid[b].lastTs.localeCompare(byUid[a].lastTs); });
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:8px;">';
+  uids.forEach(function(uid) {
+    var u = byUid[uid];
+    // 상위 3 유형
+    var topTypes = Object.keys(u.types).sort(function(a,b){ return u.types[b]-u.types[a]; }).slice(0,3);
+    var topHtml = topTypes.map(function(tid) {
+      return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bls);border:1px solid #a0b8e0;border-radius:99px;padding:2px 9px;font-size:11px;color:var(--bl);font-weight:600;">' +
+        (typeNameMap[tid] || tid) + ' <span style="color:var(--ink3);font-weight:400;">×' + u.types[tid] + '</span></span>';
+    }).join(' ');
+    var lastDate = u.lastTs ? u.lastTs.slice(0,10) : '-';
+    html += '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+        '<span style="font-weight:700;font-size:14px;color:var(--ink);">👤 ' + uid + '</span>' +
+        '<span style="font-size:11px;color:var(--ink3);">마지막: ' + lastDate + '</span>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--ink3);margin-bottom:8px;">생성 세션 <strong style="color:var(--ink);">' + u.sessions + '회</strong> · 총 <strong style="color:var(--ink);">' + u.total + '문항</strong></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;">' + (topHtml || '<span style="font-size:11px;color:var(--ink3);">유형 정보 없음</span>') + '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // 데이터 변경 후 즉시 저장

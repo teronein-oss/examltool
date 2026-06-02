@@ -282,6 +282,15 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         </div>
       </div>
     </div>
+
+    <!-- 사용량 통계 대시보드 (master_andy 전용) -->
+    <div style="margin-top:24px;border-top:2px solid var(--bd2);padding-top:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:14px;font-weight:700;color:var(--ink);">📊 사용자별 사용량 통계</span>
+        <button onclick="loadUsageStats()" style="background:var(--bl);color:#fff;border:none;border-radius:99px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">🔄 새로고침</button>
+      </div>
+      <div id="usageStatsContent" style="font-size:13px;color:var(--ink3);">새로고침 버튼을 눌러 통계를 불러오세요.</div>
+    </div>
   </div>
 </div>
 
