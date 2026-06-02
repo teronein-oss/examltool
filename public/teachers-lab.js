@@ -881,18 +881,42 @@ function renderSeoTypeEditor() {
   if (!el) return;
   var master = isMaster();
   el.innerHTML = editingSeoTypes.map(function(t, i) {
-    var checkbox = master
+    var doneChk = master
       ? '<input type="checkbox"' + (t.done ? ' checked' : '') +
           ' onclick="event.stopPropagation();toggleSeoDone(' + i + ')"' +
           ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--gr);" title="프롬프트 완료 표시">'
       : '';
+    var selChk = '<input type="checkbox"' + (seoSelected.indexOf(t.id) >= 0 ? ' checked' : '') +
+        ' onclick="event.stopPropagation();onSeoTypeEditorSelect(this)"' +
+        ' value="' + t.id + '"' +
+        ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--bl);" title="서술형 유형 선택">';
     var clickHandler = master ? 'onclick="selectSeoType(' + i + ')"' : '';
     var cursorStyle  = master ? '' : 'cursor:default;';
     return '<div class="ti' + (i===seoSelIdx&&master?' active':'') + '" ' + clickHandler + ' style="display:flex;align-items:center;gap:6px;' + cursorStyle + '">' +
-      checkbox +
+      doneChk + selChk +
       '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
       '<span class="tname">' + t.name + (t.done ? ' ✓' : '') + '</span></div>';
   }).join('');
+}
+
+function onSeoTypeEditorSelect(el) {
+  if (el.checked) {
+    if (seoSelected.indexOf(el.value) < 0) {
+      seoSelected.push(el.value);
+      seoCount = seoSelected.length;
+      var cntEl = document.getElementById('seoCount');
+      if (cntEl) cntEl.textContent = seoCount;
+    }
+  } else {
+    seoSelected = seoSelected.filter(function(s){ return s !== el.value; });
+    seoCount = Math.max(1, seoSelected.length);
+    var cntEl = document.getElementById('seoCount');
+    if (cntEl) cntEl.textContent = seoCount;
+  }
+  persist();
+  renderSeoTypeRows();
+  var isRand = document.getElementById('randomToggle') && document.getElementById('randomToggle').checked;
+  if (!isRand) renderManualCount();
 }
 
 var seoSelIdx = 0;
@@ -1458,6 +1482,8 @@ function onSeoCheck(el) {
     document.getElementById('seoCount').textContent = seoCount;
   }
   persist();
+  // 프롬프트 설정 탭의 서술형 유형 목록도 실시간 동기화
+  renderSeoTypeEditor();
   var isRand = document.getElementById('randomToggle').checked;
   if (!isRand) renderManualCount();
 }
