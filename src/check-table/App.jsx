@@ -5,17 +5,26 @@ import { db } from '../firebase.js'
 import TableHeader from './components/TableHeader.jsx'
 import TableRow from './components/TableRow.jsx'
 
-// ─── Tag definitions ────────────────────────────────────────────────────────
+// ─── Tag definitions (출제공방 유형과 실시간 동기화) ────────────────────────
+// teachers-lab.js 가 <script> 로 먼저 로드되므로 window.* 전역이 여기서 사용 가능
 
-export const OBJECTIVE_TAGS = [
-  '주제', '제목', '요지', '감정', '어휘', '어휘 선택형[a/b]', '어법',
-  '순서', '삽입', '요약', '무관한문장', '내용일치', '함의추론',
-  '빈칸추론', '빈칸 고난이도',
-]
-export const SUBJECTIVE_TAGS = [
-  '서술형 어법', '서술형 조건영작', '서술형 요약문 빈칸',
-  '서술형 내용정리', '서술형 주제문',
-]
+function _readObjTags() {
+  const types = window.DEFAULT_TYPES
+  if (Array.isArray(types) && types.length) return types.map(t => t.name)
+  // fallback (teachers-lab.js 미로드 환경)
+  return ['주제', '제목', '요지', '감정', '어휘', '어휘 선택형[a/b]', '어법',
+    '순서', '삽입', '요약', '무관한문장', '내용일치', '함의추론', '빈칸추론', '빈칸 고난이도']
+}
+
+function _readSeoTags() {
+  // globalSeoTypes: localStorage 반영 최신 목록 / SEO_DEFAULT_TYPES: 기본 카탈로그
+  const types = window.globalSeoTypes ?? window.SEO_DEFAULT_TYPES
+  if (Array.isArray(types) && types.length) return types.map(t => t.name)
+  return ['서술형 어법', '서술형 조건영작', '서술형 요약문 빈칸', '서술형 내용정리', '서술형 주제문']
+}
+
+export const OBJECTIVE_TAGS = _readObjTags()
+export const SUBJECTIVE_TAGS = _readSeoTags()
 
 export function getTagStyle(tag, customTags) {
   if (SUBJECTIVE_TAGS.includes(tag)) return 'bg-violet-100 text-violet-700 border-violet-200'
