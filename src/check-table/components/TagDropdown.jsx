@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Check, Plus } from 'lucide-react'
-import { OBJECTIVE_TAGS, SUBJECTIVE_TAGS, getTagStyle } from '../App.jsx'
+import { getObjectiveTags, getSubjectiveTags, getTagStyle } from '../App.jsx'
 
 function TagOption({ tag, selected, customTags, onToggle }) {
   const active = selected.includes(tag)
@@ -35,6 +35,9 @@ export default function TagDropdown({ selected, customTags, onToggle, onAddCusto
   const [input, setInput] = useState('')
   const ref = useRef(null)
   const inputRef = useRef(null)
+  // 렌더 시점에 출제공방 유형 읽기 (모듈 초기화 타이밍 문제 우회)
+  const objectiveTags = getObjectiveTags()
+  const subjectiveTags = getSubjectiveTags()
 
   useEffect(() => {
     function handler(e) {
@@ -62,13 +65,13 @@ export default function TagDropdown({ selected, customTags, onToggle, onAddCusto
       style={{ maxHeight: '420px', overflowY: 'auto' }}
     >
       <SectionLabel label="객관식 / 일반" />
-      {OBJECTIVE_TAGS.map(tag => (
+      {objectiveTags.map(tag => (
         <TagOption key={tag} tag={tag} selected={selected} customTags={customTags} onToggle={onToggle} />
       ))}
 
       <div className="border-t border-gray-100 my-1.5" />
       <SectionLabel label="서술형" />
-      {SUBJECTIVE_TAGS.map(tag => (
+      {subjectiveTags.map(tag => (
         <TagOption key={tag} tag={tag} selected={selected} customTags={customTags} onToggle={onToggle} />
       ))}
 

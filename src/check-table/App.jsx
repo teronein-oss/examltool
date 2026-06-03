@@ -6,29 +6,31 @@ import TableHeader from './components/TableHeader.jsx'
 import TableRow from './components/TableRow.jsx'
 
 // ─── Tag definitions (출제공방 유형과 실시간 동기화) ────────────────────────
-// teachers-lab.js 가 <script> 로 먼저 로드되므로 window.* 전역이 여기서 사용 가능
+// 모듈 초기화 시점엔 window.* 가 undefined일 수 있으므로 함수로 노출해
+// 컴포넌트 렌더 시점에 읽도록 한다.
 
-function _readObjTags() {
+export function getObjectiveTags() {
   const types = window.DEFAULT_TYPES
   if (Array.isArray(types) && types.length) return types.map(t => t.name)
-  // fallback (teachers-lab.js 미로드 환경)
+  // fallback
   return ['주제', '제목', '요지', '감정', '어휘', '어휘 선택형[a/b]', '어법',
     '순서', '삽입', '요약', '무관한문장', '내용일치', '함의추론', '빈칸추론', '빈칸 고난이도']
 }
 
-function _readSeoTags() {
+export function getSubjectiveTags() {
   // globalSeoTypes: localStorage 반영 최신 목록 / SEO_DEFAULT_TYPES: 기본 카탈로그
   const types = window.globalSeoTypes ?? window.SEO_DEFAULT_TYPES
   if (Array.isArray(types) && types.length) return types.map(t => t.name)
   return ['서술형 어법', '서술형 조건영작', '서술형 요약문 빈칸', '서술형 내용정리', '서술형 주제문']
 }
 
-export const OBJECTIVE_TAGS = _readObjTags()
-export const SUBJECTIVE_TAGS = _readSeoTags()
+// 하위 호환 — TagDropdown 등에서 배열이 필요한 경우 호출 시점에 평가
+export const OBJECTIVE_TAGS = []   // 실제 값은 getObjectiveTags() 사용
+export const SUBJECTIVE_TAGS = []  // 실제 값은 getSubjectiveTags() 사용
 
 export function getTagStyle(tag, customTags) {
-  if (SUBJECTIVE_TAGS.includes(tag)) return 'bg-violet-100 text-violet-700 border-violet-200'
-  if (customTags.includes(tag))      return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+  if (getSubjectiveTags().includes(tag)) return 'bg-violet-100 text-violet-700 border-violet-200'
+  if (customTags.includes(tag))          return 'bg-emerald-100 text-emerald-700 border-emerald-200'
   return 'bg-blue-100 text-blue-700 border-blue-200'
 }
 
