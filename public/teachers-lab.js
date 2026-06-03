@@ -64,6 +64,9 @@ var SEO_DEFAULT_TYPES = [
   { id:'seo_summary_4_bh', name:'교과서 요약문 빈칸4개_BH', seoRender:'summary4',
     direction:'[서술형] 윗글의 내용을 다음과 같이 요약하고자 한다. 빈칸 (A)~(D)에 들어갈 알맞은 말을 본문에서 찾아 각각 1~2단어로 쓰시오.',
     prompt:'여기에 메타프롬프트를 붙여넣으세요.\n\n---\n\n## ★ 출력 절대 규칙 (반드시 유지)\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식(**굵게**, ## 머리글, - 목록) 금지, 순수 텍스트로만 출력\n\n## 출력 형식\nPASSAGE:\n[가공된 본문 — 220~260단어]\nDIRECTION:\n윗글의 내용을 다음과 같이 요약하고자 한다. 빈칸 (A)~(D)에 들어갈 알맞은 말을 본문에서 찾아 각각 1~2단어로 쓰시오.\nSUMMARY:\n[(A)(B)(C)(D) 빈칸이 포함된 요약문 — 60~80단어]\nMODEL_ANSWER:\n(A): [정답]\n(B): [정답]\n(C): [정답]\n(D): [정답]\nEXPLANATION:\n(A) 정답: [답] / 출처: [본문 문장] / 난이도: ★☆☆ / 출제 의도: [설명]\n(B) 정답: [답] / 출처: [본문 문장] / 난이도: ★★☆ / 출제 의도: [설명]\n(C) 정답: [답] / 출처: [본문 문장] / 난이도: ★★☆ / 출제 의도: [설명]\n(D) 정답: [답] / 출처: [본문 문장] / 난이도: ★★★ / 출제 의도: [설명]' },
+  { id:'seo_content_blank_grammar_bh', name:'내용빈칸 + 어법_BH2', seoRender:'content_blank_grammar_bh',
+    direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'당신은 한국 고등학교 영어 내신 서술형 문제 출제 전문가입니다.\n원문(영어 지문)을 입력받아 아래 규칙에 따라 변형 지문과 서술형 문항 2종을 생성합니다.\n\n===== 규칙 1: 지문 변형 =====\n\n목표 변형도(TARGET_TI): 8~12%\n변형도(TI) 계산:\n  LEX = (치환된 내용어 수 / 전체 내용어 수) × 100\n  SYN = (재구조화된 절 수 / 전체 절 수) × 100\n  STR = (분리·병합된 문장 수 / 전체 문장 수) × 100\n  TI  = 0.4×LEX + 0.45×SYN + 0.15×STR\n\n변형 원칙:\n- 원문을 최대한 보존한다. 동의어 치환이나 대량 개작 금지(LEX ≈ 0 유지).\n- 변형은 어법 채점 포인트에만 집중한다.\n- 허용 변형 유형: 전치사+관계대명사 조작 / 분사구문↔관계사절 전환 / 등위접속↔분사구문 전환 / 문장 분리·병합.\n- 변형 후 TI가 8~12% 범위를 벗어나면 SYN 변형 절 수로 조정한다.\n\n밑줄 설정:\n- 5개를 지문 전 영역(도입/중반/후반)에 고르게 배치한다.\n- ⓐⓑⓒⓓⓔ 기호로 표기한다.\n- 각 밑줄은 아래 어법 단원 풀에서 서로 다른 단원으로 배정한다(같은 단원 중복 금지).\n- 밑줄 중 정확히 1개만 어법상 틀리게 만든다. 나머지는 정문 유지 또는 정문 변형.\n\n어법 단원 풀 (매 세트 서로 다른 5개 선택):\n1.관계사 2.분사·분사구문 3.동명사vs to부정사 4.주어-동사 수일치 5.시제·시제일치\n6.태(능동↔수동) 7.병렬구조 8.가정법 9.도치 10.접속사vs전치사vs관계사\n11.대명사일치·재귀대명사 12.형용사vs부사 13.비교구문 14.강조구문 15.명사절 16.사역·지각동사\n\n오답 설계 원칙:\n- 오답은 규칙을 알아야만 잡히는 함정이어야 한다(명백히 어색한 비문 금지).\n- 나머지 4개 밑줄도 그럴듯해서 헷갈릴 수 있는 정문으로 구성해 오답 매력도를 분산시킨다.\n\n===== 규칙 2: 내용정리 표 빈칸 서술형 =====\n\n빈칸 수: 3개\n빈칸 배치 원칙:\n- 표의 각 행(범주) ↔ 지문의 특정 구간이 1:1 대응되도록 표를 설계한다.\n- 빈칸 1개는 Category열(범주어 추론형), 2개는 Description열(직접 retrieval형)으로 구성한다.\n- 정답은 지문에 그대로(또는 1단어 이내 변형으로) 존재해야 한다.\n- 정답은 1~2 단어 명사(구)로만 한정한다.\n- 빈칸 위치는 지문 도입·중반·후반에 분산시킨다.\n\n===== 규칙 3: 출력 포맷 =====\n\n아래 섹션 라벨을 반드시 순서대로 사용하고, 마크다운 서식 금지.\n\nTRANSFORMED_PASSAGE:\n(밑줄 ⓐ~ⓔ 포함 변형 지문 전문)\n\nTRANSFORM_REPORT:\nTI: <숫자>%  (LEX:<>% / SYN:<>% / STR:<>%)\nCHANGES:\n- <문장번호> | <원문 해당 부분> → <변형 부분> | <변형유형> | ERROR:Y/N\n\nQ1_DIRECTION:\n윗글의 내용을 표와 같이 정리하고자 한다. 빈칸 (A)~(C)에 들어갈 알맞은 말을 각각 1~2 단어로 쓰시오.\nQ1_TABLE:\nCategory | Description\n[범주1] | [설명1]\n(A) | [설명2]\n[범주3] | (B)\n[범주4] | (C)\nQ1_ANSWER:\n(A): <정답>\n(B): <정답>\n(C): <정답>\nQ1_INTENT:\n(A): <지문근거문장>\n(B): <지문근거문장>\n(C): <지문근거문장>\n\nQ2_DIRECTION:\n윗글의 밑줄 친 ⓐ~ⓔ 중 어법상 틀린 것을 골라 기호와 틀린 부분을 적고, 틀린 부분만을 바르게 고쳐 쓰시오.\nQ2_UNDERLINE_MAP:\nⓐ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓑ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓒ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓓ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓔ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nQ2_ANSWER:\n<기호> / <틀린부분> / <고친것>\nQ2_EXPLANATION:\n<오답 이유 + 핵심 규칙 1~2줄>\n\n---\n\n다음 원문을 바탕으로 서술형 문제 세트를 생성하시오.\n\nORIGINAL_PASSAGE:\n"""\n{{원문을 여기에 붙여넣기}}\n"""\n\nPARAMETERS:\nTARGET_TI: 8~12\nNUM_UNDERLINE: 5\nNUM_BLANK: 3\nGRAMMAR_FOCUS: 분산\nANSWER_SLOT: auto\nDIFFICULTY: 중' },
 ];
 
 var DEFAULT_TYPES = [
@@ -1806,7 +1809,7 @@ function stripLeadingProse(raw) {
   return raw;
 }
 
-var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2'];
+var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2','TRANSFORMED_PASSAGE','TRANSFORM_REPORT','Q1_DIRECTION','Q1_TABLE','Q1_ANSWER','Q1_INTENT','Q2_DIRECTION','Q2_UNDERLINE_MAP','Q2_ANSWER','Q2_EXPLANATION','Q2_DISTRACTOR'];
 
 // Gemini 등이 라벨에 마크다운(**굵게**, ## 머리글, - 목록)을 붙이거나 콜론을 빠뜨려도
 // 파싱되도록, 알려진 섹션 라벨 줄을 표준형 "LABEL:" 으로 정규화한다.
@@ -2125,6 +2128,41 @@ function toSections(num, type, raw, passageTitle) {
       // 정답 (교사용 키)
       if (tbMaA || tbMaB) {
         modelAns = (tbMaA ? '(1) ' + tbMaA + '\n' : '') + (tbMaB ? '(2)\n' + tbMaB : '');
+      }
+
+    } else if (seoRender === 'content_blank_grammar_bh') {
+      // 내용빈칸 + 어법_BH2: TRANSFORMED_PASSAGE + Q1(표 빈칸) + Q2(어법)
+      var cbgPassage = extractSec(raw, 'TRANSFORMED_PASSAGE') || passage || '';
+      var cbgDirQ1   = extractSec(raw, 'Q1_DIRECTION') || '';
+      var cbgTable   = extractSec(raw, 'Q1_TABLE')     || '';
+      var cbgAnsQ1   = extractSec(raw, 'Q1_ANSWER')    || '';
+      var cbgDirQ2   = extractSec(raw, 'Q2_DIRECTION') || '';
+      var cbgAnsQ2   = extractSec(raw, 'Q2_ANSWER')    || '';
+
+      // 지문
+      if (cbgPassage) { q.push(cbgPassage); q.push(''); }
+
+      // (1) 내용 표 빈칸
+      var cbgDirQ1Clean = cleanSeoInstruction(cbgDirQ1) || '윗글의 내용을 표와 같이 정리하고자 한다. 빈칸 (A)~(C)에 들어갈 알맞은 말을 각각 1~2 단어로 쓰시오.';
+      q.push('(1) ' + cbgDirQ1Clean); q.push('');
+      if (cbgTable) {
+        // 파이프 구분 테이블 → 텍스트 변환
+        var tblLines = cbgTable.split('\n').filter(function(l){ return l.trim(); });
+        tblLines.forEach(function(l){ q.push(l.trim()); });
+        q.push('');
+      }
+      q.push('(A): ____________________');
+      q.push('(B): ____________________');
+      q.push('(C): ____________________'); q.push('');
+
+      // (2) 어법 서술형
+      var cbgDirQ2Clean = cleanSeoInstruction(cbgDirQ2) || '윗글의 밑줄 친 ⓐ~ⓔ 중 어법상 틀린 것을 골라 기호와 틀린 부분을 적고, 틀린 부분만을 바르게 고쳐 쓰시오.';
+      q.push('(2) ' + cbgDirQ2Clean); q.push('');
+      q.push('틀린 기호: ______  틀린 부분: _______________  →  바른 표현: _______________'); q.push('');
+
+      // 정답 (교사용 키)
+      if (cbgAnsQ1 || cbgAnsQ2) {
+        modelAns = (cbgAnsQ1 ? '(1)\n' + cbgAnsQ1 + '\n' : '') + (cbgAnsQ2 ? '(2) ' + cbgAnsQ2 : '');
       }
 
     } else if (seoRender === 'topic_plus' || type.id === 'seo_topic_plus_content2') {
