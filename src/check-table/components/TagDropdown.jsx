@@ -61,8 +61,8 @@ export default function TagDropdown({ selected, customTags, onToggle, onAddCusto
     <div
       ref={ref}
       onClick={e => e.stopPropagation()}
-      className="absolute left-0 top-full mt-1 z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-xl py-2 flex flex-col"
-      style={{ maxHeight: '420px', overflowY: 'auto' }}
+      className="absolute left-0 top-full mt-1 z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-xl py-2 flex flex-col overflow-y-scroll"
+      style={{ maxHeight: '420px' }}
     >
       <SectionLabel label="객관식 / 일반" />
       {objectiveTags.map(tag => (
