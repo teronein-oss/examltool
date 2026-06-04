@@ -115,6 +115,8 @@ var DEFAULT_TYPES = [
   { id:'summary', name:'요약문', direction:'다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?',
     prompt:'당신은 대한민국 수능 영어 요약문 완성 문항 출제자입니다.\n## 출제 매뉴얼\n- 지문 요약 문장 작성 및 (A), (B) 두 빈칸 생성\n- 정답을 포함한 5개 선지(①~⑤)를 생성\n## ★ 출력 절대 규칙\n1. 표(Table) 형태 사용 금지\n2. PASSAGE 및 SUMMARY에 한국어 해석 일체 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nSUMMARY:\n[빈칸 (A), (B)가 포함된 요약 문장]\nDIRECTION:\n다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?\nCHOICES:\n① (A) ___ (B) ___\n② (A) ___ (B) ___\n③ (A) ___ (B) ___\n④ (A) ___ (B) ___\n⑤ (A) ___ (B) ___\nANSWER: [정답 번호]\nEXPLANATION:\n[정답]: [정답 번호]\n[정답인 이유 해설]: 요약문의 (A), (B) 빈칸에 해당 단어쌍이 들어가야 하는 핵심 근거를 간결하게 설명\n[선택지 해석]:\n① (A) [단어 뜻] / (B) [단어 뜻]\n② (A) [단어 뜻] / (B) [단어 뜻]\n③ (A) [단어 뜻] / (B) [단어 뜻]\n④ (A) [단어 뜻] / (B) [단어 뜻]\n⑤ (A) [단어 뜻] / (B) [단어 뜻]' },
 
+  { id:'order_match', name:'청덕2_순서+내용일치', direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'You are an expert Korean high school English exam question designer specializing in CSAT and internal school exam formats.\n\nTransform the given passage into a 2-question set: 순서배열 + 내용일치.\n\n## MODULE 1: PASSAGE TRANSFORMATION\n\nSTEP 1 — CONTENT EXPANSION\n- Expand the original passage by approximately 25~40%.\n- Add one cohesive paragraph introducing ONE of: (a) evolutionary/historical background, (b) contrasting case or statistical elaboration, (c) cause→effect mechanism supporting the main claim.\n- Match vocabulary tier to source passage. Include at least one participial phrase or embedded relative clause, and one cause-result connector (e.g., "due to", "likely because", "which is why").\n- Place the added paragraph so it creates an attractive but incorrect ordering temptation.\n\nSTEP 2 — SEGMENTATION\n- Label segments (A)(B)(C)(D). (A) = opening anchor (given, not reordered). (B)(C)(D) = to be reordered.\n- Each segment: 2~5 sentences. (A) must end with a stated assumption OR an open problem.\n\n## MODULE 2: 순서배열 DESIGN\n\nSTEP 3 — CONNECTOR DIVERSITY RULE\n- Across (A→B), (B→C), (C→D): use at least 2 different connector types.\n  TYPE 1: connective word (However / Furthermore / Therefore)\n  TYPE 2: referring expression (this, these, such + noun)\n  TYPE 3: topical/content chain (no explicit marker; concept progression)\n- At least one adjacent pair MUST use TYPE 3.\n\nSTEP 4 — DISTRACTORS: ensure at least one wrong option places the primary distractor segment first after (A).\n\n## MODULE 3: 내용일치 DESIGN\n\nSTEP 5 — OPTION CONSTRUCTION\n- 4 correct options (일치): use Paraphrase+abstraction / Synonym substitution / Structural inversion / Scope generalization — one type each, no repeats.\n- 1 incorrect option (불일치) = THE ANSWER: use one of NUMERICAL INVERSION / CAUSAL REVERSAL / SCOPE DISTORTION / DETAIL TRANSPLANT / NEGATION INSERTION.\n- Incorrect option: surface-plausible, length within ±20% of others, placed at ③ or ④.\n- Score: [3점] or [3.5점]\n\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식 금지, 순수 텍스트로만 출력\n4. BLOCK_A~BLOCK_D 내부에 한국어 절대 금지\n\n## 출력 형식\nBLOCK_A:\n(A)\n[segment A 영어 지문]\nBLOCK_B:\n(B)\n[segment B 영어 지문]\nBLOCK_C:\n(C)\n[segment C 영어 지문]\nBLOCK_D:\n(D)\n[segment D 영어 지문]\nORDER_DIRECTION:\n주어진 글 (A)에 이어질 내용을 순서에 맞게 배열한 것으로 가장 적절한 것은?\nORDER_CHOICES:\n① (B)-(C)-(D)\n② (B)-(D)-(C)\n③ (C)-(B)-(D)\n④ (C)-(D)-(B)\n⑤ (D)-(B)-(C)\nORDER_ANSWER: [정답 번호]\nMATCH_DIRECTION:\n윗글에 관한 내용으로 적절하지 않은 것은? [3점]\nMATCH_CHOICES:\n① [한글 선지]\n② [한글 선지]\n③ [한글 선지]\n④ [한글 선지]\n⑤ [한글 선지]\nMATCH_ANSWER: [정답 번호]\nEXPLANATION:\n[순서 정답]: [번호]\n[순서 해설]: A→B, B→C, C→D 연결 근거 (connector type 포함)\n[내용일치 정답]: [번호]\n[내용일치 해설]: 오답 선지가 지문 어느 부분과 다른지 설명\n[오답 전략]: [사용한 strategy 명]\n[오답 위치]: [③ or ④]\n[선지 해석]:\n① [해석]\n② [해석]\n③ [해석]\n④ [해석]\n⑤ [해석]' },
   { id:'connector', name:'연결사 빈칸', direction:'다음 글의 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은? [3점]',
     prompt:'# 수능 영어 연결사 빈칸 문제 생성기 (메타프롬프트)\n\n## 역할\n너는 수능 영어 출제 전문가다. 주어진 영어 지문을 분석하여 수능 스타일의 연결사 빈칸 문제 [(A), (B) 유형]를 생성한다.\n\n---\n\n## 입력\n- 영어 지문 1개 (원문)\n\n---\n\n## STEP 1: 지문 변형 (목표 변형률: 40~55%)\n\n아래 변형 기법을 혼합하여 원문 대비 40~55% 수준으로 지문을 변형한다.\n\n### 변형 기법 목록\n1. **어휘 교체**: 동의어/유의어로 대체 (고2~3 수준 어휘 유지)\n2. **문장 구조 변경**: 능동↔수동, 긍정↔부정 표현 전환\n3. **문장 압축**: 2~3문장을 1문장으로 통합\n4. **문장 삭제**: 유머, 비유, 부연 설명 중 핵심 논리와 직결되지 않는 부분 제거\n5. **부연 추가**: 기존 문장에 분사구문/관계절로 설명 덧붙이기\n6. **연결사 빈칸 삽입**: 논리 전환점 2곳을 선정하여 연결사를 제거하고 (A), (B) 빈칸으로 교체\n\n---\n\n## STEP 2: 빈칸 위치 선정 원리\n\n### (A) 선정 기준\n- 앞 문장과 뒤 문장 사이에 **명확한 논리 전환**이 발생하는 지점\n- 가능한 논리 관계 유형:\n  - 대조 (contrast): 앞 내용과 반대되는 내용이 이어질 때\n  - 예시 도입 (exemplification): 앞의 주장을 구체화하는 예시가 이어질 때\n  - 부연/강조 (elaboration): 앞 내용을 더 구체적으로 설명할 때\n\n### (B) 선정 기준\n- 앞에서 제시된 **원리/이론**이 **실천적 결론이나 적용**으로 이어지는 지점\n- 가능한 논리 관계 유형:\n  - 결과/따라서 (result/conclusion): 앞 내용의 논리적 귀결\n  - 요약 (summary): 앞 내용을 정리하며 다음 행동을 도출\n  - 추가 (addition): 앞 내용에 보완적 정보가 이어질 때\n\n---\n\n## STEP 3: 연결사 선택 원칙\n\n### 핵심 원칙\n- 해당 기출 문제에 사용된 특정 연결사를 재사용하지 말 것\n- 고2~3 수준에서 사용 가능한 연결사 풀에서 **지문의 논리 관계에 맞는** 연결사를 유연하게 선택\n\n### 연결사 풀 (논리 관계별)\n대조: In contrast, By contrast, On the other hand, However, Conversely\n예시: For example, For instance, To illustrate\n결과/따라서: Therefore, Thus, Accordingly, As a result, Consequently\n요약: In short, In brief, In other words, To sum up\n추가: Furthermore, Moreover, In addition, Besides\n부연/강조: Indeed, In fact, Notably, That is\n역접: Nevertheless, Nonetheless, Even so, Yet\n\n### 오답 선지 구성 원칙\n- 정답 연결사와 **논리 관계가 다른** 연결사 조합 4개 구성\n- 각 오답은 (A) 또는 (B) 중 하나만 정답이거나, 둘 다 오답인 조합\n- 오답의 난이도 분포:\n  - 매력적 오답 2개: (A) 또는 (B) 하나가 그럴듯하게 맞아 보이는 조합\n  - 명백한 오답 2개: 논리 관계가 명확히 틀린 조합\n\n### 정답 번호 배치 규칙\n- 정답 번호는 ①~⑤ 중 매번 다른 번호를 랜덤하게 설정할 것\n\n---\n\n## ★ 출력 절대 규칙\n1. 아래 출력 형식 외 내용 불가. PASSAGE에 한국어 절대 금지\n2. 표(Table) 사용 금지\n\n## 출력 형식\nPASSAGE:\n[변형된 지문. (A), (B) 빈칸 포함]\nDIRECTION:\n다음 글의 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은? [3점]\nCHOICES:\n① (A) ___ (B) ___\n② (A) ___ (B) ___\n③ (A) ___ (B) ___\n④ (A) ___ (B) ___\n⑤ (A) ___ (B) ___\nANSWER: [①~⑤ 중 정답 번호]\nEXPLANATION:\n[정답]: [정답 번호]\n[정답인 이유 해설]: (A), (B) 각 빈칸에 해당 연결사가 들어가야 하는 논리적 근거를 간결하게 설명\n[선택지 해석]:\n① (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n② (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n③ (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n④ (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n⑤ (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]' },
 
@@ -1809,7 +1811,7 @@ function stripLeadingProse(raw) {
   return raw;
 }
 
-var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2','TRANSFORMED_PASSAGE','TRANSFORM_REPORT','Q1_DIRECTION','Q1_TABLE','Q1_ANSWER','Q1_INTENT','Q2_DIRECTION','Q2_UNDERLINE_MAP','Q2_ANSWER','Q2_EXPLANATION','Q2_DISTRACTOR'];
+var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2','TRANSFORMED_PASSAGE','TRANSFORM_REPORT','Q1_DIRECTION','Q1_TABLE','Q1_ANSWER','Q1_INTENT','Q2_DIRECTION','Q2_UNDERLINE_MAP','Q2_ANSWER','Q2_EXPLANATION','Q2_DISTRACTOR','BLOCK_D','ORDER_DIRECTION','ORDER_CHOICES','ORDER_ANSWER','MATCH_DIRECTION','MATCH_CHOICES','MATCH_ANSWER'];
 
 // Gemini 등이 라벨에 마크다운(**굵게**, ## 머리글, - 목록)을 붙이거나 콜론을 빠뜨려도
 // 파싱되도록, 알려진 섹션 라벨 줄을 표준형 "LABEL:" 으로 정규화한다.
@@ -1943,6 +1945,43 @@ function toSections(num, type, raw, passageTitle) {
     if (bB) { q.push(bB); q.push(''); }
     if (bC) { q.push(bC); q.push(''); }
     choices.forEach(function(c){ q.push(c); }); q.push('');
+
+  } else if (type.id === 'order_match') {
+    // 청덕2_순서+내용일치: (A)(B)(C)(D) 4단락 + 순서 문제 + 내용일치 문제
+    var omA = extractSec(raw, 'BLOCK_A') || bA || '';
+    var omB = extractSec(raw, 'BLOCK_B') || bB || '';
+    var omC = extractSec(raw, 'BLOCK_C') || bC || '';
+    var omD = extractSec(raw, 'BLOCK_D') || '';
+    var omOrdDir   = extractSec(raw, 'ORDER_DIRECTION') || '주어진 글 (A)에 이어질 내용을 순서에 맞게 배열한 것으로 가장 적절한 것은?';
+    var omOrdRaw   = extractSec(raw, 'ORDER_CHOICES') || '';
+    var omOrdChoices = omOrdRaw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+    var omOrdAns   = extractSec(raw, 'ORDER_ANSWER') || '';
+    var omMatDir   = extractSec(raw, 'MATCH_DIRECTION') || '윗글에 관한 내용으로 적절하지 않은 것은?';
+    var omMatRaw   = extractSec(raw, 'MATCH_CHOICES') || '';
+    var omMatChoices = omMatRaw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+    var omMatAns   = extractSec(raw, 'MATCH_ANSWER') || '';
+
+    // 공통 지시문 + 4단락
+    q.push('다음 글을 읽고, 물음에 답하시오.'); q.push('');
+    if (omA) { q.push(omA); q.push(''); }
+    if (omB) { q.push(omB); q.push(''); }
+    if (omC) { q.push(omC); q.push(''); }
+    if (omD) { q.push(omD); q.push(''); }
+
+    // 순서 문제
+    q.push(omOrdDir); q.push('');
+    if (omOrdChoices.length) { omOrdChoices.forEach(function(c){ q.push(c); }); }
+    else { q.push('① (B)-(C)-(D)'); q.push('② (B)-(D)-(C)'); q.push('③ (C)-(B)-(D)'); q.push('④ (C)-(D)-(B)'); q.push('⑤ (D)-(B)-(C)'); }
+    q.push('');
+
+    // 내용일치 문제
+    q.push(omMatDir); q.push('');
+    omMatChoices.forEach(function(c){ q.push(c); }); q.push('');
+
+    // 교사용 정답 키
+    if (omOrdAns || omMatAns) {
+      modelAns = (omOrdAns ? '순서: ' + omOrdAns + '\n' : '') + (omMatAns ? '내용일치: ' + omMatAns : '');
+    }
 
   } else if (type.id === 'insert') {
     q.push(direction); q.push('');
