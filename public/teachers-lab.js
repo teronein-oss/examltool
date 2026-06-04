@@ -813,6 +813,46 @@ function switchTab(name) {
   }
 }
 
+// ─── 학교 prefix 기반 객관식 유형 필터링 ───
+// 학교 코드 목록(향후 학교 추가 시 여기에만 추가)
+var SCHOOL_PREFIXES = ['동백', '백현', '청덕', '성지'];
+
+// activeCategory("동백고1","청덕고" 등)에서 학교명만 추출. 개인/기본설정이면 ''.
+function getSchoolFromCategory(cat) {
+  if (!cat || cat === '개인설정' || cat === '기본설정') return '';
+  for (var i = 0; i < SCHOOL_PREFIXES.length; i++) {
+    if (cat.indexOf(SCHOOL_PREFIXES[i]) === 0) return SCHOOL_PREFIXES[i];
+  }
+  return '';
+}
+
+// 유형명("청덕2_순서+내용일치")에서 학교 prefix 추출. 없으면 ''.
+function getTypeSchoolPrefix(name) {
+  if (!name) return '';
+  for (var i = 0; i < SCHOOL_PREFIXES.length; i++) {
+    var sp = SCHOOL_PREFIXES[i];
+    // "학교명" 또는 "학교명+숫자" 뒤에 "_" 가 오면 prefix로 인식
+    var re = new RegExp('^' + sp + '\\d*_');
+    if (re.test(name)) return sp;
+  }
+  return '';
+}
+
+// 유형 1개가 현재 카테고리에서 표시 가능한지 판정.
+function isTypeVisibleForCategory(type, cat) {
+  var pfx = getTypeSchoolPrefix(type && type.name);
+  if (!pfx) return true;                 // 기본 유형: 항상 표시
+  var sch = getSchoolFromCategory(cat);
+  if (!sch) return false;                // 개인/기본 설정: prefix 유형 숨김
+  return pfx === sch;                    // 학교 일치 시만 표시
+}
+
+// 배열 단위 필터 (객관식 유형용; 서술형은 적용 안 함)
+function filterObjTypesByCategory(types) {
+  if (!Array.isArray(types)) return types;
+  return types.filter(function(t){ return isTypeVisibleForCategory(t, activeCategory); });
+}
+
 // ─── ACTIVE CATEGORY (for generation) ───
 function getActiveQTypes() {
   if (SCHOOL_NAMES.indexOf(activeCategory) >= 0 && schoolPresets[activeCategory] && schoolPresets[activeCategory].length) {
@@ -1321,7 +1361,7 @@ function renderPassageList() {
     return;
   }
   var isRand = document.getElementById('randomToggle').checked;
-  var objTypes = getActiveQTypes();
+  var objTypes = filterObjTypesByCategory(getActiveQTypes());
   var seoTypes = getActiveSeoTypes();
   el.innerHTML = passages.map(function(p, i) {
     var selArea = '';
@@ -1384,7 +1424,7 @@ function setPassageSeoType(i, seoTypeId) {
 }
 
 function renderQuotaRows() {
-  var aqt = getActiveQTypes();
+  var aqt = filterObjTypesByCategory(getActiveQTypes());
   document.getElementById('quotaRows').innerHTML = aqt.filter(function(t){
     return !t.id.startsWith('seo');
   }).map(function(t, i) {
@@ -1417,7 +1457,7 @@ function chgQ(id, d) {
 }
 
 function renderManualCount() {
-  var aqt = getActiveQTypes();
+  var aqt = filterObjTypesByCategory(getActiveQTypes());
   var seoTypes = getActiveSeoTypes();
 
   // 객관식 카운트
