@@ -155,24 +155,25 @@ function getActiveSeoTypes() {
 }
 
 // seoSelected 자동 보정
-// - 마스터: 체크 상태를 그대로 유지 (건드리지 않음), 삭제된 유형만 제거
-// - 일반 사용자: globalSeoTypes에 있는 ID 중 빠진 것을 자동 추가 (신규 유형 자동 반영)
+// - 마스터: 체크 상태를 그대로 유지, 삭제된 유형만 제거
+// - 일반 사용자: 마스터가 체크한(done=true) 유형과 완전히 동기화
 function healSeoSelected() {
   var allIds = globalSeoTypes.map(function(t){ return t.id; });
   var changed = false;
   if (!isMaster()) {
-    // 일반 사용자: 누락된 유형 자동 추가
-    allIds.forEach(function(id) {
-      if (seoSelected.indexOf(id) < 0) {
-        seoSelected.push(id);
-        changed = true;
-      }
-    });
+    // 일반 사용자: seoSelected를 마스터 체크(done=true) 목록으로 덮어씀
+    var doneIds = globalSeoTypes.filter(function(t){ return !!t.done; }).map(function(t){ return t.id; });
+    var newSel = doneIds.slice();
+    if (JSON.stringify(newSel.slice().sort()) !== JSON.stringify(seoSelected.slice().sort())) {
+      seoSelected = newSel;
+      changed = true;
+    }
+  } else {
+    // 마스터: globalSeoTypes에서 삭제된 유형만 제거
+    var before = seoSelected.length;
+    seoSelected = seoSelected.filter(function(id){ return allIds.indexOf(id) >= 0; });
+    if (seoSelected.length !== before) changed = true;
   }
-  // 모든 사용자: globalSeoTypes에서 삭제된 유형은 seoSelected에서도 제거
-  var before = seoSelected.length;
-  seoSelected = seoSelected.filter(function(id){ return allIds.indexOf(id) >= 0; });
-  if (seoSelected.length !== before) changed = true;
   if (changed) localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
 }
 
