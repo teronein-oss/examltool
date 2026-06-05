@@ -962,7 +962,10 @@ function onSeoTypeEditorSelect(el) {
     if (cntEl) cntEl.textContent = seoCount;
   }
   persist();
+  // 시험지 구성설정 서술형 포함 토글 목록 동기화
   renderSeoTypeRows();
+  // 지문 카드 서술형 드롭다운 실시간 동기화
+  renderPassageList();
   var isRand = document.getElementById('randomToggle') && document.getElementById('randomToggle').checked;
   if (!isRand) renderManualCount();
 }
@@ -1374,7 +1377,9 @@ function renderPassageList() {
           return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       // 프롬프트 설정에서 체크박스 체크된 서술형 유형만 표시
+      // seoSelected가 비어있으면 done 표시된 유형을 fallback으로 사용
       var seoFiltered = seoTypes.filter(function(t) { return seoSelected.indexOf(t.id) >= 0; });
+      if (!seoFiltered.length) seoFiltered = seoTypes.filter(function(t) { return !!t.done; });
       var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
         seoFiltered.map(function(t) {
           return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
