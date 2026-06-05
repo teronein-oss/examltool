@@ -58,6 +58,15 @@ var SEO_DEFAULT_TYPES = [
   { id:'seo_tb_blank_content', name:'교과서 빈칸+내용_DB2', seoRender:'tb_blank_content',
     direction:'다음 글을 읽고, 물음에 답하시오.',
     prompt:'교과서 빈칸+내용_DB2 프롬프트를 직접 입력하세요.\n\n## ★ 출력 절대 규칙\n아래 섹션 라벨을 반드시 순서대로 사용할 것 (표 사용 금지)\n\n## 출력 형식\nPASSAGE:\n[지문 (우리말 밑줄 문장 포함)]\nDIRECTION_A:\n(1) 윗글의 밑줄 친 우리말 해석을 바탕으로 <보기>에 주어진 단어를 한 번씩만 모두 사용하여 <조건>에 맞게 영어로 완성하시오.\nWORD_BANK:\n[단어1 / 단어2 / ...]\nCONDITIONS_A:\n필요시 단어를 변형할 것\nMODEL_ANSWER_A:\n[정답 문장]\nDIRECTION_B:\n(2) 다음 질문에 대한 답을 주어진 <조건>에 맞게 영어 문장으로 완성하시오.\nCONDITIONS_B:\n· 주어진 단어로 문장을 시작할 것\n· 본문의 내용을 근거로 작성할 것\nQUESTION_A:\n[첫 번째 질문 전체 텍스트]\nSTARTER_A:\n[Q1 답의 시작 단어/구, 예: It]\nQUESTION_B:\n[두 번째 질문 전체 텍스트]\nSTARTER_B:\n[Q2 답의 시작 단어/구, 예: It]\nMODEL_ANSWER_B:\n➀ [Q1 정답 문장]\n➁ [Q2 정답 문장]\nEXPLANATION:\n[해설]' },
+  { id:'seo_tb_blank_write_bh', name:'교과서 빈칸 영작_BH', seoRender:'tb_blank_write_bh',
+    direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'여기에 메타프롬프트를 붙여넣으세요.\n\n## ★ 출력 절대 규칙 (반드시 유지)\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식(**굵게**, ## 머리글, - 목록) 금지, 순수 텍스트로만 출력\n\n## 출력 형식\nPASSAGE:\n[지문]\nDIRECTION:\n다음 글을 읽고, 물음에 답하시오.\nWORD_BANK:\n[단어1 / 단어2 / ...]\nCONDITIONS:\n[조건]\nMODEL_ANSWER:\n[정답 문장]\nEXPLANATION:\n[해설]' },
+  { id:'seo_summary_4_bh', name:'교과서 요약문 빈칸4개_BH', seoRender:'summary4',
+    direction:'[서술형] 윗글의 내용을 다음과 같이 요약하고자 한다. 빈칸 (A)~(D)에 들어갈 알맞은 말을 본문에서 찾아 각각 1~2단어로 쓰시오.',
+    prompt:'여기에 메타프롬프트를 붙여넣으세요.\n\n---\n\n## ★ 출력 절대 규칙 (반드시 유지)\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식(**굵게**, ## 머리글, - 목록) 금지, 순수 텍스트로만 출력\n\n## 출력 형식\nPASSAGE:\n[가공된 본문 — 220~260단어]\nDIRECTION:\n윗글의 내용을 다음과 같이 요약하고자 한다. 빈칸 (A)~(D)에 들어갈 알맞은 말을 본문에서 찾아 각각 1~2단어로 쓰시오.\nSUMMARY:\n[(A)(B)(C)(D) 빈칸이 포함된 요약문 — 60~80단어]\nMODEL_ANSWER:\n(A): [정답]\n(B): [정답]\n(C): [정답]\n(D): [정답]\nEXPLANATION:\n(A) 정답: [답] / 출처: [본문 문장] / 난이도: ★☆☆ / 출제 의도: [설명]\n(B) 정답: [답] / 출처: [본문 문장] / 난이도: ★★☆ / 출제 의도: [설명]\n(C) 정답: [답] / 출처: [본문 문장] / 난이도: ★★☆ / 출제 의도: [설명]\n(D) 정답: [답] / 출처: [본문 문장] / 난이도: ★★★ / 출제 의도: [설명]' },
+  { id:'seo_content_blank_grammar_bh', name:'내용빈칸 + 어법_BH2', seoRender:'content_blank_grammar_bh',
+    direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'당신은 한국 고등학교 영어 내신 서술형 문제 출제 전문가입니다.\n원문(영어 지문)을 입력받아 아래 규칙에 따라 변형 지문과 서술형 문항 2종을 생성합니다.\n\n===== 규칙 1: 지문 변형 =====\n\n목표 변형도(TARGET_TI): 8~12%\n변형도(TI) 계산:\n  LEX = (치환된 내용어 수 / 전체 내용어 수) × 100\n  SYN = (재구조화된 절 수 / 전체 절 수) × 100\n  STR = (분리·병합된 문장 수 / 전체 문장 수) × 100\n  TI  = 0.4×LEX + 0.45×SYN + 0.15×STR\n\n변형 원칙:\n- 원문을 최대한 보존한다. 동의어 치환이나 대량 개작 금지(LEX ≈ 0 유지).\n- 변형은 어법 채점 포인트에만 집중한다.\n- 허용 변형 유형: 전치사+관계대명사 조작 / 분사구문↔관계사절 전환 / 등위접속↔분사구문 전환 / 문장 분리·병합.\n- 변형 후 TI가 8~12% 범위를 벗어나면 SYN 변형 절 수로 조정한다.\n\n밑줄 설정:\n- 5개를 지문 전 영역(도입/중반/후반)에 고르게 배치한다.\n- ⓐⓑⓒⓓⓔ 기호로 표기한다.\n- 각 밑줄은 아래 어법 단원 풀에서 서로 다른 단원으로 배정한다(같은 단원 중복 금지).\n- 밑줄 중 정확히 1개만 어법상 틀리게 만든다. 나머지는 정문 유지 또는 정문 변형.\n\n어법 단원 풀 (매 세트 서로 다른 5개 선택):\n1.관계사 2.분사·분사구문 3.동명사vs to부정사 4.주어-동사 수일치 5.시제·시제일치\n6.태(능동↔수동) 7.병렬구조 8.가정법 9.도치 10.접속사vs전치사vs관계사\n11.대명사일치·재귀대명사 12.형용사vs부사 13.비교구문 14.강조구문 15.명사절 16.사역·지각동사\n\n오답 설계 원칙:\n- 오답은 규칙을 알아야만 잡히는 함정이어야 한다(명백히 어색한 비문 금지).\n- 나머지 4개 밑줄도 그럴듯해서 헷갈릴 수 있는 정문으로 구성해 오답 매력도를 분산시킨다.\n\n===== 규칙 2: 내용정리 표 빈칸 서술형 =====\n\n빈칸 수: 3개\n빈칸 배치 원칙:\n- 표의 각 행(범주) ↔ 지문의 특정 구간이 1:1 대응되도록 표를 설계한다.\n- 빈칸 1개는 Category열(범주어 추론형), 2개는 Description열(직접 retrieval형)으로 구성한다.\n- 정답은 지문에 그대로(또는 1단어 이내 변형으로) 존재해야 한다.\n- 정답은 1~2 단어 명사(구)로만 한정한다.\n- 빈칸 위치는 지문 도입·중반·후반에 분산시킨다.\n\n===== 규칙 3: 출력 포맷 =====\n\n아래 섹션 라벨을 반드시 순서대로 사용하고, 마크다운 서식 금지.\n\nTRANSFORMED_PASSAGE:\n(밑줄 ⓐ~ⓔ 포함 변형 지문 전문)\n\nTRANSFORM_REPORT:\nTI: <숫자>%  (LEX:<>% / SYN:<>% / STR:<>%)\nCHANGES:\n- <문장번호> | <원문 해당 부분> → <변형 부분> | <변형유형> | ERROR:Y/N\n\nQ1_DIRECTION:\n윗글의 내용을 표와 같이 정리하고자 한다. 빈칸 (A)~(C)에 들어갈 알맞은 말을 각각 1~2 단어로 쓰시오.\nQ1_TABLE:\nCategory | Description\n[범주1] | [설명1]\n(A) | [설명2]\n[범주3] | (B)\n[범주4] | (C)\nQ1_ANSWER:\n(A): <정답>\n(B): <정답>\n(C): <정답>\nQ1_INTENT:\n(A): <지문근거문장>\n(B): <지문근거문장>\n(C): <지문근거문장>\n\nQ2_DIRECTION:\n윗글의 밑줄 친 ⓐ~ⓔ 중 어법상 틀린 것을 골라 기호와 틀린 부분을 적고, 틀린 부분만을 바르게 고쳐 쓰시오.\nQ2_UNDERLINE_MAP:\nⓐ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓑ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓒ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓓ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nⓔ: [밑줄 어구] | 단원:[단원명] | 정오:[정문/오답]\nQ2_ANSWER:\n<기호> / <틀린부분> / <고친것>\nQ2_EXPLANATION:\n<오답 이유 + 핵심 규칙 1~2줄>\n\n---\n\n다음 원문을 바탕으로 서술형 문제 세트를 생성하시오.\n\nORIGINAL_PASSAGE:\n"""\n{{원문을 여기에 붙여넣기}}\n"""\n\nPARAMETERS:\nTARGET_TI: 8~12\nNUM_UNDERLINE: 5\nNUM_BLANK: 3\nGRAMMAR_FOCUS: 분산\nANSWER_SLOT: auto\nDIFFICULTY: 중' },
 ];
 
 var DEFAULT_TYPES = [
@@ -105,6 +114,13 @@ var DEFAULT_TYPES = [
 
   { id:'summary', name:'요약문', direction:'다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?',
     prompt:'당신은 대한민국 수능 영어 요약문 완성 문항 출제자입니다.\n## 출제 매뉴얼\n- 지문 요약 문장 작성 및 (A), (B) 두 빈칸 생성\n- 정답을 포함한 5개 선지(①~⑤)를 생성\n## ★ 출력 절대 규칙\n1. 표(Table) 형태 사용 금지\n2. PASSAGE 및 SUMMARY에 한국어 해석 일체 금지\n## 출력 형식\nPASSAGE:\n[영어 지문]\nSUMMARY:\n[빈칸 (A), (B)가 포함된 요약 문장]\nDIRECTION:\n다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?\nCHOICES:\n① (A) ___ (B) ___\n② (A) ___ (B) ___\n③ (A) ___ (B) ___\n④ (A) ___ (B) ___\n⑤ (A) ___ (B) ___\nANSWER: [정답 번호]\nEXPLANATION:\n[정답]: [정답 번호]\n[정답인 이유 해설]: 요약문의 (A), (B) 빈칸에 해당 단어쌍이 들어가야 하는 핵심 근거를 간결하게 설명\n[선택지 해석]:\n① (A) [단어 뜻] / (B) [단어 뜻]\n② (A) [단어 뜻] / (B) [단어 뜻]\n③ (A) [단어 뜻] / (B) [단어 뜻]\n④ (A) [단어 뜻] / (B) [단어 뜻]\n⑤ (A) [단어 뜻] / (B) [단어 뜻]' },
+
+  { id:'order_match', name:'청덕2_순서+내용일치', direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'You are an expert Korean high school English exam question designer specializing in CSAT and internal school exam formats.\n\nTransform the given passage into a 2-question set: 순서배열 + 내용일치.\n\n## MODULE 1: PASSAGE TRANSFORMATION\n\nSTEP 1 — CONTENT EXPANSION\n- Expand the original passage by approximately 25~40%.\n- Add one cohesive paragraph introducing ONE of: (a) evolutionary/historical background, (b) contrasting case or statistical elaboration, (c) cause→effect mechanism supporting the main claim.\n- Match vocabulary tier to source passage. Include at least one participial phrase or embedded relative clause, and one cause-result connector (e.g., "due to", "likely because", "which is why").\n- Place the added paragraph so it creates an attractive but incorrect ordering temptation.\n\nSTEP 2 — SEGMENTATION\n- Label segments (A)(B)(C)(D). (A) = opening anchor (given, not reordered). (B)(C)(D) = to be reordered.\n- Each segment: 2~5 sentences. (A) must end with a stated assumption OR an open problem.\n\n## MODULE 2: 순서배열 DESIGN\n\nSTEP 3 — CONNECTOR DIVERSITY RULE\n- Across (A→B), (B→C), (C→D): use at least 2 different connector types.\n  TYPE 1: connective word (However / Furthermore / Therefore)\n  TYPE 2: referring expression (this, these, such + noun)\n  TYPE 3: topical/content chain (no explicit marker; concept progression)\n- At least one adjacent pair MUST use TYPE 3.\n\nSTEP 4 — DISTRACTORS: ensure at least one wrong option places the primary distractor segment first after (A).\n\n## MODULE 3: 내용일치 DESIGN\n\nSTEP 5 — OPTION CONSTRUCTION\n- 4 correct options (일치): use Paraphrase+abstraction / Synonym substitution / Structural inversion / Scope generalization — one type each, no repeats.\n- 1 incorrect option (불일치) = THE ANSWER: use one of NUMERICAL INVERSION / CAUSAL REVERSAL / SCOPE DISTORTION / DETAIL TRANSPLANT / NEGATION INSERTION.\n- Incorrect option: surface-plausible, length within ±20% of others, placed at ③ or ④.\n- Score: [3점] or [3.5점]\n\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식 금지, 순수 텍스트로만 출력\n4. BLOCK_A~BLOCK_D 내부에 한국어 절대 금지\n\n## 출력 형식\nBLOCK_A:\n(A)\n[segment A 영어 지문]\nBLOCK_B:\n(B)\n[segment B 영어 지문]\nBLOCK_C:\n(C)\n[segment C 영어 지문]\nBLOCK_D:\n(D)\n[segment D 영어 지문]\nORDER_DIRECTION:\n주어진 글 (A)에 이어질 내용을 순서에 맞게 배열한 것으로 가장 적절한 것은?\nORDER_CHOICES:\n① (B)-(C)-(D)\n② (B)-(D)-(C)\n③ (C)-(B)-(D)\n④ (C)-(D)-(B)\n⑤ (D)-(B)-(C)\nORDER_ANSWER: [정답 번호]\nMATCH_DIRECTION:\n윗글에 관한 내용으로 적절하지 않은 것은? [3점]\nMATCH_CHOICES:\n① [한글 선지]\n② [한글 선지]\n③ [한글 선지]\n④ [한글 선지]\n⑤ [한글 선지]\nMATCH_ANSWER: [정답 번호]\nEXPLANATION:\n[순서 정답]: [번호]\n[순서 해설]: A→B, B→C, C→D 연결 근거 (connector type 포함)\n[내용일치 정답]: [번호]\n[내용일치 해설]: 오답 선지가 지문 어느 부분과 다른지 설명\n[오답 전략]: [사용한 strategy 명]\n[오답 위치]: [③ or ④]\n[선지 해석]:\n① [해석]\n② [해석]\n③ [해석]\n④ [해석]\n⑤ [해석]' },
+  { id:'content_grammar', name:'청덕2_내용일치+어법', direction:'다음 글을 읽고, 물음에 답하시오.',
+    prompt:'# 메타프롬프트 v1 — 원문 변형 출제 (내용일치 + 어법 선택)\n\n너는 한국 수능·고교 내신 영어 변형 출제 전문가다. 주어진 영어 원문을 격식 있는 학술 산문으로 확장·재진술하여 변형 지문을 만들고, 그 위에 ① 내용일치 문제 1개 ② 어법 선택 문제 1개를 출제한다. 아래 출제 원리를 반드시 준수한다.\n\n## STEP 1. 지문 변형 (TRANSFORM)\n\n원문을 1.7~2.0배 길이로 확장한다. 세 가지 변형 유형을 모두 사용한다.\n\n(가) 격식화 패러프레이징 — 원문 문장은 유지하되 어휘·통사를 상향\n- 구어 접속사/부사 → 격식 연결어 (But → However, in reality / So → Consequently)\n- 구체·구어 어휘 → 추상·격식 어휘 (cheap → relatively inexpensive, a teenager → a single worker)\n- 단순 동사구 → 격식 동사구 (assume drops → reasonably expect to decrease substantially)\n- 전치사·관사 미세 교체 (to space → into space)\n\n(나) 내용 추가 — 원문에 없던 정보를 삽입 (전체 분량의 40~50%)\n- 도입 일반화 문장(topic sentence) 1개\n- 중간 설명 단락 1개 (원문 논점을 뒷받침하는 새 하위 논점 — 인과/메커니즘 설명)\n- 대조 연결 문장 1개 (In contrast, ~)\n- 결론 문장 1개 (When all these factors are taken into account, ~)\n- 세부 열거 1~2개 추가 (원문이 2개 나열했다면 3개로 확장)\n\n(다) 어휘 교체(재진술) — 핵심 명사 1~2개를 동의·상위어로 교체하고, 필요 시 주석(*) 단어도 함께 교체\n\n[중요] 어법 출제 지점 사전 확보: 변형 시 어법 빈칸 3개 중 최소 2개를 "추가된 문장(나)" 안에 자연스럽게 배치할 수 있도록 문장을 설계한다.\n\n## STEP 2. 내용일치 문제 (CONTENT-MATCH)\n\n선지 5개. 정답 1 + 오답 4.\n\n정답 선지 구성원리\n- 근거 문장은 가급적 STEP 1에서 추가/일반화한 문장에서 가져온다 (원문에 직접 없던 일반화).\n- 본문 평서문을 추상명사·격식 어휘로 패러프레이즈 (easy to maintain → impose relatively limited maintenance burdens / on Earth → terrestrial environments).\n- 본문 표현을 그대로 베끼지 말 것.\n\n오답 4개 구성원리 — 아래 4유형을 1개씩 사용\n1. 정반대 진술(역): 본문 명제의 방향을 뒤집음 + 그럴듯한 위장 어휘(in the foreseeable future 등) 부착\n2. 결론 반대: 본문 최종 결론과 모순\n3. 인과 왜곡: 본문이 양보절(even if)로 처리한 내용을 긍정 인과/가속으로 뒤집음 → 가장 매력적인 오답으로 배치 (본문에 실제 등장한 키워드 사용)\n4. 주체/대상 왜곡: 행위 주체나 장소를 뒤바꿈. 혼동 유발 어휘 사용\n\n선지 형식 통제 (단서 노출 방지)\n- 5개 선지 모두 15~22단어, 길이 편차 최소화\n- 모두 동일 통사 구조 (주어 + 동사 + 추상 보어)\n- 추상명사·격식 어휘 균일 사용\n- 정답이 어휘·길이로 튀지 않게 오답과 동일 레지스터 유지\n\n## STEP 3. 어법 선택 문제 (GRAMMAR-CHOICE)\n\n빈칸 3개 (A)(B)(C). 각 빈칸에 [정답 / 오답] 두 선택지 제시.\n\n[핵심] 단원이 아니라 "수준"을 고정한다.\n세 빈칸 모두 어휘 의미가 아닌 "문장 구조 파악"으로 푸는 中~中상 난이도 어법이어야 한다. 아래 풀에서 서로 다른 3개 논리를 선택 (매번 동일 조합 금지).\n\n판단 논리 풀 (모두 구조 파악형):\n- 관계사: 관계부사 vs 관계대명사 (where/which) — 뒤 절의 완전성 + 선행사\n- 관계대명사 vs 접속사: that/what, that/which\n- 분사 vs 정동사 (using/use) — 이미 완전한 절 → 새 정동사 불가\n- 형용사 vs 부사 (inevitable/inevitably) — 수식 대상 식별, 인접 명사 함정\n- 주어-동사 수일치 (results/result) — 멀리 떨어진 진짜 주어 식별\n- 병렬구조 (converted/converting)\n- 태: 능동 vs 수동 (exposed/exposing)\n- to부정사 vs 동명사\n- 대명사 수일치\n\n난이도 보정 규칙\n- 정답과 오답 형태가 시각적으로 유사해야 함 (inevitable/inevitably, use/using)\n- 각 빈칸 옆에 함정 요소 1개 배치\n- 3개 중 1개는 中, 2개는 中상 난이도로 구성\n\n오답 선지 5지선다 조합 구성 (수능형)\n- (A)(B)(C) 정답 조합 외에 4개 오답 조합을 만들되, 각 오답 조합이 빈칸 중 1~2개만 틀리도록 분산 (한 빈칸만으로 정답이 결정되지 않게)\n\n## ★ 출력 절대 규칙\n1. 아래 섹션 라벨을 반드시 순서대로 사용할 것\n2. 표(Table) 사용 금지\n3. 마크다운 서식 금지, 순수 텍스트로만 출력\n4. TRANSFORMED_PASSAGE 내부 어법 빈칸은 (A) [정답/오답] 형식으로 표기\n\n## 출력 형식\nTRANSFORMED_PASSAGE:\n[변형된 지문. 어법 빈칸은 (A) [정답/오답] 형식으로 표기]\n* [주석 단어: 뜻]\nTRANSFORM_REPORT:\n- 격식화: [원문구] → [변형구] (변형수준)\n- 내용추가: [추가 문장/단락 요약]\n- 어휘교체: [원문어휘] → [변형어휘]\n- 어법지점배치: (A)=[추가문장/패러프레이즈문장], (B)=..., (C)=...\nCONTENT_MATCH_DIRECTION:\n윗글의 내용과 일치하는 것은?\nCONTENT_MATCH_CHOICES:\n① [오답: 유형=정반대]\n② [오답: 유형=결론반대]\n③ [오답: 유형=인과왜곡]\n④ [오답: 유형=주체왜곡]\n⑤ [정답]\nCONTENT_MATCH_ANSWER: [번호]\nGRAMMAR_DIRECTION:\n윗글의 각 괄호 안에서 어법상 맞는 것을 짝지은 것은?\nGRAMMAR_CHOICES:\n① (A) [선택지] (B) [선택지] (C) [선택지]\n② (A) [선택지] (B) [선택지] (C) [선택지]\n③ (A) [선택지] (B) [선택지] (C) [선택지]\n④ (A) [선택지] (B) [선택지] (C) [선택지]\n⑤ (A) [선택지] (B) [선택지] (C) [선택지]\nGRAMMAR_ANSWER: [번호]\nEXPLANATION:\n[내용일치 정답]: [번호]\n[정답근거]: "[본문 근거 문장]" → 패러프레이즈 설명\n[오답해설]: ①~④ 각 1줄 (어느 본문 명제를 어떻게 비틀었는지)\n[어법 정답]: [번호]\n[판단논리]: (A)=[논리명: 1줄 근거] / (B)=... / (C)=...\n[난이도]: (A)=中상 (B)=中 (C)=中상\n[함정요소]: (A)=... (B)=... (C)=...' },
+  { id:'connector', name:'연결사 빈칸', direction:'다음 글의 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은? [3점]',
+    prompt:'# 수능 영어 연결사 빈칸 문제 생성기 (메타프롬프트)\n\n## 역할\n너는 수능 영어 출제 전문가다. 주어진 영어 지문을 분석하여 수능 스타일의 연결사 빈칸 문제 [(A), (B) 유형]를 생성한다.\n\n---\n\n## 입력\n- 영어 지문 1개 (원문)\n\n---\n\n## STEP 1: 지문 변형 (목표 변형률: 40~55%)\n\n아래 변형 기법을 혼합하여 원문 대비 40~55% 수준으로 지문을 변형한다.\n\n### 변형 기법 목록\n1. **어휘 교체**: 동의어/유의어로 대체 (고2~3 수준 어휘 유지)\n2. **문장 구조 변경**: 능동↔수동, 긍정↔부정 표현 전환\n3. **문장 압축**: 2~3문장을 1문장으로 통합\n4. **문장 삭제**: 유머, 비유, 부연 설명 중 핵심 논리와 직결되지 않는 부분 제거\n5. **부연 추가**: 기존 문장에 분사구문/관계절로 설명 덧붙이기\n6. **연결사 빈칸 삽입**: 논리 전환점 2곳을 선정하여 연결사를 제거하고 (A), (B) 빈칸으로 교체\n\n---\n\n## STEP 2: 빈칸 위치 선정 원리\n\n### (A) 선정 기준\n- 앞 문장과 뒤 문장 사이에 **명확한 논리 전환**이 발생하는 지점\n- 가능한 논리 관계 유형:\n  - 대조 (contrast): 앞 내용과 반대되는 내용이 이어질 때\n  - 예시 도입 (exemplification): 앞의 주장을 구체화하는 예시가 이어질 때\n  - 부연/강조 (elaboration): 앞 내용을 더 구체적으로 설명할 때\n\n### (B) 선정 기준\n- 앞에서 제시된 **원리/이론**이 **실천적 결론이나 적용**으로 이어지는 지점\n- 가능한 논리 관계 유형:\n  - 결과/따라서 (result/conclusion): 앞 내용의 논리적 귀결\n  - 요약 (summary): 앞 내용을 정리하며 다음 행동을 도출\n  - 추가 (addition): 앞 내용에 보완적 정보가 이어질 때\n\n---\n\n## STEP 3: 연결사 선택 원칙\n\n### 핵심 원칙\n- 해당 기출 문제에 사용된 특정 연결사를 재사용하지 말 것\n- 고2~3 수준에서 사용 가능한 연결사 풀에서 **지문의 논리 관계에 맞는** 연결사를 유연하게 선택\n\n### 연결사 풀 (논리 관계별)\n대조: In contrast, By contrast, On the other hand, However, Conversely\n예시: For example, For instance, To illustrate\n결과/따라서: Therefore, Thus, Accordingly, As a result, Consequently\n요약: In short, In brief, In other words, To sum up\n추가: Furthermore, Moreover, In addition, Besides\n부연/강조: Indeed, In fact, Notably, That is\n역접: Nevertheless, Nonetheless, Even so, Yet\n\n### 오답 선지 구성 원칙\n- 정답 연결사와 **논리 관계가 다른** 연결사 조합 4개 구성\n- 각 오답은 (A) 또는 (B) 중 하나만 정답이거나, 둘 다 오답인 조합\n- 오답의 난이도 분포:\n  - 매력적 오답 2개: (A) 또는 (B) 하나가 그럴듯하게 맞아 보이는 조합\n  - 명백한 오답 2개: 논리 관계가 명확히 틀린 조합\n\n### 정답 번호 배치 규칙\n- 정답 번호는 ①~⑤ 중 매번 다른 번호를 랜덤하게 설정할 것\n\n---\n\n## ★ 출력 절대 규칙\n1. 아래 출력 형식 외 내용 불가. PASSAGE에 한국어 절대 금지\n2. 표(Table) 사용 금지\n\n## 출력 형식\nPASSAGE:\n[변형된 지문. (A), (B) 빈칸 포함]\nDIRECTION:\n다음 글의 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은? [3점]\nCHOICES:\n① (A) ___ (B) ___\n② (A) ___ (B) ___\n③ (A) ___ (B) ___\n④ (A) ___ (B) ___\n⑤ (A) ___ (B) ___\nANSWER: [①~⑤ 중 정답 번호]\nEXPLANATION:\n[정답]: [정답 번호]\n[정답인 이유 해설]: (A), (B) 각 빈칸에 해당 연결사가 들어가야 하는 논리적 근거를 간결하게 설명\n[선택지 해석]:\n① (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n② (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n③ (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n④ (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]\n⑤ (A) [연결사] - [논리 관계] / (B) [연결사] - [논리 관계]' },
 
 ];
 
@@ -799,6 +815,46 @@ function switchTab(name) {
   }
 }
 
+// ─── 학교 prefix 기반 객관식 유형 필터링 ───
+// 학교 코드 목록(향후 학교 추가 시 여기에만 추가)
+var SCHOOL_PREFIXES = ['동백', '백현', '청덕', '성지'];
+
+// activeCategory("동백고1","청덕고" 등)에서 학교명만 추출. 개인/기본설정이면 ''.
+function getSchoolFromCategory(cat) {
+  if (!cat || cat === '개인설정' || cat === '기본설정') return '';
+  for (var i = 0; i < SCHOOL_PREFIXES.length; i++) {
+    if (cat.indexOf(SCHOOL_PREFIXES[i]) === 0) return SCHOOL_PREFIXES[i];
+  }
+  return '';
+}
+
+// 유형명("청덕2_순서+내용일치")에서 학교 prefix 추출. 없으면 ''.
+function getTypeSchoolPrefix(name) {
+  if (!name) return '';
+  for (var i = 0; i < SCHOOL_PREFIXES.length; i++) {
+    var sp = SCHOOL_PREFIXES[i];
+    // "학교명" 또는 "학교명+숫자" 뒤에 "_" 가 오면 prefix로 인식
+    var re = new RegExp('^' + sp + '\\d*_');
+    if (re.test(name)) return sp;
+  }
+  return '';
+}
+
+// 유형 1개가 현재 카테고리에서 표시 가능한지 판정.
+function isTypeVisibleForCategory(type, cat) {
+  var pfx = getTypeSchoolPrefix(type && type.name);
+  if (!pfx) return true;                 // 기본 유형: 항상 표시
+  var sch = getSchoolFromCategory(cat);
+  if (!sch) return false;                // 개인/기본 설정: prefix 유형 숨김
+  return pfx === sch;                    // 학교 일치 시만 표시
+}
+
+// 배열 단위 필터 (객관식 유형용; 서술형은 적용 안 함)
+function filterObjTypesByCategory(types) {
+  if (!Array.isArray(types)) return types;
+  return types.filter(function(t){ return isTypeVisibleForCategory(t, activeCategory); });
+}
+
 // ─── ACTIVE CATEGORY (for generation) ───
 function getActiveQTypes() {
   if (SCHOOL_NAMES.indexOf(activeCategory) >= 0 && schoolPresets[activeCategory] && schoolPresets[activeCategory].length) {
@@ -872,18 +928,42 @@ function renderSeoTypeEditor() {
   if (!el) return;
   var master = isMaster();
   el.innerHTML = editingSeoTypes.map(function(t, i) {
-    var checkbox = master
+    var doneChk = master
       ? '<input type="checkbox"' + (t.done ? ' checked' : '') +
           ' onclick="event.stopPropagation();toggleSeoDone(' + i + ')"' +
           ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--gr);" title="프롬프트 완료 표시">'
       : '';
+    var selChk = '<input type="checkbox"' + (seoSelected.indexOf(t.id) >= 0 ? ' checked' : '') +
+        ' onclick="event.stopPropagation();onSeoTypeEditorSelect(this)"' +
+        ' value="' + t.id + '"' +
+        ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--bl);" title="서술형 유형 선택">';
     var clickHandler = master ? 'onclick="selectSeoType(' + i + ')"' : '';
     var cursorStyle  = master ? '' : 'cursor:default;';
     return '<div class="ti' + (i===seoSelIdx&&master?' active':'') + '" ' + clickHandler + ' style="display:flex;align-items:center;gap:6px;' + cursorStyle + '">' +
-      checkbox +
+      doneChk + selChk +
       '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
       '<span class="tname">' + t.name + (t.done ? ' ✓' : '') + '</span></div>';
   }).join('');
+}
+
+function onSeoTypeEditorSelect(el) {
+  if (el.checked) {
+    if (seoSelected.indexOf(el.value) < 0) {
+      seoSelected.push(el.value);
+      seoCount = seoSelected.length;
+      var cntEl = document.getElementById('seoCount');
+      if (cntEl) cntEl.textContent = seoCount;
+    }
+  } else {
+    seoSelected = seoSelected.filter(function(s){ return s !== el.value; });
+    seoCount = Math.max(1, seoSelected.length);
+    var cntEl = document.getElementById('seoCount');
+    if (cntEl) cntEl.textContent = seoCount;
+  }
+  persist();
+  renderSeoTypeRows();
+  var isRand = document.getElementById('randomToggle') && document.getElementById('randomToggle').checked;
+  if (!isRand) renderManualCount();
 }
 
 var seoSelIdx = 0;
@@ -896,6 +976,7 @@ function toggleSeoDone(i) {
   }
   saveGlobalSeoTypes();
   renderSeoTypeEditor();
+  renderPassageList();
 }
 
 function selectSeoType(i) {
@@ -945,6 +1026,12 @@ function switchSettingsCat(cat) {
 function renderSettingsCategoryTabs() {
   var el = document.getElementById('settingsCatTabs');
   if (!el) return;
+  // 비master: 카테고리 드롭다운 숨김, 개인설정으로 고정
+  if (!isMaster()) {
+    el.innerHTML = '';
+    if (settingsCat !== '개인설정') { settingsCat = '개인설정'; }
+    return;
+  }
   var schoolOpts = SCHOOL_NAMES.map(function(cat) {
     return '<option value="' + cat + '"' + (cat === settingsCat ? ' selected' : '') + '>🏫 ' + getSchoolLabel(cat) + '</option>';
   }).join('');
@@ -982,6 +1069,9 @@ function renderSettingsEditorVisibility() {
     var saveBtn2 = document.querySelector('#settingsEditorArea .gbtn');
     if (saveBtn2) saveBtn2.style.display = '';
   }
+  // 전체 학교 적용 버튼: master 전용
+  var allSchoolBtn = document.getElementById('applyAllSchoolsBtn');
+  if (allSchoolBtn) allSchoolBtn.style.display = isMaster() ? '' : 'none';
 }
 
 // ─── API KEY ───
@@ -1088,6 +1178,47 @@ function saveCurrentType() {
   renderTypeList();
   renderQuotaRows();
   alert('저장되었습니다.' + (_curRefs.length ? '\n레퍼런스 파일 ' + _curRefs.length + '개도 함께 저장됩니다.' : ''));
+}
+
+function saveTypeToAllSchools() {
+  if (!isMaster()) { alert('관리자만 사용할 수 있습니다.'); return; }
+
+  var typeId   = editingQTypes[selIdx].id;
+  var newName  = document.getElementById('editName').value;
+  var newDir   = document.getElementById('editDirection').value;
+  var newProm  = document.getElementById('editPrompt').value;
+  var newRefs  = _curRefs.length ? _curRefs : [];
+  var kichulEl = document.getElementById('editKichul');
+  var newKichul = kichulEl ? kichulEl.checked : false;
+
+  var targets = SCHOOL_NAMES.join(', ');
+  if (!confirm('[' + (newName || typeId) + '] 항목의 프롬프트를 모든 학교 설정에 적용합니다.\n\n대상: ' + targets + '\n\n계속하시겠습니까?')) return;
+
+  SCHOOL_NAMES.forEach(function(school) {
+    // 학교 프리셋이 없으면 DEFAULT_TYPES 기반으로 초기화
+    if (!schoolPresets[school] || !schoolPresets[school].length) {
+      schoolPresets[school] = JSON.parse(JSON.stringify(DEFAULT_TYPES));
+    }
+    var found = false;
+    schoolPresets[school].forEach(function(t) {
+      if (t.id === typeId) {
+        t.name       = newName;
+        t.direction  = newDir;
+        t.prompt     = newProm;
+        t.references = newRefs;
+        t.reference  = '';
+        t.kichul     = newKichul;
+        found = true;
+      }
+    });
+    // 해당 id가 없으면 추가
+    if (!found) {
+      schoolPresets[school].push({ id: typeId, name: newName, direction: newDir, prompt: newProm, references: newRefs, reference: '', kichul: newKichul });
+    }
+  });
+
+  saveSchoolPresets();
+  alert('[' + (newName || typeId) + '] 항목이 모든 학교(' + SCHOOL_NAMES.length + '개)에 적용·저장되었습니다.');
 }
 
 // ─── MASTER ADMIN ───
@@ -1232,7 +1363,7 @@ function renderPassageList() {
     return;
   }
   var isRand = document.getElementById('randomToggle').checked;
-  var objTypes = getActiveQTypes();
+  var objTypes = filterObjTypesByCategory(getActiveQTypes());
   var seoTypes = getActiveSeoTypes();
   el.innerHTML = passages.map(function(p, i) {
     var selArea = '';
@@ -1242,9 +1373,8 @@ function renderPassageList() {
           return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
-        seoTypes.map(function(t) {
-          var label = t.name + (t.done ? ' (완료)' : '');
-          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + label + '</option>';
+        seoTypes.filter(function(t) { return seoSelected.indexOf(t.id) >= 0; }).map(function(t) {
+          return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       var objActive = p.typeId && p.typeId !== 'unselected';
       var seoActive = p.seoTypeId && p.seoTypeId !== 'unselected';
@@ -1296,7 +1426,7 @@ function setPassageSeoType(i, seoTypeId) {
 }
 
 function renderQuotaRows() {
-  var aqt = getActiveQTypes();
+  var aqt = filterObjTypesByCategory(getActiveQTypes());
   document.getElementById('quotaRows').innerHTML = aqt.filter(function(t){
     return !t.id.startsWith('seo');
   }).map(function(t, i) {
@@ -1329,7 +1459,7 @@ function chgQ(id, d) {
 }
 
 function renderManualCount() {
-  var aqt = getActiveQTypes();
+  var aqt = filterObjTypesByCategory(getActiveQTypes());
   var seoTypes = getActiveSeoTypes();
 
   // 객관식 카운트
@@ -1443,6 +1573,10 @@ function onSeoCheck(el) {
     document.getElementById('seoCount').textContent = seoCount;
   }
   persist();
+  // 프롬프트 설정 탭의 서술형 유형 목록도 실시간 동기화
+  renderSeoTypeEditor();
+  // 시험지 구성 사이드바 서술형 드롭다운 실시간 동기화
+  renderPsgCards();
   var isRand = document.getElementById('randomToggle').checked;
   if (!isRand) renderManualCount();
 }
@@ -1721,7 +1855,7 @@ function stripLeadingProse(raw) {
   return raw;
 }
 
-var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2'];
+var SEC_LABELS = ['PASSAGE','INTRO','BLOCK_A','BLOCK_B','BLOCK_C','GIVEN_SENTENCE','SUMMARY','DIRECTION','QUESTION','CHOICES','ANSWER','EXPLANATION','MODEL_ANSWER','CONDITIONS','WORD_BANK','TARGETS','UNDERLINE','DIRECTION_TOPIC','CONDITIONS_TOPIC','MODEL_ANSWER_TOPIC','DIRECTION_Q1','CONDITIONS_Q1','MODEL_ANSWER_Q1','DIRECTION_Q2','CONDITIONS_Q2','MODEL_ANSWER_Q2','PASSAGE_A','PASSAGE_B','DIRECTION_1','DIRECTION_2','MODEL_ANSWER_A','MODEL_ANSWER_B','MODEL_ANSWER_1','MODEL_ANSWER_2','TRANSFORMED_PASSAGE','TRANSFORM_REPORT','Q1_DIRECTION','Q1_TABLE','Q1_ANSWER','Q1_INTENT','Q2_DIRECTION','Q2_UNDERLINE_MAP','Q2_ANSWER','Q2_EXPLANATION','Q2_DISTRACTOR','BLOCK_D','ORDER_DIRECTION','ORDER_CHOICES','ORDER_ANSWER','MATCH_DIRECTION','MATCH_CHOICES','MATCH_ANSWER','CONTENT_MATCH_DIRECTION','CONTENT_MATCH_CHOICES','CONTENT_MATCH_ANSWER','GRAMMAR_DIRECTION','GRAMMAR_CHOICES','GRAMMAR_ANSWER'];
 
 // Gemini 등이 라벨에 마크다운(**굵게**, ## 머리글, - 목록)을 붙이거나 콜론을 빠뜨려도
 // 파싱되도록, 알려진 섹션 라벨 줄을 표준형 "LABEL:" 으로 정규화한다.
@@ -1856,6 +1990,72 @@ function toSections(num, type, raw, passageTitle) {
     if (bC) { q.push(bC); q.push(''); }
     choices.forEach(function(c){ q.push(c); }); q.push('');
 
+  } else if (type.id === 'order_match') {
+    // 청덕2_순서+내용일치: (A)(B)(C)(D) 4단락 + 순서 문제 + 내용일치 문제
+    var omA = extractSec(raw, 'BLOCK_A') || bA || '';
+    var omB = extractSec(raw, 'BLOCK_B') || bB || '';
+    var omC = extractSec(raw, 'BLOCK_C') || bC || '';
+    var omD = extractSec(raw, 'BLOCK_D') || '';
+    var omOrdDir   = extractSec(raw, 'ORDER_DIRECTION') || '주어진 글 (A)에 이어질 내용을 순서에 맞게 배열한 것으로 가장 적절한 것은?';
+    var omOrdRaw   = extractSec(raw, 'ORDER_CHOICES') || '';
+    var omOrdChoices = omOrdRaw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+    var omOrdAns   = extractSec(raw, 'ORDER_ANSWER') || '';
+    var omMatDir   = extractSec(raw, 'MATCH_DIRECTION') || '윗글에 관한 내용으로 적절하지 않은 것은?';
+    var omMatRaw   = extractSec(raw, 'MATCH_CHOICES') || '';
+    var omMatChoices = omMatRaw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+    var omMatAns   = extractSec(raw, 'MATCH_ANSWER') || '';
+
+    // 공통 지시문 + 4단락
+    q.push('다음 글을 읽고, 물음에 답하시오.'); q.push('');
+    if (omA) { q.push(omA); q.push(''); }
+    if (omB) { q.push(omB); q.push(''); }
+    if (omC) { q.push(omC); q.push(''); }
+    if (omD) { q.push(omD); q.push(''); }
+
+    // 순서 문제
+    q.push(omOrdDir); q.push('');
+    if (omOrdChoices.length) { omOrdChoices.forEach(function(c){ q.push(c); }); }
+    else { q.push('① (B)-(C)-(D)'); q.push('② (B)-(D)-(C)'); q.push('③ (C)-(B)-(D)'); q.push('④ (C)-(D)-(B)'); q.push('⑤ (D)-(B)-(C)'); }
+    q.push('');
+
+    // 내용일치 문제
+    q.push(omMatDir); q.push('');
+    omMatChoices.forEach(function(c){ q.push(c); }); q.push('');
+
+    // 교사용 정답 키
+    if (omOrdAns || omMatAns) {
+      modelAns = (omOrdAns ? '순서: ' + omOrdAns + '\n' : '') + (omMatAns ? '내용일치: ' + omMatAns : '');
+    }
+
+  } else if (type.id === 'content_grammar') {
+    // 청덕2_내용일치+어법: 변형 지문 + 내용일치 문제 + 어법 선택 문제
+    var cgPassage  = extractSec(raw, 'TRANSFORMED_PASSAGE') || passage || '';
+    var cgCmDir    = extractSec(raw, 'CONTENT_MATCH_DIRECTION') || '윗글의 내용과 일치하는 것은?';
+    var cgCmRaw    = extractSec(raw, 'CONTENT_MATCH_CHOICES') || '';
+    var cgCmChoices = cgCmRaw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+    var cgCmAns    = extractSec(raw, 'CONTENT_MATCH_ANSWER') || '';
+    var cgGrDir    = extractSec(raw, 'GRAMMAR_DIRECTION') || '윗글의 각 괄호 안에서 어법상 맞는 것을 짝지은 것은?';
+    var cgGrRaw    = extractSec(raw, 'GRAMMAR_CHOICES') || '';
+    var cgGrChoices = cgGrRaw.split('\n').filter(function(l){ return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+    var cgGrAns    = extractSec(raw, 'GRAMMAR_ANSWER') || '';
+
+    // 공통 지시문 + 변형 지문
+    q.push('다음 글을 읽고, 물음에 답하시오.'); q.push('');
+    if (cgPassage) { q.push(cgPassage); q.push(''); }
+
+    // 내용일치 문제
+    q.push(cgCmDir); q.push('');
+    cgCmChoices.forEach(function(c){ q.push(c); }); q.push('');
+
+    // 어법 선택 문제
+    q.push(cgGrDir); q.push('');
+    cgGrChoices.forEach(function(c){ q.push(c); }); q.push('');
+
+    // 교사용 정답 키
+    if (cgCmAns || cgGrAns) {
+      modelAns = (cgCmAns ? '내용일치: ' + cgCmAns + '\n' : '') + (cgGrAns ? '어법: ' + cgGrAns : '');
+    }
+
   } else if (type.id === 'insert') {
     q.push(direction); q.push('');
     if (given)   { q.push('주어진 문장: ' + given); q.push(''); }
@@ -1883,6 +2083,16 @@ function toSections(num, type, raw, passageTitle) {
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
       if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
+
+    } else if (seoRender === 'summary4') {
+      if (passage) { q.push(passage); q.push(''); }
+      q.push(dirClean2); q.push('');
+      if (sumClean2) { q.push(sumClean2); q.push(''); }
+      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      q.push('(A) : ____________________');
+      q.push('(B) : ____________________');
+      q.push('(C) : ____________________');
+      q.push('(D) : ____________________'); q.push('');
 
     } else if (seoRender === 'summary3') {
       if (passage) { q.push(passage); q.push(''); }
@@ -1982,6 +2192,14 @@ function toSections(num, type, raw, passageTitle) {
         modelAns = (kcaMa1 ? '(1)\n' + kcaMa1 + '\n' : '') + (kcaMa2 ? '(2) ' + kcaMa2 : '');
       }
 
+    } else if (seoRender === 'tb_blank_write_bh') {
+      // 교과서 빈칸 영작_BH: 지문 + 지시문 + 보기 + 조건 + 답란 1개
+      if (passage) { q.push(passage); q.push(''); }
+      q.push(dirClean2); q.push('');
+      if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
+      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      q.push('_____________________________________________________________________.'); q.push('');
+
     } else if (seoRender === 'tb_blank_content') {
       var tbDirA   = extractSec(raw, 'DIRECTION_A')  || '';
       var tbBank   = extractSec(raw, 'WORD_BANK')    || wordBankBlock || '';
@@ -2022,6 +2240,41 @@ function toSections(num, type, raw, passageTitle) {
       // 정답 (교사용 키)
       if (tbMaA || tbMaB) {
         modelAns = (tbMaA ? '(1) ' + tbMaA + '\n' : '') + (tbMaB ? '(2)\n' + tbMaB : '');
+      }
+
+    } else if (seoRender === 'content_blank_grammar_bh') {
+      // 내용빈칸 + 어법_BH2: TRANSFORMED_PASSAGE + Q1(표 빈칸) + Q2(어법)
+      var cbgPassage = extractSec(raw, 'TRANSFORMED_PASSAGE') || passage || '';
+      var cbgDirQ1   = extractSec(raw, 'Q1_DIRECTION') || '';
+      var cbgTable   = extractSec(raw, 'Q1_TABLE')     || '';
+      var cbgAnsQ1   = extractSec(raw, 'Q1_ANSWER')    || '';
+      var cbgDirQ2   = extractSec(raw, 'Q2_DIRECTION') || '';
+      var cbgAnsQ2   = extractSec(raw, 'Q2_ANSWER')    || '';
+
+      // 지문
+      if (cbgPassage) { q.push(cbgPassage); q.push(''); }
+
+      // (1) 내용 표 빈칸
+      var cbgDirQ1Clean = cleanSeoInstruction(cbgDirQ1) || '윗글의 내용을 표와 같이 정리하고자 한다. 빈칸 (A)~(C)에 들어갈 알맞은 말을 각각 1~2 단어로 쓰시오.';
+      q.push('(1) ' + cbgDirQ1Clean); q.push('');
+      if (cbgTable) {
+        // 파이프 구분 테이블 → 텍스트 변환
+        var tblLines = cbgTable.split('\n').filter(function(l){ return l.trim(); });
+        tblLines.forEach(function(l){ q.push(l.trim()); });
+        q.push('');
+      }
+      q.push('(A): ____________________');
+      q.push('(B): ____________________');
+      q.push('(C): ____________________'); q.push('');
+
+      // (2) 어법 서술형
+      var cbgDirQ2Clean = cleanSeoInstruction(cbgDirQ2) || '윗글의 밑줄 친 ⓐ~ⓔ 중 어법상 틀린 것을 골라 기호와 틀린 부분을 적고, 틀린 부분만을 바르게 고쳐 쓰시오.';
+      q.push('(2) ' + cbgDirQ2Clean); q.push('');
+      q.push('틀린 기호: ______  틀린 부분: _______________  →  바른 표현: _______________'); q.push('');
+
+      // 정답 (교사용 키)
+      if (cbgAnsQ1 || cbgAnsQ2) {
+        modelAns = (cbgAnsQ1 ? '(1)\n' + cbgAnsQ1 + '\n' : '') + (cbgAnsQ2 ? '(2) ' + cbgAnsQ2 : '');
       }
 
     } else if (seoRender === 'topic_plus' || type.id === 'seo_topic_plus_content2') {
@@ -2334,6 +2587,7 @@ async function startGeneration() {
 
   if (!assignment.length) { alert('생성할 문항이 없습니다. 문항 수를 설정해주세요.'); return; }
 
+  logUsage(assignment);
   switchTab('output');
   document.getElementById('pbWrap').style.display    = 'block';
   document.getElementById('pbWrap').classList.add('pulse-glow');
@@ -3097,6 +3351,91 @@ function fbPullData(silent) {
       setSyncStatus('syncok', '☁ ' + uid);
     })
     .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); console.error(e); });
+}
+
+// ─── 사용량 로그 ───
+function logUsage(assignment) {
+  if (!fbDb || !fbUserId()) return;
+  var typeCounts = {};
+  assignment.forEach(function(item) {
+    typeCounts[item.typeId] = (typeCounts[item.typeId] || 0) + 1;
+  });
+  fbDb.collection('usage_logs').add({
+    uid: fbUserId(),
+    ts: new Date().toISOString(),
+    total: assignment.length,
+    types: typeCounts,
+    isRandom: !!(document.getElementById('randomToggle') && document.getElementById('randomToggle').checked)
+  }).catch(function(e){ console.warn('usage log failed', e); });
+}
+
+function loadUsageStats() {
+  if (!isMaster() || !fbDb) return;
+  var el = document.getElementById('usageStatsContent');
+  if (el) el.textContent = '로딩 중...';
+  fbDb.collection('usage_logs').orderBy('ts', 'desc').limit(500).get()
+    .then(function(snap) {
+      var logs = [];
+      snap.forEach(function(d) { logs.push(d.data()); });
+      renderUsageStats(logs);
+    })
+    .catch(function(e) {
+      if (el) el.textContent = '오류: ' + e.message;
+    });
+}
+
+function renderUsageStats(logs) {
+  var el = document.getElementById('usageStatsContent');
+  if (!el) return;
+
+  // 모든 유형 이름 맵 (객관식 + 서술형)
+  var typeNameMap = {};
+  DEFAULT_TYPES.forEach(function(t){ typeNameMap[t.id] = t.name; });
+  getActiveSeoTypes().forEach(function(t){ typeNameMap[t.id] = t.name; });
+
+  // uid별 집계
+  var byUid = {};
+  logs.forEach(function(log) {
+    if (!log.uid) return;
+    if (!byUid[log.uid]) byUid[log.uid] = { sessions:0, total:0, types:{}, lastTs:'' };
+    var u = byUid[log.uid];
+    u.sessions++;
+    u.total += (log.total || 0);
+    if (log.ts > u.lastTs) u.lastTs = log.ts;
+    Object.keys(log.types || {}).forEach(function(tid) {
+      u.types[tid] = (u.types[tid] || 0) + log.types[tid];
+    });
+  });
+
+  if (!Object.keys(byUid).length) {
+    el.innerHTML = '<div style="color:var(--ink3);padding:16px 0;">아직 생성 기록이 없습니다.</div>';
+    return;
+  }
+
+  // 최신 활동 순 정렬
+  var uids = Object.keys(byUid).sort(function(a,b){ return byUid[b].lastTs.localeCompare(byUid[a].lastTs); });
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:8px;">';
+  uids.forEach(function(uid) {
+    var u = byUid[uid];
+    // 상위 3 유형
+    var topTypes = Object.keys(u.types).sort(function(a,b){ return u.types[b]-u.types[a]; }).slice(0,3);
+    var topHtml = topTypes.map(function(tid) {
+      return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bls);border:1px solid #a0b8e0;border-radius:99px;padding:2px 9px;font-size:11px;color:var(--bl);font-weight:600;">' +
+        (typeNameMap[tid] || tid) + ' <span style="color:var(--ink3);font-weight:400;">×' + u.types[tid] + '</span></span>';
+    }).join(' ');
+    var lastDate = u.lastTs ? u.lastTs.slice(0,10) : '-';
+    html += '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+        '<span style="font-weight:700;font-size:14px;color:var(--ink);">👤 ' + uid + '</span>' +
+        '<span style="font-size:11px;color:var(--ink3);">마지막: ' + lastDate + '</span>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--ink3);margin-bottom:8px;">생성 세션 <strong style="color:var(--ink);">' + u.sessions + '회</strong> · 총 <strong style="color:var(--ink);">' + u.total + '문항</strong></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;">' + (topHtml || '<span style="font-size:11px;color:var(--ink3);">유형 정보 없음</span>') + '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // 데이터 변경 후 즉시 저장
