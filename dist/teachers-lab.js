@@ -946,26 +946,24 @@ function renderSeoTypeEditor() {
   if (!el) return;
   var master = isMaster();
   el.innerHTML = editingSeoTypes.map(function(t, i) {
-    var doneChk = master
-      ? '<input type="checkbox"' + (t.done ? ' checked' : '') +
-          ' onclick="event.stopPropagation();toggleSeoDone(' + i + ')"' +
-          ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--gr);" title="프롬프트 완료 표시">'
-      : '';
-    var selChk = '<input type="checkbox"' + (seoSelected.indexOf(t.id) >= 0 ? ' checked' : '') +
-        ' onclick="event.stopPropagation();onSeoTypeEditorSelect(this)"' +
+    var isSelected = seoSelected.indexOf(t.id) >= 0;
+    // 체크박스 하나로 통합: seoSelected 포함 여부 표시 (마스터면 done도 연동)
+    var chk = '<input type="checkbox"' + (isSelected ? ' checked' : '') +
+        ' onclick="event.stopPropagation();onSeoTypeEditorSelect(this,' + i + ')"' +
         ' value="' + t.id + '"' +
         ' style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--bl);" title="서술형 유형 선택">';
     var clickHandler = master ? 'onclick="selectSeoType(' + i + ')"' : '';
     var cursorStyle  = master ? '' : 'cursor:default;';
     return '<div class="ti' + (i===seoSelIdx&&master?' active':'') + '" ' + clickHandler + ' style="display:flex;align-items:center;gap:6px;' + cursorStyle + '">' +
-      doneChk + selChk +
+      chk +
       '<div class="tdot ' + COLORS[i % COLORS.length] + '"></div>' +
-      '<span class="tname">' + t.name + (t.done ? ' ✓' : '') + '</span></div>';
+      '<span class="tname">' + t.name + (isSelected ? ' ✓' : '') + '</span></div>';
   }).join('');
 }
 
-function onSeoTypeEditorSelect(el) {
-  if (el.checked) {
+function onSeoTypeEditorSelect(el, typeIdx) {
+  var checked = el.checked;
+  if (checked) {
     if (seoSelected.indexOf(el.value) < 0) {
       seoSelected.push(el.value);
       seoCount = seoSelected.length;
@@ -975,13 +973,21 @@ function onSeoTypeEditorSelect(el) {
   } else {
     seoSelected = seoSelected.filter(function(s){ return s !== el.value; });
     seoCount = Math.max(1, seoSelected.length);
-    var cntEl = document.getElementById('seoCount');
-    if (cntEl) cntEl.textContent = seoCount;
+    var cntEl2 = document.getElementById('seoCount');
+    if (cntEl2) cntEl2.textContent = seoCount;
+  }
+  // 마스터: done 플래그도 seoSelected 상태와 동기화
+  if (isMaster() && typeIdx !== undefined && editingSeoTypes[typeIdx]) {
+    editingSeoTypes[typeIdx].done = checked;
+    var matchId = editingSeoTypes[typeIdx].id;
+    for (var j = 0; j < globalSeoTypes.length; j++) {
+      if (globalSeoTypes[j].id === matchId) { globalSeoTypes[j].done = checked; break; }
+    }
+    saveGlobalSeoTypes();
   }
   persist();
-  // 시험지 구성설정 서술형 포함 토글 목록 동기화
+  renderSeoTypeEditor();
   renderSeoTypeRows();
-  // 지문 카드 서술형 드롭다운 실시간 동기화
   renderPassageList();
   var isRand = document.getElementById('randomToggle') && document.getElementById('randomToggle').checked;
   if (!isRand) renderManualCount();
