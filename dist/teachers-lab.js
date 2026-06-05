@@ -851,8 +851,9 @@ function isTypeVisibleForCategory(type, cat) {
 
 // 배열 단위 필터 (객관식 유형용; 서술형은 적용 안 함)
 function filterObjTypesByCategory(types) {
+  // 학교별 필터링 제거 — 모든 카테고리에서 전체 유형 표시
   if (!Array.isArray(types)) return types;
-  return types.filter(function(t){ return isTypeVisibleForCategory(t, activeCategory); });
+  return types;
 }
 
 // ─── ACTIVE CATEGORY (for generation) ───
@@ -1372,8 +1373,10 @@ function renderPassageList() {
         objTypes.map(function(t) {
           return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
+      // 프롬프트 설정에서 체크박스 체크된 서술형 유형만 표시
+      var seoFiltered = seoTypes.filter(function(t) { return seoSelected.indexOf(t.id) >= 0; });
       var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
-        seoTypes.filter(function(t) { return seoSelected.indexOf(t.id) >= 0; }).map(function(t) {
+        seoFiltered.map(function(t) {
           return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       var objActive = p.typeId && p.typeId !== 'unselected';
@@ -1443,14 +1446,22 @@ function renderQuotaRows() {
 }
 
 function renderSeoTypeRows() {
-  var seoTypes = getActiveSeoTypes();
-  document.getElementById('seoTypeRows').innerHTML = seoTypes.map(function(t) {
-    var chk = seoSelected.indexOf(t.id) >= 0 ? ' checked' : '';
+  // 프롬프트 설정에서 체크박스 체크된 유형만 표시 (실시간 동기화)
+  var seoTypes = getActiveSeoTypes().filter(function(t) { return seoSelected.indexOf(t.id) >= 0; });
+  var el = document.getElementById('seoTypeRows');
+  if (!seoTypes.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--ink3);padding:4px 0;">프롬프트 설정에서 서술형 유형을 먼저 체크하세요.</div>';
+    return;
+  }
+  el.innerHTML = seoTypes.map(function(t) {
     return '<div class="seocbrow">' +
-      '<input type="checkbox" id="scb_' + t.id + '" value="' + t.id + '"' + chk + ' onchange="onSeoCheck(this)">' +
+      '<input type="checkbox" id="scb_' + t.id + '" value="' + t.id + '" checked onchange="onSeoCheck(this)">' +
       '<label for="scb_' + t.id + '">' + t.name + '</label></div>';
   }).join('');
 }
+
+// renderPsgCards: renderPassageList 별칭 (onSeoCheck 등에서 호출)
+function renderPsgCards() { renderPassageList(); }
 
 function chgQ(id, d) {
   quotas[id] = Math.max(0, (quotas[id]||0) + d);
@@ -1575,6 +1586,8 @@ function onSeoCheck(el) {
   persist();
   // 프롬프트 설정 탭의 서술형 유형 목록도 실시간 동기화
   renderSeoTypeEditor();
+  // 시험지 구성설정 서술형 포함 토글 목록 실시간 동기화
+  renderSeoTypeRows();
   // 시험지 구성 사이드바 서술형 드롭다운 실시간 동기화
   renderPsgCards();
   var isRand = document.getElementById('randomToggle').checked;
