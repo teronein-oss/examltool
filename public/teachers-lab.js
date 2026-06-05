@@ -154,6 +154,16 @@ function getActiveSeoTypes() {
   return JSON.parse(JSON.stringify(globalSeoTypes));
 }
 
+// seoSelected에 globalSeoTypes와 매칭되는 ID가 없으면 전체 ID로 자동 초기화
+function healSeoSelected() {
+  var allIds = globalSeoTypes.map(function(t){ return t.id; });
+  var hasMatch = seoSelected.some(function(id){ return allIds.indexOf(id) >= 0; });
+  if (!hasMatch && allIds.length) {
+    seoSelected = allIds.slice();
+    localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
+  }
+}
+
 // ─── STATE ───
 function mergeWithDefaultQTypes(savedTypes) {
   if (!savedTypes) return JSON.parse(JSON.stringify(DEFAULT_TYPES));
@@ -341,7 +351,7 @@ var qTypes = mergeWithDefaultQTypes(JSON.parse(localStorage.getItem('qTypes_v5')
 var passages    = JSON.parse(localStorage.getItem('passages')    || '[]');
 var quotas      = JSON.parse(localStorage.getItem('quotas')      || 'null') || {};
 var seoCount    = parseInt(localStorage.getItem('seoCount')      || '1');
-var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo_topic_1"]');
+var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '[]');
 // 구형 seo id → 신규 카탈로그 id 마이그레이션
 (function migrateSeoSelected() {
   var idMap = {
@@ -358,6 +368,8 @@ var seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo_topic
   // 중복 제거
   seoSelected = seoSelected.filter(function(id, idx){ return seoSelected.indexOf(id) === idx; });
   if (changed) localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
+  // 매칭 ID 없으면 전체로 초기화 (신규 사용자 대응)
+  // healSeoSelected()는 globalSeoTypes 로드 후 호출
 }());
 var promptSets  = JSON.parse(localStorage.getItem('promptSets_v1') || '{}');
 
@@ -439,7 +451,10 @@ function fbPullSharedSeoTypes() {
       globalSeoTypes = pulled;
       localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
       if (typeof editingSeoTypes !== 'undefined') editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
+      // seoSelected가 새 globalSeoTypes와 매칭 안 되면 전체로 초기화
+      healSeoSelected();
       renderSeoTypeRows();
+      renderPassageList();
     })
     .catch(function(e) { console.error('seoTypes 불러오기 오류:', e); });
 }
@@ -1379,9 +1394,9 @@ function renderPassageList() {
           return '<option value="' + t.id + '"' + (p.typeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
         }).join('');
       // 프롬프트 설정에서 체크박스 체크된 서술형 유형만 표시
-      // seoSelected가 비어있으면 done 표시된 유형을 fallback으로 사용
       var seoFiltered = seoTypes.filter(function(t) { return seoSelected.indexOf(t.id) >= 0; });
-      if (!seoFiltered.length) seoFiltered = seoTypes.filter(function(t) { return !!t.done; });
+      // 매칭 없으면 전체 표시 (신규 사용자 / seoSelected 미설정)
+      if (!seoFiltered.length) seoFiltered = seoTypes.slice();
       var seoOpts = '<option value="unselected"' + ((!p.seoTypeId || p.seoTypeId === 'unselected') ? ' selected' : '') + '>서술형 없음</option>' +
         seoFiltered.map(function(t) {
           return '<option value="' + t.id + '"' + (p.seoTypeId === t.id ? ' selected' : '') + '>' + t.name + '</option>';
@@ -3060,7 +3075,8 @@ function reloadMemoryForUser() {
   passages    = JSON.parse(localStorage.getItem('passages')    || '[]');
   quotas      = JSON.parse(localStorage.getItem('quotas')      || 'null') || {};
   seoCount    = parseInt(localStorage.getItem('seoCount')      || '1');
-  seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '["seo_topic"]');
+  seoSelected = JSON.parse(localStorage.getItem('seoSelected') || '[]');
+  healSeoSelected();
   promptSets  = JSON.parse(localStorage.getItem('promptSets_v1') || '{}');
 
   autoHealStorage(); // 덩치 큰 레퍼런스 무조건 복구/압축 진행 (이미 위에 선언됨)
