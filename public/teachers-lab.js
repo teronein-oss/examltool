@@ -3624,6 +3624,7 @@ function clearAllRefFiles() {
   renderSettingsCategoryTabs();
   renderTypeList();
   selectType(0);
+  healSeoSelected(); // seoSelected 미설정 시 globalSeoTypes 전체로 자동 초기화
   renderPassageList();
   renderQuotaRows();
   renderSeoTypeRows();
