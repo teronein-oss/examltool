@@ -154,18 +154,22 @@ function getActiveSeoTypes() {
   return JSON.parse(JSON.stringify(globalSeoTypes));
 }
 
-// seoSelected에 globalSeoTypes에 있는 ID 중 빠진 것이 있으면 자동으로 추가
-// (신규 사용자 또는 마스터가 새 유형 추가 시 모든 사용자에게 자동 반영)
+// seoSelected 자동 보정
+// - 마스터: 체크 상태를 그대로 유지 (건드리지 않음), 삭제된 유형만 제거
+// - 일반 사용자: globalSeoTypes에 있는 ID 중 빠진 것을 자동 추가 (신규 유형 자동 반영)
 function healSeoSelected() {
   var allIds = globalSeoTypes.map(function(t){ return t.id; });
   var changed = false;
-  allIds.forEach(function(id) {
-    if (seoSelected.indexOf(id) < 0) {
-      seoSelected.push(id);
-      changed = true;
-    }
-  });
-  // globalSeoTypes에 없는 삭제된 유형은 seoSelected에서 제거
+  if (!isMaster()) {
+    // 일반 사용자: 누락된 유형 자동 추가
+    allIds.forEach(function(id) {
+      if (seoSelected.indexOf(id) < 0) {
+        seoSelected.push(id);
+        changed = true;
+      }
+    });
+  }
+  // 모든 사용자: globalSeoTypes에서 삭제된 유형은 seoSelected에서도 제거
   var before = seoSelected.length;
   seoSelected = seoSelected.filter(function(id){ return allIds.indexOf(id) >= 0; });
   if (seoSelected.length !== before) changed = true;
