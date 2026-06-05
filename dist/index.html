@@ -38,8 +38,9 @@
         <option value="gemini-2.5-flash-lite">Gemini Flash Lite (절약)</option>
       </optgroup>
       <optgroup label="── Claude ──" style="color:#888">
-        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (빠름)</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (빠름·저렴)</option>
         <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (고품질)</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 (최고성능)</option>
       </optgroup>
     </select>
     <div class="tooltip-wrap">
@@ -179,7 +180,10 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
           <div class="reflist" id="refList"></div>
         </div>
         <input type="file" id="refFileInput" accept=".txt,.md,.csv" multiple style="display:none" onchange="onRefFileChange(this)">
-        <button class="gbtn" onclick="saveCurrentType()">✓ 저장</button>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="gbtn" style="flex:1;" onclick="saveCurrentType()">✓ 저장</button>
+          <button id="applyAllSchoolsBtn" class="gbtn" style="flex:1;background:var(--ac);" onclick="saveTypeToAllSchools()">🌐 전체 학교 적용</button>
+        </div>
       </div>
     </div>
   </div>
@@ -282,30 +286,21 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         </div>
       </div>
     </div>
+
+    <!-- 사용량 통계 대시보드 (master_andy 전용) -->
+    <div style="margin-top:24px;border-top:2px solid var(--bd2);padding-top:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:14px;font-weight:700;color:var(--ink);">📊 사용자별 사용량 통계</span>
+        <button onclick="loadUsageStats()" style="background:var(--bl);color:#fff;border:none;border-radius:99px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">🔄 새로고침</button>
+      </div>
+      <div id="usageStatsContent" style="font-size:13px;color:var(--ink3);">새로고침 버튼을 눌러 통계를 불러오세요.</div>
+    </div>
   </div>
 </div>
 
 <div class="panel active" id="panel-passages">
   <div class="playout">
     <div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);">
-        <span style="font-size:12px;font-weight:700;color:var(--ink3);">출제 프롬프트:</span>
-        <select id="activeCategorySelect" onchange="setActiveCategory(this.value)" style="font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:6px 10px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;cursor:pointer;font-weight:600;">
-          <option value="개인설정">👤 개인 설정</option>
-          <optgroup label="🏫 동백고">
-            <option value="동백고1">동백고 1학년</option>
-            <option value="동백고2">동백고 2학년</option>
-          </optgroup>
-          <option value="백현고">🏫 백현고</option>
-          <option value="청덕고">🏫 청덕고</option>
-          <optgroup label="🏫 성지고">
-            <option value="성지고1">성지고 1학년</option>
-            <option value="성지고2">성지고 2학년</option>
-          </optgroup>
-          <option value="기본설정">📋 기본 설정</option>
-        </select>
-        <span id="activePromptSetDisplay" style="font-size:12px;font-weight:600;color:var(--gr);">적용 프롬프트: [개인 설정]</span>
-      </div>
       <div class="sectitle">
         <div style="display:flex; flex-direction:column;">지문 입력</div>
         <div style="display:flex;gap:8px;">
@@ -328,6 +323,24 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
       <div class="scard">
         <div class="schead">📋 시험지 구성 설정</div>
         <div class="scbody">
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--bd);">
+            <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;">출제 프롬프트</span>
+            <select id="activeCategorySelect" onchange="setActiveCategory(this.value)" style="font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:6px 10px;border:1.5px solid var(--bd2);border-radius:var(--r);background:#fff;color:var(--ink);outline:none;cursor:pointer;font-weight:600;width:100%;">
+              <option value="개인설정">👤 개인 설정</option>
+              <optgroup label="🏫 동백고">
+                <option value="동백고1">동백고 1학년</option>
+                <option value="동백고2">동백고 2학년</option>
+              </optgroup>
+              <option value="백현고">🏫 백현고</option>
+              <option value="청덕고">🏫 청덕고</option>
+              <optgroup label="🏫 성지고">
+                <option value="성지고1">성지고 1학년</option>
+                <option value="성지고2">성지고 2학년</option>
+              </optgroup>
+              <option value="기본설정">📋 기본 설정</option>
+            </select>
+            <span id="activePromptSetDisplay" style="font-size:11px;font-weight:600;color:var(--gr);">적용 프롬프트: [개인 설정]</span>
+          </div>
           <div class="rrow">
             <label class="toggle"><input type="checkbox" id="randomToggle" checked onchange="onRandomToggle()"><span class="tslider"></span></label>
             <span>지문-유형 <strong>랜덤 배정</strong></span>
