@@ -154,14 +154,22 @@ function getActiveSeoTypes() {
   return JSON.parse(JSON.stringify(globalSeoTypes));
 }
 
-// seoSelected에 globalSeoTypes와 매칭되는 ID가 없으면 전체 ID로 자동 초기화
+// seoSelected에 globalSeoTypes에 있는 ID 중 빠진 것이 있으면 자동으로 추가
+// (신규 사용자 또는 마스터가 새 유형 추가 시 모든 사용자에게 자동 반영)
 function healSeoSelected() {
   var allIds = globalSeoTypes.map(function(t){ return t.id; });
-  var hasMatch = seoSelected.some(function(id){ return allIds.indexOf(id) >= 0; });
-  if (!hasMatch && allIds.length) {
-    seoSelected = allIds.slice();
-    localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
-  }
+  var changed = false;
+  allIds.forEach(function(id) {
+    if (seoSelected.indexOf(id) < 0) {
+      seoSelected.push(id);
+      changed = true;
+    }
+  });
+  // globalSeoTypes에 없는 삭제된 유형은 seoSelected에서 제거
+  var before = seoSelected.length;
+  seoSelected = seoSelected.filter(function(id){ return allIds.indexOf(id) >= 0; });
+  if (seoSelected.length !== before) changed = true;
+  if (changed) localStorage.setItem('seoSelected', JSON.stringify(seoSelected));
 }
 
 // ─── STATE ───
