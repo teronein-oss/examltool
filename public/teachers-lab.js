@@ -417,91 +417,177 @@ function saveSchoolPresets() {
   if (isMaster() && fbDb) fbSaveSharedSchoolPresets();
 }
 
-function fbSaveSharedSchoolPresets() {
-  if (!fbDb || !isMaster()) return;
+// ─────────────────────────────────────────────────────────────
+//  실시간 공유설정 레지스트리 (마스터 → 전 사용자 onSnapshot 동기화)
+//  docId -> { getData: ()=>obj, apply: (data)=>void }
+//  - 마스터가 변경하면 saveShared(docId) 호출 → Firestore 즉시 반영
+//  - 모든 사용자는 subscribeShared()로 onSnapshot 실시간 수신
+//  - apply는 isMaster() 분기 + 동일 데이터 no-op으로 마스터 편집버퍼 보호
+//  - ⚠️ apply 안에서 saveShared 호출 금지 (무한 저장 루프 방지)
+// ─────────────────────────────────────────────────────────────
+var SHARED_REG = {};
+var _sharedSubscribed = false;
+function registerShared(docId, getData, apply) { SHARED_REG[docId] = { getData: getData, apply: apply }; }
+
+function saveShared(docId) {
+  if (!fbDb || !isMaster() || !SHARED_REG[docId]) return;
   setSyncStatus('syncing', '☁ 저장 중...');
-  fbDb.collection('shared').doc('schoolPresets').set({ presets: schoolPresets })
+  fbDb.collection('shared').doc(docId).set(SHARED_REG[docId].getData())
     .then(function() { setSyncStatus('syncok', '☁ ' + fbUserId()); })
-    .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); console.error('schoolPresets 저장 오류:', e); });
+    .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); console.error('shared/' + docId + ' 저장 오류:', e); });
 }
+
+function subscribeShared() {
+  if (!fbDb || _sharedSubscribed) return;
+  _sharedSubscribed = true;
+  Object.keys(SHARED_REG).forEach(function(docId) {
+    fbDb.collection('shared').doc(docId).onSnapshot(function(doc) {
+      if (!doc.exists || !doc.data()) { if (isMaster()) saveShared(docId); return; }
+      try { SHARED_REG[docId].apply(doc.data()); }
+      catch(e) { console.error('shared/' + docId + ' 적용 오류:', e); }
+    }, function(e) { console.error('shared/' + docId + ' onSnapshot 오류:', e); });
+  });
+}
+
+// ── 기존 호출부 호환용 얇은 래퍼 (이름 유지) ──
+function fbSaveSharedSchoolPresets()  { saveShared('schoolPresets'); }
+function fbSaveSharedSeoTypes()       { saveShared('seoTypes'); }
+function fbPullSharedSchoolPresets()  { subscribeShared(); }
+function fbPullSharedSeoTypes()       { subscribeShared(); }
 
 function fbSaveSharedSchoolPresetsManual() {
   if (!fbDb) { alert('Firebase에 연결되지 않았습니다. 새로고침 후 다시 시도해주세요.'); return; }
   if (!isMaster()) { alert('관리자만 사용할 수 있습니다.'); return; }
-  setSyncStatus('syncing', '☁ 저장 중...');
-  fbDb.collection('shared').doc('schoolPresets').set({ presets: schoolPresets })
-    .then(function() {
-      setSyncStatus('syncok', '☁ ' + fbUserId());
-      alert('✅ 모든 학교 프롬프트가 서버에 저장되었습니다.\n다른 계정에서 새로고침 또는 재로그인 시 반영됩니다.');
-    })
-    .catch(function(e) { setSyncStatus('syncerr', '☁ 오류'); alert('저장 오류: ' + e.message); console.error(e); });
+  saveShared('schoolPresets');
+  alert('✅ 모든 학교 프롬프트가 서버에 저장되었습니다.\n접속 중인 다른 계정에 즉시 반영됩니다.');
 }
 
-function fbSaveSharedSeoTypes() {
-  if (!fbDb || !isMaster()) return;
-  fbDb.collection('shared').doc('seoTypes').set({ types: globalSeoTypes })
-    .catch(function(e) { console.error('seoTypes 저장 오류:', e); });
+// ── seoTypes 공유설정 (서술형 유형 카탈로그: 이름/방향/done/seoRender) ──
+registerShared('seoTypes',
+  function() { return { types: globalSeoTypes }; },
+  function(data) {
+    if (!Array.isArray(data.types)) return;
+    var pulled = data.types;
+    // 동일 데이터면 no-op (마스터 echo·중복 렌더 방지)
+    if (JSON.stringify(pulled) === JSON.stringify(globalSeoTypes)) return;
+    // 신규 항목 보강 (서버에 없는 SEO_DEFAULT_TYPES 항목 추가)
+    var pulledIds = pulled.map(function(t){ return t.id; });
+    SEO_DEFAULT_TYPES.forEach(function(dt) {
+      if (pulledIds.indexOf(dt.id) < 0) pulled.push(JSON.parse(JSON.stringify(dt)));
+    });
+    // seoRender 필드 보강
+    pulled.forEach(function(t) {
+      if (!t.seoRender) {
+        var def = SEO_DEFAULT_TYPES.filter(function(d){ return d.id === t.id; })[0];
+        if (def) t.seoRender = def.seoRender;
+      }
+    });
+    globalSeoTypes = pulled;
+    localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
+    if (typeof editingSeoTypes !== 'undefined') editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
+    healSeoSelected(); // 일반 사용자: 마스터 done 목록과 동기화 / 마스터: 삭제분만 정리
+    renderSeoTypeRows();
+    renderPassageList();
+  }
+);
+
+// ── schoolPresets 공유설정 (학교별 객관식 프롬프트) ──
+registerShared('schoolPresets',
+  function() { return { presets: schoolPresets }; },
+  function(data) {
+    if (!data.presets) return;
+    var pulled = data.presets;
+    var changed = false;
+    SCHOOL_NAMES.forEach(function(s) {
+      if (pulled[s] && Array.isArray(pulled[s]) && JSON.stringify(schoolPresets[s]) !== JSON.stringify(pulled[s])) {
+        schoolPresets[s] = pulled[s];
+        changed = true;
+      }
+    });
+    if (!changed) return; // 동일 데이터면 no-op
+    _originalSetItem.call(localStorage, 'schoolPresets', JSON.stringify(schoolPresets));
+    // 현재 설정 탭이 학교 카테고리면 editingQTypes도 갱신
+    if (SCHOOL_NAMES.indexOf(settingsCat) >= 0) {
+      editingQTypes = mergeWithDefaultQTypes(JSON.parse(JSON.stringify(schoolPresets[settingsCat] || DEFAULT_TYPES)));
+      renderTypeList();
+      if (editingQTypes.length) selectType(0);
+    }
+    renderSettingsCategoryTabs();
+  }
+);
+
+// ─────────────────────────────────────────────────────────────
+//  UI 표시요소 공유설정 (uiConfig) — 마스터가 탭 노출 여부를 제어
+//  마스터에게는 항상 전체 표시, 일반 사용자는 마스터 설정대로 즉시 반영
+// ─────────────────────────────────────────────────────────────
+var UI_TAB_DEFS = [
+  { key: 'passages',    label: '📝 지문 입력' },
+  { key: 'practice',    label: '✏️ 연습문제 제작' },
+  { key: 'output',      label: '📄 문항 출력' },
+  { key: 'report',      label: '🐛 오류 보고' },
+  { key: 'settings',    label: '⚙️ 프롬프트 설정' },
+  { key: 'check-table', label: '📊 출제공방' },
+  { key: 'analysis',    label: '📈 시험분석지' }
+];
+var uiConfig = (function() {
+  var saved = JSON.parse(localStorage.getItem('uiConfig') || 'null');
+  if (saved && saved.tabs) return saved;
+  var tabs = {};
+  UI_TAB_DEFS.forEach(function(d){ tabs[d.key] = true; });
+  return { tabs: tabs };
+}());
+
+// 일반 사용자 화면에 마스터의 탭 노출 설정을 적용 (마스터는 항상 전체 표시)
+function applyUiConfig() {
+  var master = isMaster();
+  var firstVisibleKey = null, activeHidden = false;
+  UI_TAB_DEFS.forEach(function(d) {
+    var visible = master || uiConfig.tabs[d.key] !== false;
+    var btn = document.querySelector('.tab[data-tabkey="' + d.key + '"]');
+    var panel = document.getElementById('panel-' + d.key);
+    if (btn) btn.style.display = visible ? '' : 'none';
+    if (panel && !visible && panel.classList.contains('active')) {
+      panel.classList.remove('active');
+      activeHidden = true;
+    }
+    if (visible && firstVisibleKey === null) firstVisibleKey = d.key;
+  });
+  // 현재 보던 탭이 숨겨졌으면 첫 표시 탭으로 이동
+  if (activeHidden && firstVisibleKey) switchTab(firstVisibleKey);
 }
 
-function fbPullSharedSeoTypes() {
-  if (!fbDb) return;
-  fbDb.collection('shared').doc('seoTypes').get()
-    .then(function(doc) {
-      if (!doc.exists || !doc.data() || !Array.isArray(doc.data().types)) {
-        if (isMaster()) fbSaveSharedSeoTypes();
-        return;
-      }
-      var pulled = doc.data().types;
-      // 신규 항목 보강 (서버에 없는 SEO_DEFAULT_TYPES 항목 추가)
-      var pulledIds = pulled.map(function(t){ return t.id; });
-      SEO_DEFAULT_TYPES.forEach(function(dt) {
-        if (pulledIds.indexOf(dt.id) < 0) pulled.push(JSON.parse(JSON.stringify(dt)));
-      });
-      // seoRender 필드 보강
-      pulled.forEach(function(t) {
-        if (!t.seoRender) {
-          var def = SEO_DEFAULT_TYPES.filter(function(d){ return d.id === t.id; })[0];
-          if (def) t.seoRender = def.seoRender;
-        }
-      });
-      globalSeoTypes = pulled;
-      localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
-      if (typeof editingSeoTypes !== 'undefined') editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
-      // seoSelected가 새 globalSeoTypes와 매칭 안 되면 전체로 초기화
-      healSeoSelected();
-      renderSeoTypeRows();
-      renderPassageList();
-    })
-    .catch(function(e) { console.error('seoTypes 불러오기 오류:', e); });
+// 마스터 전용 토글 패널 렌더
+function renderUiConfigToggles() {
+  var box = document.getElementById('uiConfigToggles');
+  if (!box) return;
+  box.innerHTML = UI_TAB_DEFS.map(function(d) {
+    var on = uiConfig.tabs[d.key] !== false;
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">' +
+      '<input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="toggleUiTab(\'' + d.key + '\', this.checked)" ' +
+      'style="width:16px;height:16px;cursor:pointer;accent-color:var(--bl);"> ' + d.label + '</label>';
+  }).join('');
 }
 
-function fbPullSharedSchoolPresets() {
-  if (!fbDb) return;
-  fbDb.collection('shared').doc('schoolPresets').get()
-    .then(function(doc) {
-      if (!doc.exists || !doc.data() || !doc.data().presets) {
-        // 서버에 문서 없음 — master_andy면 현재 로컬 데이터를 서버에 최초 업로드
-        if (isMaster()) {
-          console.log('shared/schoolPresets 없음 → 로컬 데이터 서버 업로드 시작');
-          fbSaveSharedSchoolPresets();
-        }
-        return;
-      }
-      var pulled = doc.data().presets;
-      SCHOOL_NAMES.forEach(function(s) {
-        if (pulled[s] && Array.isArray(pulled[s])) schoolPresets[s] = pulled[s];
-      });
-      _originalSetItem.call(localStorage, 'schoolPresets', JSON.stringify(schoolPresets));
-      // 현재 설정 탭이 학교 카테고리면 editingQTypes도 갱신
-      if (SCHOOL_NAMES.indexOf(settingsCat) >= 0) {
-        editingQTypes = mergeWithDefaultQTypes(JSON.parse(JSON.stringify(schoolPresets[settingsCat] || DEFAULT_TYPES)));
-        renderTypeList();
-        if (editingQTypes.length) selectType(0);
-      }
-      renderSettingsCategoryTabs();
-    })
-    .catch(function(e) { console.error('schoolPresets 불러오기 오류:', e); });
+// 마스터가 탭 노출 토글 → 저장 + 전 사용자 즉시 반영
+function toggleUiTab(key, checked) {
+  if (!isMaster()) return;
+  uiConfig.tabs[key] = !!checked;
+  localStorage.setItem('uiConfig', JSON.stringify(uiConfig));
+  saveShared('uiConfig');
+  applyUiConfig();
 }
+
+registerShared('uiConfig',
+  function() { return uiConfig; },
+  function(data) {
+    if (!data || !data.tabs) return;
+    if (JSON.stringify(data) === JSON.stringify(uiConfig)) return; // 동일 no-op
+    uiConfig = { tabs: data.tabs };
+    localStorage.setItem('uiConfig', JSON.stringify(uiConfig));
+    applyUiConfig();
+    if (isMaster()) renderUiConfigToggles();
+  }
+);
 
 var settingsCat = '개인설정'; // which category the settings editor is currently showing
 var activeCategory = sessionStorage.getItem('seumActiveCategory') || '개인설정'; // for generation
@@ -1278,6 +1364,7 @@ function showMasterAdminSection() {
     if (label) label.textContent = settingsCat;
     document.getElementById('adminMaintainPrompt').value = getTransformPromptForCat(settingsCat, 'maintain');
     document.getElementById('adminChangePrompt').value   = getTransformPromptForCat(settingsCat, 'change');
+    renderUiConfigToggles();
   } else {
     sec.style.display = 'none';
   }
@@ -3173,12 +3260,16 @@ function checkCode() {
       }
     } else {
       setSyncStatus('syncno', '💾 로컬 저장');
-      if (fbDb) fbPullSharedSchoolPresets();
     }
+    // 인증 직후(코드 종류 무관) 실시간 공유설정 구독 — 마스터 변경이 즉시 반영됨
+    if (fbDb) subscribeShared();
+    applyUiConfig(); // 캐시된 표시 설정 즉시 적용 (네트워크 도착 전에도)
     showMigrationIfCloud();
     showMasterAdminSection();
     renderSettingsCategoryTabs();
     renderSettingsEditorVisibility();
+    // 마스터는 프롬프트 설정 진입 시 기본 카테고리를 '청덕고'로
+    if (isMaster()) switchSettingsCat('청덕고');
   } else {
     err.textContent = '코드가 올바르지 않습니다.';
     document.getElementById('codeInput').value = '';
@@ -3398,6 +3489,8 @@ function initFirebase() {
     fbApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(FIREBASE_CONFIG);
     fbDb  = firebase.firestore(fbApp);
     setSyncStatus('syncok', '☁ 연결됨');
+    // 이미 인증된 세션이면 즉시 실시간 공유설정 구독 (sessionStorage가 세팅돼 isMaster() 정확)
+    if (sessionStorage.getItem('seumAuth') === '1') subscribeShared();
   } catch(e) {
     console.error('Firebase init error', e);
     setSyncStatus('syncerr', '☁ 연결 오류');
@@ -3646,7 +3739,10 @@ function clearAllRefFiles() {
   renderSettingsCategoryTabs();
   renderTypeList();
   selectType(0);
+  // 마스터는 프롬프트 설정 진입 시 기본 카테고리를 '청덕고'로 (이미 인증된 세션)
+  if (isMaster()) switchSettingsCat('청덕고');
   healSeoSelected(); // seoSelected 미설정 시 globalSeoTypes 전체로 자동 초기화
+  applyUiConfig(); // 캐시된 사용자 화면 표시 설정 적용
   renderPassageList();
   renderQuotaRows();
   renderSeoTypeRows();
