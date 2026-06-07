@@ -1201,6 +1201,11 @@ function renderSettingsEditorVisibility() {
   // 전체 학교 적용 버튼: master 전용
   var allSchoolBtn = document.getElementById('applyAllSchoolsBtn');
   if (allSchoolBtn) allSchoolBtn.style.display = isMaster() ? '' : 'none';
+
+  // 서술형 선택 화면: master_andy 전용 — 일반 사용자는 탭 숨김 + 객관식 고정
+  var seoPaneBtn = document.getElementById('settingsPaneSeo');
+  if (seoPaneBtn) seoPaneBtn.style.display = isMaster() ? '' : 'none';
+  if (!isMaster() && settingsPaneMode === 'seo') switchSettingsPane('obj');
 }
 
 // ─── API KEY ───
