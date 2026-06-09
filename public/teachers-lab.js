@@ -813,7 +813,7 @@ function updatePracTypeSummary() {
 
 async function startPracGeneration() {
   try {
-  var key = document.getElementById('apiKeyInput').value.trim();
+  var key = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   if (!key) { alert('상단에 API 키를 먼저 입력해주세요.'); return; }
   if (!pracPassages.length || pracActiveIdx < 0) { alert('지문을 추가하고 선택해주세요.'); return; }
   if (!pracSelectedTypes.length) { alert('문제 유형을 하나 이상 선택해주세요.'); return; }
@@ -1234,12 +1234,12 @@ function onModelChange() {
 }
 
 function checkKey() {
-  var key    = document.getElementById('apiKeyInput').value.trim();
+  var key    = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   var st     = document.getElementById('keyStatus');
   var isClaude = isClaudeModel();
   var valid  = isClaude
     ? (key.startsWith('sk-ant-') && key.length > 20)
-    : (key.startsWith('AIza') && key.length > 20);
+    : (key.length > 20);
   if (valid) {
     st.textContent = '✓ 입력됨'; st.className = 'apist kok';
     localStorage.setItem(isClaude ? 'claudeKey' : 'geminiKey', key);
@@ -1875,7 +1875,7 @@ function resetAllPassageTypes() {
 }
 
 async function transformPassage(i, mode) {
-  var key = document.getElementById('apiKeyInput').value.trim();
+  var key = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   if (!key) { alert('상단에 API 키를 입력해주세요.'); return; }
   
   var btn1 = document.getElementById('btn-tfm-' + i);
@@ -2644,7 +2644,7 @@ function toSections(num, type, raw, passageTitle) {
 }
 
 async function callAPI(type, passageText, retryHint) {
-  var key   = document.getElementById('apiKeyInput').value.trim();
+  var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   var model = document.getElementById('modelSelect').value;
   if (!key) throw new Error('API 키를 입력해주세요.');
   var hint = retryHint ? '\n\n## ⚠️ 이전 출력 오류 수정 요청\n' + retryHint + '\n' : '';
@@ -2769,7 +2769,7 @@ var _curIsRandom = false;
 
 async function startGeneration() {
   try {
-  var key = document.getElementById('apiKeyInput').value.trim();
+  var key = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   if (!key) { alert('상단에 Gemini API 키를 먼저 입력해주세요.'); return; }
 
   var isRandom = document.getElementById('randomToggle').checked;
@@ -2966,7 +2966,7 @@ async function retryFailedItems() {
   });
   if (failedIndices.length === 0) return;
   
-  var key = document.getElementById('apiKeyInput').value.trim();
+  var key = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   if (!key) { alert('상단에 Gemini API 키를 먼저 입력해주세요.'); return; }
   
   document.getElementById('retryFailedBtn').style.display = 'none';
