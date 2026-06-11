@@ -1587,16 +1587,16 @@ function renderQuotaRows() {
 }
 
 function renderSeoTypeRows() {
-  // 프롬프트 설정에서 체크박스 체크된 유형만 표시 (실시간 동기화)
-  var seoTypes = getActiveSeoTypes().filter(function(t) { return seoSelected.indexOf(t.id) >= 0; });
+  var seoTypes = getActiveSeoTypes();
   var el = document.getElementById('seoTypeRows');
   if (!seoTypes.length) {
     el.innerHTML = '<div style="font-size:11px;color:var(--ink3);padding:4px 0;">프롬프트 설정에서 서술형 유형을 먼저 체크하세요.</div>';
     return;
   }
   el.innerHTML = seoTypes.map(function(t) {
+    var isChecked = seoSelected.indexOf(t.id) >= 0;
     return '<div class="seocbrow">' +
-      '<input type="checkbox" id="scb_' + t.id + '" value="' + t.id + '" checked onchange="onSeoCheck(this)">' +
+      '<input type="checkbox" id="scb_' + t.id + '" value="' + t.id + '"' + (isChecked ? ' checked' : '') + ' onchange="onSeoCheck(this)">' +
       '<label for="scb_' + t.id + '">' + t.name + '</label></div>';
   }).join('');
 }
