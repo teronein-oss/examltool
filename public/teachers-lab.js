@@ -110,6 +110,11 @@ var DEFAULT_TYPES = [
 var globalSeoTypes = (function() {
   var saved = JSON.parse(localStorage.getItem('globalSeoTypes') || 'null');
   if (!saved || !Array.isArray(saved)) return JSON.parse(JSON.stringify(SEO_DEFAULT_TYPES));
+  // SEO_DEFAULT_TYPES에서 제거된 항목 정리 (로컬 캐시에서 제거)
+  var defaultIds = SEO_DEFAULT_TYPES.map(function(dt){ return dt.id; });
+  var beforeLen = saved.length;
+  saved = saved.filter(function(t){ return defaultIds.indexOf(t.id) >= 0; });
+  if (saved.length !== beforeLen) localStorage.setItem('globalSeoTypes', JSON.stringify(saved));
   // SEO_DEFAULT_TYPES에 있지만 저장본에 없는 신규 항목 추가
   var savedIds = saved.map(function(t){ return t.id; });
   SEO_DEFAULT_TYPES.forEach(function(dt) {
@@ -447,6 +452,9 @@ registerShared('seoTypes',
     var pulled = data.types;
     // 동일 데이터면 no-op (마스터 echo·중복 렌더 방지)
     if (JSON.stringify(pulled) === JSON.stringify(globalSeoTypes)) return;
+    // SEO_DEFAULT_TYPES에서 제거된 항목 정리 (Firebase 데이터에서도 제거)
+    var defaultIds = SEO_DEFAULT_TYPES.map(function(dt){ return dt.id; });
+    pulled = pulled.filter(function(t){ return defaultIds.indexOf(t.id) >= 0; });
     // 신규 항목 보강 (서버에 없는 SEO_DEFAULT_TYPES 항목 추가)
     var pulledIds = pulled.map(function(t){ return t.id; });
     SEO_DEFAULT_TYPES.forEach(function(dt) {
@@ -463,6 +471,8 @@ registerShared('seoTypes',
     localStorage.setItem('globalSeoTypes', JSON.stringify(globalSeoTypes));
     if (typeof editingSeoTypes !== 'undefined') editingSeoTypes = JSON.parse(JSON.stringify(globalSeoTypes));
     healSeoSelected(); // 일반 사용자: 마스터 done 목록과 동기화 / 마스터: 삭제분만 정리
+    // 마스터: 정리된 목록을 Firebase에 즉시 반영 (삭제된 유형 제거 등)
+    if (isMaster() && fbDb) setTimeout(fbSaveSharedSeoTypes, 800);
     renderSeoTypeRows();
     renderPassageList();
   }
