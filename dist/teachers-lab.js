@@ -2384,7 +2384,13 @@ function toSections(num, type, raw, passageTitle) {
     } else if (seoRender === 'blanks') {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
-      if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      if (seoCond2) {
+        // 문법 구문 조건 라인 제거 (예: "● 비교 구문 … 구문으로 작성할 것")
+        var blanksCond = seoCond2.split('\n').filter(function(l) {
+          return !/구문으로\s*작성할\s*것/.test(l);
+        }).join('\n').trim();
+        if (blanksCond) { q.push('< 조건 >'); q.push(blanksCond); q.push(''); }
+      }
       if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
 
