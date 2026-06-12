@@ -2385,6 +2385,7 @@ function toSections(num, type, raw, passageTitle) {
       if (passage) { q.push(passage); q.push(''); }
       q.push(dirClean2); q.push('');
       if (seoCond2) { q.push('< 조건 >'); q.push(seoCond2); q.push(''); }
+      if (seoBank2) { q.push('< 보기 >'); q.push(seoBank2); q.push(''); }
       q.push('답 : _________________________________________________'); q.push('');
 
     } else if (seoRender === 'compose') {
@@ -2713,7 +2714,10 @@ function toSections(num, type, raw, passageTitle) {
   // ── 해설부 ──
   var a = [];
   a.push('[' + num + '번 해설] [' + type.name + ']' + (passageTitle ? ' (' + passageTitle + ')' : '')); a.push('');
-  if (answer) { a.push('\u25b6 정답: ' + answer.trim()); a.push(''); }
+  // seo 유형에서 modelAns가 answer와 동일하면 정답 중복 출력 방지
+  if (answer && !(type.id.startsWith('seo') && modelAns && answer.trim() === modelAns.trim())) {
+    a.push('\u25b6 정답: ' + answer.trim()); a.push('');
+  }
   if (type.id.startsWith('seo')) {
     if (modelAns) { a.push('\u25b6 모범 답안:'); a.push(modelAns); a.push(''); }
     var suppressExpl = ['ext_passage', 'kor_content_add'];
