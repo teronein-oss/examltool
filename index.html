@@ -150,7 +150,13 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   <div class="sgrid">
     <div>
       <div class="tlist">
-        <div class="tlhead">문제 유형 목록</div>
+        <div class="tlhead" style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="text-transform:uppercase;letter-spacing:.5px;">문제 유형 목록</span>
+          <div id="objTypeBtns" style="display:none;gap:4px;">
+            <button class="mb" onclick="addObjType()" style="font-size:10px;padding:3px 9px;text-transform:none;letter-spacing:0;font-weight:700;">＋ 추가</button>
+            <button class="mb d" onclick="deleteObjType()" style="font-size:10px;padding:3px 9px;text-transform:none;letter-spacing:0;font-weight:700;">− 삭제</button>
+          </div>
+        </div>
         <div id="typeListEl"></div>
       </div>
     </div>
@@ -194,7 +200,13 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
   <div class="sgrid">
     <div>
       <div class="tlist">
-        <div class="tlhead">서술형 유형 목록 <span style="font-size:11px;font-weight:400;color:var(--ink3);">(전 학교 공통)</span></div>
+        <div class="tlhead" style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="text-transform:uppercase;letter-spacing:.5px;">서술형 유형 목록 <span style="font-size:11px;font-weight:400;color:var(--ink3);text-transform:none;letter-spacing:0;">(전 학교 공통)</span></span>
+          <div id="seoTypeBtns" style="display:none;gap:4px;">
+            <button class="mb" onclick="addSeoType()" style="font-size:10px;padding:3px 9px;text-transform:none;letter-spacing:0;font-weight:700;">＋ 추가</button>
+            <button class="mb d" onclick="deleteSeoType()" style="font-size:10px;padding:3px 9px;text-transform:none;letter-spacing:0;font-weight:700;">− 삭제</button>
+          </div>
+        </div>
         <div id="seoTypeListEl"></div>
       </div>
     </div>
@@ -213,8 +225,26 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         <input class="fi" id="seoEditName" type="text" placeholder="예: 주제문 영작_1">
         <div class="fl">출제 방향 지시</div>
         <input class="fi" id="seoEditDirection" type="text" placeholder="예: 다음 글의 주제를 조건에 맞게 영어로 쓰시오.">
+        <div class="fl">렌더 유형 <span style="font-weight:400;color:var(--ink3);text-transform:none;letter-spacing:0;">(출력 포맷 — 유형에 맞게 선택)</span></div>
+        <select class="fi" id="seoEditRender" style="height:36px;padding:6px 10px;font-size:13px;">
+          <option value="topic">topic — 주제문 영작</option>
+          <option value="blanks">blanks — 빈칸 영작</option>
+          <option value="grammar">grammar — 어법 서술형</option>
+          <option value="summary2">summary2 — 요약문 빈칸 2개</option>
+          <option value="summary3">summary3 — 요약문 빈칸 3개</option>
+          <option value="summary4">summary4 — 요약문 빈칸 4개</option>
+          <option value="compose">compose — 조건영작</option>
+          <option value="content">content — 내용 Q&amp;A</option>
+          <option value="topic_plus">topic_plus — 주제+내용</option>
+          <option value="ext_passage">ext_passage — 외부지문</option>
+          <option value="kor_content_add">kor_content_add — 한글서술형</option>
+          <option value="tb_blank_write_bh">tb_blank_write_bh — 교과서 빈칸영작</option>
+          <option value="tb_blank_content">tb_blank_content — 교과서 빈칸+내용</option>
+          <option value="content_blank_grammar_bh">content_blank_grammar_bh — 내용빈칸+어법</option>
+          <option value="sj_blank_compose">sj_blank_compose — 빈칸단어+빈칸영작</option>
+        </select>
         <div class="fl">메타프롬프트 (AI 출제 지침)</div>
-        <textarea class="fta" id="seoEditPrompt" rows="18"></textarea>
+        <textarea class="fta" id="seoEditPrompt" rows="16"></textarea>
         <button class="gbtn" onclick="saveSeoCurrentType()">✓ 저장</button>
       </div>
     </div>

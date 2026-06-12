@@ -106,14 +106,16 @@ var DEFAULT_TYPES = [
 
 ];
 
+// ─── 삭제 처리된 서술형 유형 ID (코드에서 제거된 기존 유형 + 관리자가 UI에서 삭제한 유형) ───
+var DEPRECATED_SEO_IDS = ['seo_topic_2','seo_blanks_2','seo_summary_2','seo_summary_3','seo_content','seo_topic_plus_content2','seo_grammar_1','seo_compose_1','seo_compose_2'];
+
 // ─── 서술형 전용 공통 타입 (전역, 학교 비분리) ───
 var globalSeoTypes = (function() {
   var saved = JSON.parse(localStorage.getItem('globalSeoTypes') || 'null');
   if (!saved || !Array.isArray(saved)) return JSON.parse(JSON.stringify(SEO_DEFAULT_TYPES));
-  // SEO_DEFAULT_TYPES에서 제거된 항목 정리 (로컬 캐시에서 제거)
-  var defaultIds = SEO_DEFAULT_TYPES.map(function(dt){ return dt.id; });
+  // deprecated(삭제 처리) 항목 정리 (로컬 캐시에서 제거)
   var beforeLen = saved.length;
-  saved = saved.filter(function(t){ return defaultIds.indexOf(t.id) >= 0; });
+  saved = saved.filter(function(t){ return DEPRECATED_SEO_IDS.indexOf(t.id) < 0; });
   if (saved.length !== beforeLen) localStorage.setItem('globalSeoTypes', JSON.stringify(saved));
   // SEO_DEFAULT_TYPES에 있지만 저장본에 없는 신규 항목 추가
   var savedIds = saved.map(function(t){ return t.id; });
@@ -452,9 +454,8 @@ registerShared('seoTypes',
     var pulled = data.types;
     // 동일 데이터면 no-op (마스터 echo·중복 렌더 방지)
     if (JSON.stringify(pulled) === JSON.stringify(globalSeoTypes)) return;
-    // SEO_DEFAULT_TYPES에서 제거된 항목 정리 (Firebase 데이터에서도 제거)
-    var defaultIds = SEO_DEFAULT_TYPES.map(function(dt){ return dt.id; });
-    pulled = pulled.filter(function(t){ return defaultIds.indexOf(t.id) >= 0; });
+    // deprecated 항목 정리 (Firebase 데이터에서도 제거)
+    pulled = pulled.filter(function(t){ return DEPRECATED_SEO_IDS.indexOf(t.id) < 0; });
     // 신규 항목 보강 (서버에 없는 SEO_DEFAULT_TYPES 항목 추가)
     var pulledIds = pulled.map(function(t){ return t.id; });
     SEO_DEFAULT_TYPES.forEach(function(dt) {
@@ -1016,6 +1017,7 @@ function switchSettingsPane(mode) {
     renderTypeList();
     if (editingQTypes.length) selectType(selIdx < editingQTypes.length ? selIdx : 0);
   }
+  updateTypeEditorMasterButtons();
 }
 
 function updateSeoEditorVisibility() {
@@ -1099,27 +1101,114 @@ function selectSeoType(i) {
   seoSelIdx = i;
   renderSeoTypeEditor();
   var t = editingSeoTypes[i];
-  var nameEl = document.getElementById('seoEditName');
-  var dirEl  = document.getElementById('seoEditDirection');
-  var promEl = document.getElementById('seoEditPrompt');
-  if (nameEl) nameEl.value = t.name;
-  if (dirEl)  dirEl.value  = t.direction || '';
-  if (promEl) promEl.value = t.prompt || '';
+  var nameEl   = document.getElementById('seoEditName');
+  var dirEl    = document.getElementById('seoEditDirection');
+  var promEl   = document.getElementById('seoEditPrompt');
+  var renderEl = document.getElementById('seoEditRender');
+  if (nameEl)   nameEl.value   = t.name;
+  if (dirEl)    dirEl.value    = t.direction || '';
+  if (promEl)   promEl.value   = t.prompt || '';
+  if (renderEl) renderEl.value = t.seoRender || 'blanks';
 }
 
 function saveSeoCurrentType() {
   if (!isMaster()) { alert('관리자만 수정할 수 있습니다.'); return; }
-  var nameEl = document.getElementById('seoEditName');
-  var dirEl  = document.getElementById('seoEditDirection');
-  var promEl = document.getElementById('seoEditPrompt');
-  if (nameEl) editingSeoTypes[seoSelIdx].name      = nameEl.value;
-  if (dirEl)  editingSeoTypes[seoSelIdx].direction = dirEl.value;
-  if (promEl) editingSeoTypes[seoSelIdx].prompt    = promEl.value;
+  var nameEl   = document.getElementById('seoEditName');
+  var dirEl    = document.getElementById('seoEditDirection');
+  var promEl   = document.getElementById('seoEditPrompt');
+  var renderEl = document.getElementById('seoEditRender');
+  if (nameEl)   editingSeoTypes[seoSelIdx].name      = nameEl.value;
+  if (dirEl)    editingSeoTypes[seoSelIdx].direction = dirEl.value;
+  if (promEl)   editingSeoTypes[seoSelIdx].prompt    = promEl.value;
+  if (renderEl) editingSeoTypes[seoSelIdx].seoRender = renderEl.value;
   globalSeoTypes = JSON.parse(JSON.stringify(editingSeoTypes));
   saveGlobalSeoTypes();
   renderSeoTypeEditor();
   renderSeoTypeRows();
   alert('서술형 프롬프트가 저장되었습니다.');
+}
+
+// ─── 유형 추가/삭제 버튼 마스터 표시 관리 ───
+function updateTypeEditorMasterButtons() {
+  var master = isMaster();
+  var objBtns = document.getElementById('objTypeBtns');
+  var seoBtns = document.getElementById('seoTypeBtns');
+  if (objBtns) objBtns.style.display = master ? 'flex' : 'none';
+  if (seoBtns) seoBtns.style.display = master ? 'flex' : 'none';
+}
+
+// ─── 객관식 유형 추가 ───
+function addObjType() {
+  if (!isMaster()) return;
+  var name = prompt('새 객관식 유형 이름을 입력하세요:', '새 유형');
+  if (!name || !name.trim()) return;
+  var newId = 'custom_' + Date.now();
+  var newType = { id: newId, name: name.trim(), direction: '', prompt: '', references: [], reference: '', kichul: false };
+  editingQTypes.push(newType);
+  var newIdx = editingQTypes.length - 1;
+  _saveEditingQTypes();
+  renderTypeList();
+  selectType(newIdx);
+}
+
+// ─── 객관식 유형 삭제 ───
+function deleteObjType() {
+  if (!isMaster()) return;
+  if (editingQTypes.length <= 1) { alert('마지막 유형은 삭제할 수 없습니다.'); return; }
+  var t = editingQTypes[selIdx];
+  if (!confirm('[' + t.name + '] 유형을 삭제하시겠습니까?')) return;
+  editingQTypes.splice(selIdx, 1);
+  selIdx = Math.min(selIdx, editingQTypes.length - 1);
+  _saveEditingQTypes();
+  renderTypeList();
+  selectType(selIdx);
+}
+
+function _saveEditingQTypes() {
+  var isSchool = SCHOOL_NAMES.indexOf(settingsCat) >= 0;
+  if (isSchool) {
+    schoolPresets[settingsCat] = JSON.parse(JSON.stringify(editingQTypes));
+    saveSchoolPresets();
+  } else {
+    qTypes = JSON.parse(JSON.stringify(editingQTypes));
+    persist();
+  }
+}
+
+// ─── 서술형 유형 추가 ───
+function addSeoType() {
+  if (!isMaster()) return;
+  var name = prompt('새 서술형 유형 이름을 입력하세요:', '새 서술형 유형');
+  if (!name || !name.trim()) return;
+  var newId = 'seo_custom_' + Date.now();
+  var newType = { id: newId, name: name.trim(), direction: '', prompt: '', seoRender: 'blanks', done: false };
+  editingSeoTypes.push(newType);
+  globalSeoTypes = JSON.parse(JSON.stringify(editingSeoTypes));
+  saveGlobalSeoTypes();
+  seoSelIdx = editingSeoTypes.length - 1;
+  renderSeoTypeEditor();
+  selectSeoType(seoSelIdx);
+}
+
+// ─── 서술형 유형 삭제 ───
+function deleteSeoType() {
+  if (!isMaster()) return;
+  if (editingSeoTypes.length <= 1) { alert('마지막 유형은 삭제할 수 없습니다.'); return; }
+  var t = editingSeoTypes[seoSelIdx];
+  if (!confirm('[' + t.name + '] 서술형 유형을 삭제하시겠습니까?\n\n모든 사용자에게 즉시 반영됩니다.')) return;
+  // DEPRECATED_SEO_IDS에 등록하여 재로드 시에도 복귀 방지
+  if (DEPRECATED_SEO_IDS.indexOf(t.id) < 0) DEPRECATED_SEO_IDS.push(t.id);
+  // seoSelected에서도 제거
+  seoSelected = seoSelected.filter(function(s){ return s !== t.id; });
+  persist();
+  editingSeoTypes.splice(seoSelIdx, 1);
+  seoSelIdx = Math.min(seoSelIdx, editingSeoTypes.length - 1);
+  globalSeoTypes = JSON.parse(JSON.stringify(editingSeoTypes));
+  saveGlobalSeoTypes();
+  renderSeoTypeEditor();
+  if (editingSeoTypes.length) selectSeoType(seoSelIdx);
+  renderSeoTypeRows();
+  renderPassageList();
 }
 
 function switchSettingsCat(cat) {
@@ -1360,6 +1449,7 @@ function showMasterAdminSection() {
   } else {
     sec.style.display = 'none';
   }
+  updateTypeEditorMasterButtons();
 }
 
 function saveMasterPrompt(mode) {
