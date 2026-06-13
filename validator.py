@@ -168,14 +168,29 @@ def _morphologically_related(a: str, b: str) -> bool:
 # ── 개별 검증 함수 ────────────────────────────────────────
 
 def chk_blank_count(item: QuestionItem) -> CheckResult:
-    """SUMMARY 내 빈칸이 정확히 (A)(B)(C)(D) 4개인지 확인."""
-    found = set(re.findall(r'\([ABCD]\)', item.summary))
-    ok = found == {'(A)', '(B)', '(C)', '(D)'}
-    return CheckResult(
-        "빈칸 개수",
-        ok,
-        "정확히 4개 확인됨" if ok else f"오류 — 발견: {sorted(found)} (4개 필요)",
-    )
+    """SUMMARY 내 빈칸이 정확히 (A)(B)(C)(D) 각 1개씩 총 4개인지 확인.
+    중복 사용(예: (A)가 2회)도 별도 탐지.
+    """
+    all_found = re.findall(r'\([ABCD]\)', item.summary)
+    counts = Counter(all_found)
+    found_set = set(all_found)
+    missing = {'(A)', '(B)', '(C)', '(D)'} - found_set
+    extras = {k: v for k, v in counts.items() if v > 1}
+
+    if missing:
+        return CheckResult(
+            "빈칸 개수",
+            False,
+            f"오류 — 누락: {sorted(missing)}, 발견: {sorted(found_set)}",
+        )
+    if extras:
+        dup_str = ", ".join(f"{k} {v}회" for k, v in extras.items())
+        return CheckResult(
+            "빈칸 개수",
+            False,
+            f"오류 — 중복 사용: {dup_str} (각 빈칸은 정확히 1회만 사용해야 함)",
+        )
+    return CheckResult("빈칸 개수", True, "정확히 4개 확인됨")
 
 
 def chk_d_word_count(item: QuestionItem) -> CheckResult:
@@ -507,13 +522,17 @@ def chk_d_syntactic_role(item: QuestionItem) -> CheckResult:
     if not d:
         return CheckResult("(D) 구문 호환성", False, "(D) 정답 없음")
 
-    # SUMMARY에서 (D) 직전 단어 추출
+    # SUMMARY에서 (D) 직전/직후 단어 추출
     # 주의: '(D)'는 괄호 포함 토큰이므로 strip 없이 직접 비교
     summary_words = item.summary.split()
     prev_word = ''
+    next_word = ''
     for i, w in enumerate(summary_words):
-        if w == '(D)' and i > 0:
-            prev_word = summary_words[i - 1].lower().strip(string.punctuation)
+        if w == '(D)':
+            if i > 0:
+                prev_word = summary_words[i - 1].lower().strip(string.punctuation)
+            if i + 1 < len(summary_words):
+                next_word = summary_words[i + 1].lower().strip(string.punctuation)
             break
 
     if prev_word not in _PREPOSITIONS:
@@ -525,10 +544,22 @@ def chk_d_syntactic_role(item: QuestionItem) -> CheckResult:
     pos = tagged[0][1] if tagged else ''
 
     if pos.startswith('JJ'):
+        # 빈칸 바로 뒤에 명사가 있으면 "전치사 + 형용사 + 명사" 구조 → 정문
+        # 예: "from (D) factors" → "from structural factors" ✓
+        if next_word:
+            next_tagged = nltk.pos_tag([next_word])
+            next_pos = next_tagged[0][1] if next_tagged else ''
+            if next_pos.startswith('NN'):
+                return CheckResult(
+                    "(D) 구문 호환성",
+                    True,
+                    f"전치사 '{prev_word}' + 형용사 (D)='{d}'({pos}) + 명사 '{next_word}'({next_pos}) → 정문 구조",
+                    severity="INFO",
+                )
         return CheckResult(
             "(D) 구문 호환성",
             False,
-            f"전치사 '{prev_word}' 뒤에 형용사 (D)='{d}'({pos}) → 수식할 명사 없어 비문. 명사(구)로 재설계 필요",
+            f"전치사 '{prev_word}' 뒤에 형용사 (D)='{d}'({pos}) 단독 — 수식할 명사 없어 비문. 명사(구)로 재설계 필요",
         )
     return CheckResult(
         "(D) 구문 호환성",
