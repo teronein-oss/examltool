@@ -485,6 +485,20 @@ _DISCOURSE_MARKERS = {
     'in conclusion', 'as a result', 'on the other hand',
 }
 
+# 기능어 목록 — (A)(B)(C)에 단독 정답으로 사용 불가
+# 관사, 지시사, 등위접속사, 인칭대명사 등
+_FUNCTION_WORDS_FORBIDDEN = {
+    # 관사
+    'the', 'a', 'an',
+    # 지시사
+    'this', 'that', 'these', 'those',
+    # 등위접속사
+    'and', 'or', 'but', 'so', 'nor', 'for', 'yet',
+    # 인칭/소유 대명사
+    'it', 'its', 'he', 'she', 'they', 'we', 'i', 'you',
+    'his', 'her', 'their', 'our', 'my', 'your',
+}
+
 # 전치사 목록 — (D) 직전 단어가 이것이고 (D)가 형용사면 비문
 _PREPOSITIONS = {
     'from', 'of', 'in', 'at', 'to', 'with', 'for', 'by', 'about',
@@ -509,6 +523,32 @@ def chk_a_content_word(item: QuestionItem) -> CheckResult:
             severity="WARNING",
         )
     return CheckResult("(A) 내용어 여부", True, f"(A)='{a}' — 내용어 확인됨", severity="INFO")
+
+
+def chk_abc_function_word(item: QuestionItem) -> list[CheckResult]:
+    """(A)(B)(C) 정답이 관사·기능어가 아닌 내용어인지 확인.
+    'the', 'a', 'an' 등 기능어는 내신 서술형 정답으로 출제 불가.
+    """
+    results = []
+    for key in ['A', 'B', 'C']:
+        ans = item.answers.get(key, '').strip()
+        if not ans:
+            continue
+        ans_lower = ans.lower()
+        if ans_lower in _FUNCTION_WORDS_FORBIDDEN:
+            results.append(CheckResult(
+                f"({key}) 기능어 정답",
+                False,
+                f"({key})='{ans}' — 관사·기능어는 서술형 정답 불가 (내용어 필요)",
+            ))
+        else:
+            results.append(CheckResult(
+                f"({key}) 기능어 정답",
+                True,
+                f"({key})='{ans}' — 내용어 확인됨",
+                severity="INFO",
+            ))
+    return results
 
 
 def chk_d_syntactic_role(item: QuestionItem) -> CheckResult:
@@ -567,6 +607,70 @@ def chk_d_syntactic_role(item: QuestionItem) -> CheckResult:
         f"전치사 '{prev_word}' 뒤 (D)='{d}'({pos}) — 품사 호환됨",
         severity="INFO",
     )
+
+
+def chk_bc_syntactic_role(item: QuestionItem) -> list[CheckResult]:
+    """(B)(C) 정답 삽입 후 부사+명사 비문 패턴 탐지.
+    정답의 head가 부사(RB*)이고 빈칸 직후 단어가 명사(NN*)이면 비문.
+    예) C='unbearably', 직후='gravity' → 'unbearably gravity' 비문.
+    단, (B)(C) 직후 단어가 형용사이면 정문 (부사+형용사+명사 구조 허용).
+    """
+    if not _pos_tagger_available:
+        return [CheckResult(
+            "(B)(C) 구문 호환성", True, "POS 태거 미사용 — 건너뜀", severity="INFO",
+        )]
+
+    results = []
+    summary_words = item.summary.split()
+
+    for key in ['B', 'C']:
+        ans = item.answers.get(key, '')
+        if not ans:
+            continue
+
+        # SUMMARY에서 (B)/(C) 직후 단어 탐색
+        blank_token = f'({key})'
+        next_word = ''
+        for i, w in enumerate(summary_words):
+            if w == blank_token and i + 1 < len(summary_words):
+                next_word = summary_words[i + 1].lower().strip(string.punctuation)
+                break
+
+        if not next_word:
+            results.append(CheckResult(
+                f"({key}) 구문 호환성",
+                True,
+                f"({key}) 빈칸 뒤 단어 없음 — 검사 불필요",
+                severity="INFO",
+            ))
+            continue
+
+        # 정답 head 단어 품사 태깅
+        ans_head = word_tokenize(ans)[-1]
+        tagged_head = nltk.pos_tag([ans_head])
+        head_pos = tagged_head[0][1] if tagged_head else ''
+
+        # 직후 단어 품사 태깅
+        tagged_next = nltk.pos_tag([next_word])
+        next_pos = tagged_next[0][1] if tagged_next else ''
+
+        if head_pos.startswith('RB') and next_pos.startswith('NN'):
+            results.append(CheckResult(
+                f"({key}) 구문 호환성",
+                False,
+                (f"({key})='{ans}'({head_pos}) 삽입 후 명사 '{next_word}'({next_pos}) 바로 앞 — "
+                 f"부사+명사 직결 비문 (예: '{ans} {next_word}'). "
+                 f"정답을 형용사형으로 교체하거나 SUMMARY 재설계 필요"),
+            ))
+        else:
+            results.append(CheckResult(
+                f"({key}) 구문 호환성",
+                True,
+                f"({key})='{ans}'({head_pos}) + 직후 '{next_word}'({next_pos}) — 구문 이상 없음",
+                severity="INFO",
+            ))
+
+    return results
 
 
 def chk_pos_distribution(item: QuestionItem) -> CheckResult:
@@ -635,7 +739,9 @@ def run_all_checks(item: QuestionItem) -> list[CheckResult]:
     results.extend(chk_abc_in_passage(item))
     results.extend(chk_duplicate_on_insertion(item))
     results.append(chk_a_content_word(item))
+    results.extend(chk_abc_function_word(item))      # 신규: (A)(B)(C) 관사·기능어 탐지
     results.append(chk_d_syntactic_role(item))
+    results.extend(chk_bc_syntactic_role(item))      # 신규: (B)(C) 부사+명사 비문 탐지
     results.append(chk_explanation(item))
     results.append(chk_direction_dual(item))
     results.append(chk_direction_blank_list(item))   # 신규: DIRECTION에 (B) 누락 탐지
