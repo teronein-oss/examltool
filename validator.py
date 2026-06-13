@@ -333,7 +333,13 @@ def chk_duplicate_on_insertion(item: QuestionItem) -> list[CheckResult]:
                 gap = positions[j + 1] - positions[j] - 1  # 사이 단어 수
                 if gap <= 4:
                     ctx = ' '.join(words[max(0, positions[j] - 1):positions[j + 1] + 2])
-                    dups.append(f"'{aw}' 중복 (사이 {gap}단어): ...{ctx}...")
+                    if gap == 0:
+                        dups.append(
+                            f"'{aw}' 빈칸 직접 노출 — "
+                            f"SUMMARY에 정답 단어가 빈칸 바로 옆에 이미 쓰여 있음: ...{ctx}..."
+                        )
+                    else:
+                        dups.append(f"'{aw}' 근접 중복 (사이 {gap}단어): ...{ctx}...")
 
         results.append(CheckResult(
             f"({key}) 삽입 중복",
