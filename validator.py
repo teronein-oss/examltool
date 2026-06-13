@@ -157,8 +157,10 @@ def _morphologically_related(a: str, b: str) -> bool:
         return True
     if stemmer and _stem(a) == _stem(b):
         return True
-    # substring: cost ↔ costly, burden ↔ burdensome 등 파생 관계 포착
-    if len(a) >= 4 and len(b) >= 4 and (a in b or b in a):
+    # prefix 기반 파생어 포착: cost→costly, burden→burdensome
+    # substring(any position) 사용 시 stem↔systemic 등 false positive 발생하므로
+    # 한쪽이 다른쪽의 접두어인 경우만 관련으로 판정
+    if len(a) >= 4 and len(b) >= 4 and (b.startswith(a) or a.startswith(b)):
         return True
     return False
 
@@ -380,6 +382,84 @@ def chk_direction_dual(item: QuestionItem) -> CheckResult:
     )
 
 
+# 담론 연결어 목록 — (A)가 이 중 하나면 내용어 위반
+_DISCOURSE_MARKERS = {
+    'nonetheless', 'however', 'therefore', 'moreover', 'furthermore',
+    'consequently', 'thus', 'hence', 'nevertheless', 'accordingly',
+    'meanwhile', 'subsequently', 'additionally', 'alternatively',
+    'conversely', 'likewise', 'instead', 'otherwise', 'besides',
+    'overall', 'indeed', 'admittedly', 'in addition', 'in contrast',
+    'in conclusion', 'as a result', 'on the other hand',
+}
+
+# 전치사 목록 — (D) 직전 단어가 이것이고 (D)가 형용사면 비문
+_PREPOSITIONS = {
+    'from', 'of', 'in', 'at', 'to', 'with', 'for', 'by', 'about',
+    'without', 'through', 'between', 'among', 'beyond', 'after',
+    'before', 'during', 'against', 'into', 'onto', 'upon', 'over',
+    'under', 'within', 'despite', 'toward', 'towards',
+}
+
+
+def chk_a_content_word(item: QuestionItem) -> CheckResult:
+    """(A) 정답이 담론 연결어/접속어 부사가 아닌 주제 내용어인지 확인.
+    (A) = 주제 핵심 형용사/명사여야 하며, nonetheless/however/therefore 등은 금지.
+    """
+    a = item.answers.get('A', '').lower().strip(string.punctuation)
+    if not a:
+        return CheckResult("(A) 내용어 여부", False, "(A) 정답 없음")
+    if a in _DISCOURSE_MARKERS:
+        return CheckResult(
+            "(A) 내용어 여부",
+            False,
+            f"(A)='{a}'는 담론 연결어/부사 — (A)는 주제 핵심 명사·형용사여야 함 (내용어 위반)",
+            severity="WARNING",
+        )
+    return CheckResult("(A) 내용어 여부", True, f"(A)='{a}' — 내용어 확인됨", severity="INFO")
+
+
+def chk_d_syntactic_role(item: QuestionItem) -> CheckResult:
+    """(D) 빈칸 직전이 전치사인데 정답이 형용사면 비문이 됨을 탐지.
+    예: 'stem from (D)' + D='systemic' → 'stem from systemic' (명사 없는 형용사 단독, 비문)
+    """
+    if not _pos_tagger_available:
+        return CheckResult("(D) 구문 호환성", True, "POS 태거 미사용 — 건너뜀", severity="INFO")
+
+    d = item.answers.get('D', '')
+    if not d:
+        return CheckResult("(D) 구문 호환성", False, "(D) 정답 없음")
+
+    # SUMMARY에서 (D) 직전 단어 추출
+    # 주의: '(D)'는 괄호 포함 토큰이므로 strip 없이 직접 비교
+    summary_words = item.summary.split()
+    prev_word = ''
+    for i, w in enumerate(summary_words):
+        if w == '(D)' and i > 0:
+            prev_word = summary_words[i - 1].lower().strip(string.punctuation)
+            break
+
+    if prev_word not in _PREPOSITIONS:
+        return CheckResult("(D) 구문 호환성", True, f"(D) 앞 문맥 '{prev_word}' — 전치사 아님, 검사 불필요", severity="INFO")
+
+    # 전치사 뒤라면 (D) 품사가 형용사인지 확인
+    d_head = word_tokenize(d)[-1]
+    tagged = nltk.pos_tag([d_head])
+    pos = tagged[0][1] if tagged else ''
+
+    if pos.startswith('JJ'):
+        return CheckResult(
+            "(D) 구문 호환성",
+            False,
+            f"전치사 '{prev_word}' 뒤에 형용사 (D)='{d}'({pos}) → 수식할 명사 없어 비문. 명사(구)로 재설계 필요",
+        )
+    return CheckResult(
+        "(D) 구문 호환성",
+        True,
+        f"전치사 '{prev_word}' 뒤 (D)='{d}'({pos}) — 품사 호환됨",
+        severity="INFO",
+    )
+
+
 def chk_pos_distribution(item: QuestionItem) -> CheckResult:
     """4개 빈칸 정답의 품사 분산 확인 (동일 품사 3개 이상 금지).
     NLP 품사 태깅 기반 — 경고(WARNING) 수준으로 처리.
@@ -445,6 +525,8 @@ def run_all_checks(item: QuestionItem) -> list[CheckResult]:
     results.append(chk_d_not_in_passage(item))
     results.extend(chk_abc_in_passage(item))
     results.extend(chk_duplicate_on_insertion(item))
+    results.append(chk_a_content_word(item))      # 신규: (A) 담론 연결어 금지
+    results.append(chk_d_syntactic_role(item))    # 신규: (D) 전치사 뒤 형용사 비문 탐지
     results.append(chk_explanation(item))
     results.append(chk_direction_dual(item))
     results.append(chk_pos_distribution(item))
