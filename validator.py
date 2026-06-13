@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 요약문 빈칸4개 문항 자동 검증 스크립트
-메타프롬프트 v1.2 — 백현2 교과서 요약문 빈칸4개 유형
+메타프롬프트 v2.0 — 백현2 교과서 요약문 빈칸4개 유형
 
 사용법:
   python3 validator.py question.txt          # 텍스트 파일 검증
@@ -382,6 +382,84 @@ def chk_direction_dual(item: QuestionItem) -> CheckResult:
     )
 
 
+def chk_direction_blank_list(item: QuestionItem) -> CheckResult:
+    """DIRECTION 지시문에 (B)가 명시되었는지 확인.
+    모델이 '(A)(C)에 들어갈' 형태로 (B)를 누락하는 오류 탐지.
+    허용 패턴: '(A)~(C)', '(A)-(C)', '(A)(B)(C)', '(A), (B), (C)'
+    """
+    if not item.direction.strip():
+        return CheckResult("DIRECTION (B) 명시", False, "DIRECTION 섹션 없음", severity="WARNING")
+
+    has_b_explicit = bool(re.search(r'\(B\)', item.direction))
+    # ~ 또는 - 로 A~C 범위를 표시하는 경우도 허용
+    has_range = bool(re.search(r'\(A\)\s*[~\-]\s*\(C\)', item.direction))
+
+    ok = has_b_explicit or has_range
+    return CheckResult(
+        "DIRECTION (B) 명시",
+        ok,
+        ("(B) 포함 확인됨" if ok
+         else "DIRECTION에서 (B) 누락 — '(A)~(C)에 들어갈 알맞은 말' 또는 '(A)(B)(C)' 형태 필요"),
+    )
+
+
+_VOWELS = set('aeiou')
+
+
+def chk_article_agreement(item: QuestionItem) -> list[CheckResult]:
+    """정답 삽입 후 관사 a/an 호응 오류 탐지.
+    'a [모음 시작 단어]' 또는 'an [자음 시작 단어]' 패턴을 감지.
+    (묵음 h, euphonic 'an' 등 예외는 고교 수준 범위로 한정하여 단순 처리)
+    """
+    results = []
+    summary = item.summary
+
+    for key in ['A', 'B', 'C', 'D']:
+        ans = item.answers.get(key, '')
+        if not ans:
+            continue
+
+        inserted = re.sub(re.escape(f'({key})'), ans, summary)
+        words = inserted.split()
+
+        _blank_re = re.compile(r'^\([ABCD]\)$')
+
+        errors = []
+        for i, w in enumerate(words[:-1]):
+            # 미삽입 빈칸 마커 '(A)' ~ '(D)' 는 구두점 제거 시 단독 알파벳이 되어
+            # 관사로 오인될 수 있으므로 현재 토큰/다음 토큰 모두 건너뜀
+            if _blank_re.match(w):
+                continue
+            next_token = words[i + 1]
+            if _blank_re.match(next_token):
+                continue
+            w_clean = w.lower().strip(string.punctuation)
+            next_raw = next_token.strip(string.punctuation)
+            if not next_raw:
+                continue
+            first_ch = next_raw[0].lower()
+            if w_clean == 'a' and first_ch in _VOWELS:
+                errors.append(f"'a {next_raw}' — 모음 시작 → 'an {next_raw}' 필요")
+            elif w_clean == 'an' and first_ch not in _VOWELS:
+                errors.append(f"'an {next_raw}' — 자음 시작 → 'a {next_raw}' 필요")
+
+        if errors:
+            results.append(CheckResult(
+                f"({key}) 관사 호응",
+                False,
+                f"({key})='{ans}' 삽입 시 관사 오류: {errors[0]}",
+            ))
+        else:
+            results.append(CheckResult(
+                f"({key}) 관사 호응",
+                True,
+                f"({key})='{ans}' — 관사 호응 이상 없음",
+                severity="INFO",
+            ))
+
+    return results
+
+
 # 담론 연결어 목록 — (A)가 이 중 하나면 내용어 위반
 _DISCOURSE_MARKERS = {
     'nonetheless', 'however', 'therefore', 'moreover', 'furthermore',
@@ -525,10 +603,12 @@ def run_all_checks(item: QuestionItem) -> list[CheckResult]:
     results.append(chk_d_not_in_passage(item))
     results.extend(chk_abc_in_passage(item))
     results.extend(chk_duplicate_on_insertion(item))
-    results.append(chk_a_content_word(item))      # 신규: (A) 담론 연결어 금지
-    results.append(chk_d_syntactic_role(item))    # 신규: (D) 전치사 뒤 형용사 비문 탐지
+    results.append(chk_a_content_word(item))
+    results.append(chk_d_syntactic_role(item))
     results.append(chk_explanation(item))
     results.append(chk_direction_dual(item))
+    results.append(chk_direction_blank_list(item))   # 신규: DIRECTION에 (B) 누락 탐지
+    results.extend(chk_article_agreement(item))      # 신규: 관사 a/an 호응 오류 탐지
     results.append(chk_pos_distribution(item))
     return results
 
