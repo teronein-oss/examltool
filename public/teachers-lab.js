@@ -3232,8 +3232,10 @@ function renderValidationCard(num, type, parsed) {
     detailHtml = '<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;display:none;" id="vdetail-' + num + '">' +
       '<div style="font-size:12px;font-weight:700;color:var(--ac);margin-bottom:6px;">발견된 문제점</div>' +
       '<div style="font-size:12px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;">' + escHtml(parsed.issues) + '</div>' +
-      '<div style="font-size:12px;font-weight:700;color:var(--bl);margin-top:10px;margin-bottom:6px;">교정 지시</div>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--bl);margin-top:10px;margin-bottom:4px;">교정 지시 (AI 분석)</div>' +
       '<div style="font-size:12px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;">' + escHtml(parsed.corrections) + '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--ink1);margin-top:12px;margin-bottom:4px;">추가 수정사항 <span style="font-weight:400;color:var(--ink3);">(선택 — 직접 입력)</span></div>' +
+      '<textarea id="vextra-' + num + '" placeholder="예: 3번 선지를 더 지엽적인 내용으로 바꿔주세요." style="width:100%;min-height:64px;font-size:12px;font-family:inherit;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--ink1);resize:vertical;box-sizing:border-box;line-height:1.6;"></textarea>' +
       '</div>';
   }
 
@@ -3371,6 +3373,13 @@ async function regenWithCorrection(num) {
   var corrections = (vr.parsed && vr.parsed.corrections && vr.parsed.corrections !== '없음')
     ? vr.parsed.corrections
     : '검수에서 지적된 문제점을 개선하세요.';
+
+  // 사용자가 직접 입력한 추가 수정사항 병합
+  var extraEl = document.getElementById('vextra-' + num);
+  var extraInput = extraEl ? extraEl.value.trim() : '';
+  if (extraInput) {
+    corrections += '\n\n## 추가 수정 요청 (사용자)\n' + extraInput;
+  }
 
   var cardEl = document.getElementById('vcard-' + num);
   if (cardEl) {
