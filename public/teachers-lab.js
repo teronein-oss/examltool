@@ -3450,7 +3450,7 @@ async function regenWithCorrection(num) {
       cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
         '<span class="di">✓</span>' +
         '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 수정 반영 완료</span>' +
-        '<span style="font-size:11px;color:var(--ink3);">검수 결과가 초기화됩니다 — 다시 검수하기를 실행하세요</span>' +
+        '<button class="tbtn" onclick="revalidateSingle(' + num + ')" style="font-size:11px;padding:3px 10px;background:var(--gd);color:#fff;border-color:var(--gd);">🔍 재검수</button>' +
         '</div>';
     }
 
@@ -3467,6 +3467,50 @@ async function regenWithCorrection(num) {
         '<span style="font-weight:700;">' + num + '번 — 수정 반영 실패: ' + escHtml(err.message) + '</span>' +
         '</div>';
     }
+  }
+}
+
+async function revalidateSingle(num) {
+  // _curRawResults에서 해당 번호의 문항 찾기
+  var rawItem = null;
+  var globalIdx = -1;
+  for (var i = 0; i < _curRawResults.length; i++) {
+    if (_curRawResults[i].num === num) { rawItem = _curRawResults[i]; globalIdx = i; break; }
+  }
+  if (!rawItem || !rawItem.result) { alert('재검수할 문항을 찾을 수 없습니다.'); return; }
+
+  var cardEl = document.getElementById('vcard-' + num);
+  if (cardEl) {
+    cardEl.style.background  = 'var(--sf)';
+    cardEl.style.borderColor = 'var(--bd)';
+    cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+      '<div class="spin" style="display:inline-block;"></div>' +
+      '<span style="font-size:12px;color:var(--ink3);">재검수 중...</span>' +
+      '<span style="font-weight:700;">' + num + '번 [' + escHtml(rawItem.type.name) + ']</span>' +
+      '</div>';
+  }
+
+  try {
+    var raw    = await validateProblem(rawItem.type, rawItem.result);
+    var parsed = parseValidationResult(raw);
+
+    // _validationResults 갱신 (기존 항목 교체 또는 새로 추가)
+    if (!_validationResults) _validationResults = [];
+    var existing = false;
+    for (var j = 0; j < _validationResults.length; j++) {
+      if (_validationResults[j].num === num) {
+        _validationResults[j] = { num: num, type: rawItem.type, raw: raw, parsed: parsed, idx: globalIdx };
+        existing = true; break;
+      }
+    }
+    if (!existing) {
+      _validationResults.push({ num: num, type: rawItem.type, raw: raw, parsed: parsed, idx: globalIdx });
+    }
+
+    renderValidationCard(num, rawItem.type, parsed);
+
+  } catch(err) {
+    renderValidationCardError(num, rawItem.type, err.message);
   }
 }
 
