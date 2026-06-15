@@ -3243,7 +3243,7 @@ function renderValidationCard(num, type, parsed) {
     '<span style="font-size:11px;background:' + badgeBg + ';color:' + badgeColor + ';padding:2px 10px;border-radius:99px;font-weight:700;">' + badgeText + '</span>' +
     (isPassed ? '' :
       '<button class="tbtn" onclick="toggleVDetail(' + num + ')" style="font-size:11px;padding:3px 10px;">▼ 상세보기</button>' +
-      '<button class="tbtn" onclick="regenWithCorrection(' + num + ')" style="font-size:11px;padding:3px 10px;background:var(--bl);color:#fff;border-color:var(--bl);">🔄 재출제</button>'
+      '<button class="tbtn" onclick="regenWithCorrection(' + num + ')" style="font-size:11px;padding:3px 10px;background:var(--bl);color:#fff;border-color:var(--bl);">✏️ 수정 반영</button>'
     ) +
     '</div>' +
     detailHtml;
@@ -3361,16 +3361,16 @@ async function regenWithCorrection(num) {
       if (_validationResults[i].num === num) { vr = _validationResults[i]; break; }
     }
   }
-  if (!vr || vr.idx === undefined) { alert('재출제 데이터를 찾을 수 없습니다.'); return; }
+  if (!vr || vr.idx === undefined) { alert('수정 데이터를 찾을 수 없습니다.'); return; }
 
-  var rawIdx = vr.idx;
-  var type   = _curRawResults[rawIdx].type;
-  var item   = _curAssignment[rawIdx];
-  if (!item || !type) { alert('원본 배정 정보를 찾을 수 없습니다.'); return; }
+  var rawIdx     = vr.idx;
+  var type       = _curRawResults[rawIdx].type;
+  var rawResult  = _curRawResults[rawIdx].result;
+  if (!type || !rawResult) { alert('원본 문항 정보를 찾을 수 없습니다.'); return; }
 
-  var correctionHint = (vr.parsed && vr.parsed.corrections && vr.parsed.corrections !== '없음')
-    ? '검수 결과 — 다음 문제를 반드시 수정하여 재출제하세요:\n' + vr.parsed.corrections
-    : '검수 결과 지적 사항을 반영하여 개선된 문항을 재출제하세요.';
+  var corrections = (vr.parsed && vr.parsed.corrections && vr.parsed.corrections !== '없음')
+    ? vr.parsed.corrections
+    : '검수에서 지적된 문제점을 개선하세요.';
 
   var cardEl = document.getElementById('vcard-' + num);
   if (cardEl) {
@@ -3378,12 +3378,68 @@ async function regenWithCorrection(num) {
     cardEl.style.borderColor = 'var(--bd)';
     cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
       '<div class="spin" style="display:inline-block;"></div>' +
-      '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 재출제 중...</span>' +
+      '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 수정 반영 중...</span>' +
       '</div>';
   }
 
   try {
-    var result = await callAPI(type, item.passage.text, correctionHint);
+    var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
+    var model = document.getElementById('modelSelect').value;
+    if (!key) throw new Error('API 키를 입력해주세요.');
+
+    var systemPrompt = '당신은 수능 영어 문항 교정 전문가입니다. 아래 원본 문항에서 교정 지시 사항에 해당하는 부분만 수정하고, 나머지는 원문 그대로 유지하세요. 마크다운 서식 금지. 섹션 라벨(PASSAGE:, DIRECTION: 등)을 포함한 전체 문항을 원본과 동일한 형식으로 출력하세요.';
+
+    var userPrompt = '## 원본 문항\n' + rawResult +
+      '\n\n## 교정 지시 사항\n' + corrections +
+      '\n\n위 교정 지시 사항에 해당하는 부분만 수정하고, 수정이 필요 없는 부분은 원문 그대로 유지하여 전체 문항을 출력하세요.';
+
+    var result = '';
+    if (model.startsWith('claude')) {
+      var res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 4000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+      if (!res.ok) {
+        var e = await res.json().catch(function(){ return {}; });
+        throw new Error(e.error && e.error.message ? e.error.message : 'HTTP ' + res.status);
+      }
+      var data = await res.json();
+      result = data.content && data.content[0] ? data.content[0].text : '';
+    } else {
+      var geminiBody = {
+        contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }],
+        generationConfig: { maxOutputTokens: 4000, temperature: 0.3 }
+      };
+      if (model.indexOf('flash') >= 0) {
+        geminiBody.generationConfig.thinkingConfig = { thinkingBudget: 1024 };
+      }
+      var res2 = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) }
+      );
+      if (!res2.ok) {
+        var e2 = await res2.json().catch(function(){ return {}; });
+        throw new Error(e2.error && e2.error.message ? e2.error.message : 'HTTP ' + res2.status);
+      }
+      var data2 = await res2.json();
+      var parts2 = (data2.candidates && data2.candidates[0] && data2.candidates[0].content &&
+        data2.candidates[0].content.parts) ? data2.candidates[0].content.parts : [];
+      for (var pi = 0; pi < parts2.length; pi++) {
+        if (parts2[pi].text) { result = parts2[pi].text; break; }
+      }
+    }
+
     _curRawResults[rawIdx].result = result;
     _curRawResults[rawIdx].error  = null;
     _validationResults = _validationResults.filter(function(v) { return v.num !== num; });
@@ -3393,7 +3449,7 @@ async function regenWithCorrection(num) {
       cardEl.style.borderColor = '#a0d4b4';
       cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
         '<span class="di">✓</span>' +
-        '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 재출제 완료</span>' +
+        '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 수정 반영 완료</span>' +
         '<span style="font-size:11px;color:var(--ink3);">검수 결과가 초기화됩니다 — 다시 검수하기를 실행하세요</span>' +
         '</div>';
     }
@@ -3408,7 +3464,7 @@ async function regenWithCorrection(num) {
       cardEl.style.borderColor = '#f0c0bb';
       cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">' +
         '<span class="ei">✗</span>' +
-        '<span style="font-weight:700;">' + num + '번 — 재출제 실패: ' + escHtml(err.message) + '</span>' +
+        '<span style="font-weight:700;">' + num + '번 — 수정 반영 실패: ' + escHtml(err.message) + '</span>' +
         '</div>';
     }
   }
