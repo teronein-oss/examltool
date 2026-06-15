@@ -819,6 +819,7 @@ async function startPracGeneration() {
   document.getElementById('copyABtn').style.display  = 'none';
   document.getElementById('copyAllBtn').style.display= 'none';
   document.getElementById('retryFailedBtn').style.display= 'none';
+  document.getElementById('validateBtn').style.display= 'none';
   _genCancelled = false;
   document.getElementById('pracGenerateBtn').disabled = true;
   document.getElementById('cancelBtn').style.display = '';
@@ -2867,6 +2868,7 @@ var _curAssignment = null;
 var _curRawResults = null;
 var _curDateStr = '';
 var _curIsRandom = false;
+var _validationResults = null;
 
 async function startGeneration() {
   try {
@@ -2922,6 +2924,7 @@ async function startGeneration() {
   document.getElementById('copyABtn').style.display  = 'none';
   document.getElementById('copyAllBtn').style.display= 'none';
   document.getElementById('retryFailedBtn').style.display= 'none';
+  document.getElementById('validateBtn').style.display= 'none';
   _genCancelled = false;
   document.getElementById('generateBtn').disabled    = true;
   document.getElementById('cancelBtn').style.display = '';
@@ -3055,6 +3058,7 @@ function compileAndRenderOutput() {
   document.getElementById('copyABtn').style.display   = '';
   document.getElementById('copyAllBtn').style.display = '';
   document.getElementById('retryFailedBtn').style.display = hasFailures ? '' : 'none';
+  document.getElementById('validateBtn').style.display = '';
 
   document.getElementById('taQ').scrollIntoView({ behavior:'smooth' });
 }
@@ -3117,6 +3121,297 @@ async function retryFailedItems() {
   compileAndRenderOutput();
   
   // 히스토리 저장 비활성화 — 기능 임시 중단
+}
+
+// ─── 검수 (VALIDATION) ───
+
+async function validateProblem(type, rawResult) {
+  var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
+  var model = document.getElementById('modelSelect').value;
+  if (!key) throw new Error('API 키를 입력해주세요.');
+
+  var systemPrompt = '당신은 수능 영어 문항 품질 검수 전문가입니다. 아래 형식으로만 응답하세요. 추론 과정, 서문, 인사말을 출력하지 마세요.\nSTATUS: 통과 또는 수정필요\nISSUES: (문제가 없으면 "없음". 있으면 번호를 매겨 줄바꿈으로 나열)\nCORRECTIONS: (수정이 불필요하면 "없음". 있으면 번호를 매겨 재출제 프롬프트에 그대로 쓸 수 있는 형태로 교정 지시)';
+
+  var commonQuality = '## 공통 품질 기준 (유형 무관 필수 확인)\n' +
+    '1. 선택지(CHOICES) 간 동일한 핵심 단어·구가 반복되지 않을 것\n' +
+    '2. 오답 선택지는 정답과 명확히 구분되어 변별력이 있을 것\n' +
+    '3. 정답의 근거가 지문(PASSAGE) 내에 명시적으로 존재할 것\n' +
+    '4. 지문이 자연스럽고 어색하거나 부자연스러운 부분이 없을 것\n' +
+    '5. DIRECTION(지시문) 문구가 해당 유형의 표준 형식과 일치할 것';
+
+  var userPrompt = '## 유형별 출제 기준\n' + (type.prompt || '').slice(0, 6000) +
+    '\n\n' + commonQuality +
+    '\n\n## 검수 대상 문항\n' + rawResult +
+    '\n\n위 기준을 하나씩 점검하고 STATUS / ISSUES / CORRECTIONS 세 섹션으로만 응답하세요.';
+
+  if (model.startsWith('claude')) {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+    if (!res.ok) {
+      var e = await res.json().catch(function(){ return {}; });
+      throw new Error(e.error && e.error.message ? e.error.message : 'HTTP ' + res.status);
+    }
+    var data = await res.json();
+    return data.content && data.content[0] ? data.content[0].text : '';
+
+  } else {
+    var geminiBody = {
+      contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }],
+      generationConfig: { maxOutputTokens: 1500, temperature: 0.3 }
+    };
+    if (model.indexOf('flash') >= 0) {
+      geminiBody.generationConfig.thinkingConfig = { thinkingBudget: 512 };
+    }
+    var res2 = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) }
+    );
+    if (!res2.ok) {
+      var e2 = await res2.json().catch(function(){ return {}; });
+      throw new Error(e2.error && e2.error.message ? e2.error.message : 'HTTP ' + res2.status);
+    }
+    var data2 = await res2.json();
+    var parts2 = (data2.candidates && data2.candidates[0] && data2.candidates[0].content &&
+      data2.candidates[0].content.parts) ? data2.candidates[0].content.parts : [];
+    var textPart2 = null;
+    for (var pi = 0; pi < parts2.length; pi++) {
+      if (parts2[pi].text) { textPart2 = parts2[pi]; break; }
+    }
+    return textPart2 ? textPart2.text : '';
+  }
+}
+
+function parseValidationResult(raw) {
+  var status      = extractSec(raw, 'STATUS').trim();
+  var issues      = extractSec(raw, 'ISSUES').trim();
+  var corrections = extractSec(raw, 'CORRECTIONS').trim();
+  var passed = status.indexOf('통과') >= 0 && status.indexOf('수정필요') < 0;
+  return {
+    passed: passed,
+    status: status || '알 수 없음',
+    issues: issues || '없음',
+    corrections: corrections || '없음'
+  };
+}
+
+function buildValidationCardPlaceholder(r) {
+  return '<div class="gi" id="vcard-' + r.num + '" style="flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:10px;">' +
+    '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+    '<span style="font-size:12px;color:var(--ink3);">대기 중...</span>' +
+    '<span style="font-weight:700;">' + r.num + '번 [' + escHtml(r.type.name) + ']</span>' +
+    '</div>' +
+    '</div>';
+}
+
+function renderValidationCard(num, type, parsed) {
+  var cardEl = document.getElementById('vcard-' + num);
+  if (!cardEl) return;
+  var isPassed    = parsed.passed;
+  var badgeBg     = isPassed ? 'var(--grs)' : 'var(--acs)';
+  var badgeColor  = isPassed ? 'var(--gr)'  : 'var(--ac)';
+  var borderColor = isPassed ? '#a0d4b4'    : '#f0c0bb';
+  var badgeText   = isPassed ? '통과'       : '수정필요';
+  cardEl.style.background  = isPassed ? 'var(--sf)' : '#fff8f7';
+  cardEl.style.borderColor = borderColor;
+
+  var detailHtml = '';
+  if (!isPassed) {
+    detailHtml = '<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;display:none;" id="vdetail-' + num + '">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--ac);margin-bottom:6px;">발견된 문제점</div>' +
+      '<div style="font-size:12px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;">' + escHtml(parsed.issues) + '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--bl);margin-top:10px;margin-bottom:6px;">교정 지시</div>' +
+      '<div style="font-size:12px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;">' + escHtml(parsed.corrections) + '</div>' +
+      '</div>';
+  }
+
+  cardEl.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">' +
+    '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + ']</span>' +
+    '<span style="font-size:11px;background:' + badgeBg + ';color:' + badgeColor + ';padding:2px 10px;border-radius:99px;font-weight:700;">' + badgeText + '</span>' +
+    (isPassed ? '' :
+      '<button class="tbtn" onclick="toggleVDetail(' + num + ')" style="font-size:11px;padding:3px 10px;">▼ 상세보기</button>' +
+      '<button class="tbtn" onclick="regenWithCorrection(' + num + ')" style="font-size:11px;padding:3px 10px;background:var(--bl);color:#fff;border-color:var(--bl);">🔄 재출제</button>'
+    ) +
+    '</div>' +
+    detailHtml;
+}
+
+function renderValidationCardError(num, type, errMsg) {
+  var cardEl = document.getElementById('vcard-' + num);
+  if (!cardEl) return;
+  cardEl.style.background  = 'var(--sf)';
+  cardEl.style.borderColor = '#d4b86a';
+  cardEl.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+    '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + ']</span>' +
+    '<span style="font-size:11px;background:var(--gds);color:var(--gd);padding:2px 10px;border-radius:99px;font-weight:700;">검수 오류</span>' +
+    '<span style="font-size:11px;color:var(--ink3);">' + escHtml(errMsg) + '</span>' +
+    '</div>';
+}
+
+function toggleVDetail(num) {
+  var el = document.getElementById('vdetail-' + num);
+  if (!el) return;
+  var isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  var card = document.getElementById('vcard-' + num);
+  if (card) {
+    var btn = card.querySelector('[onclick^="toggleVDetail"]');
+    if (btn) btn.textContent = isHidden ? '▲ 닫기' : '▼ 상세보기';
+  }
+}
+
+async function runValidation() {
+  if (!_curRawResults || !_curRawResults.length) { alert('먼저 문항을 생성해주세요.'); return; }
+  var key = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
+  if (!key) { alert('API 키를 입력해주세요.'); return; }
+
+  var toValidate = _curRawResults.filter(function(r) { return !!r.result; });
+  if (!toValidate.length) { alert('검수할 문항이 없습니다.'); return; }
+
+  var validateBtn = document.getElementById('validateBtn');
+  validateBtn.disabled = true;
+  validateBtn.textContent = '🔄 검수 중...';
+
+  var existing = document.getElementById('validationPanel');
+  if (existing) existing.parentNode.removeChild(existing);
+
+  var panelHtml = '<div id="validationPanel" class="slide-fade-in" style="margin-top:24px;">' +
+    '<div style="font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--gd);display:flex;align-items:center;gap:10px;">' +
+    '<span>🔍 검수 결과</span>' +
+    '<span id="validationSummaryBadge" style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--sf);color:var(--ink3);border:1px solid var(--bd);">진행 중...</span>' +
+    '</div>' +
+    '<div id="validationCardList"></div>' +
+    '</div>';
+  document.getElementById('outputArea').insertAdjacentHTML('beforeend', panelHtml);
+
+  var cardList = document.getElementById('validationCardList');
+  toValidate.forEach(function(r) {
+    cardList.insertAdjacentHTML('beforeend', buildValidationCardPlaceholder(r));
+  });
+
+  _validationResults = [];
+  var passCount = 0;
+
+  for (var i = 0; i < toValidate.length; i++) {
+    var r = toValidate[i];
+    var cardEl = document.getElementById('vcard-' + r.num);
+    if (cardEl) {
+      cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+        '<div class="spin" style="display:inline-block;"></div>' +
+        '<span style="font-size:12px;color:var(--ink3);">검수 중...</span>' +
+        '<span style="font-weight:700;">' + r.num + '번 [' + escHtml(r.type.name) + ']</span>' +
+        '</div>';
+    }
+
+    if (i > 0) await wait(5000);
+
+    var globalIdx = _curRawResults.indexOf(r);
+    try {
+      var raw = await validateProblem(r.type, r.result);
+      var parsed = parseValidationResult(raw);
+      _validationResults.push({ num: r.num, type: r.type, raw: raw, parsed: parsed, idx: globalIdx });
+      if (parsed.passed) passCount++;
+      renderValidationCard(r.num, r.type, parsed);
+    } catch(err) {
+      _validationResults.push({ num: r.num, type: r.type, raw: '', parsed: null, error: err.message, idx: globalIdx });
+      renderValidationCardError(r.num, r.type, err.message);
+    }
+  }
+
+  var badge = document.getElementById('validationSummaryBadge');
+  if (badge) {
+    var total = toValidate.length;
+    var failCount = total - passCount;
+    if (failCount === 0) {
+      badge.textContent = '전체 통과 ' + total + '/' + total;
+      badge.style.background = 'var(--grs)';
+      badge.style.color = 'var(--gr)';
+      badge.style.border = '1px solid #a0d4b4';
+    } else {
+      badge.textContent = '통과 ' + passCount + ' / 수정필요 ' + failCount;
+      badge.style.background = 'var(--acs)';
+      badge.style.color = 'var(--ac)';
+      badge.style.border = '1px solid #f0c0bb';
+    }
+  }
+
+  validateBtn.disabled = false;
+  validateBtn.textContent = '🔍 검수하기';
+  document.getElementById('validationPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function regenWithCorrection(num) {
+  var vr = null;
+  if (_validationResults) {
+    for (var i = 0; i < _validationResults.length; i++) {
+      if (_validationResults[i].num === num) { vr = _validationResults[i]; break; }
+    }
+  }
+  if (!vr || vr.idx === undefined) { alert('재출제 데이터를 찾을 수 없습니다.'); return; }
+
+  var rawIdx = vr.idx;
+  var type   = _curRawResults[rawIdx].type;
+  var item   = _curAssignment[rawIdx];
+  if (!item || !type) { alert('원본 배정 정보를 찾을 수 없습니다.'); return; }
+
+  var correctionHint = (vr.parsed && vr.parsed.corrections && vr.parsed.corrections !== '없음')
+    ? '검수 결과 — 다음 문제를 반드시 수정하여 재출제하세요:\n' + vr.parsed.corrections
+    : '검수 결과 지적 사항을 반영하여 개선된 문항을 재출제하세요.';
+
+  var cardEl = document.getElementById('vcard-' + num);
+  if (cardEl) {
+    cardEl.style.background  = 'var(--sf)';
+    cardEl.style.borderColor = 'var(--bd)';
+    cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+      '<div class="spin" style="display:inline-block;"></div>' +
+      '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 재출제 중...</span>' +
+      '</div>';
+  }
+
+  try {
+    var result = await callAPI(type, item.passage.text, correctionHint);
+    _curRawResults[rawIdx].result = result;
+    _curRawResults[rawIdx].error  = null;
+    _validationResults = _validationResults.filter(function(v) { return v.num !== num; });
+
+    if (cardEl) {
+      cardEl.style.background  = 'var(--grs)';
+      cardEl.style.borderColor = '#a0d4b4';
+      cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+        '<span class="di">✓</span>' +
+        '<span style="font-weight:700;">' + num + '번 [' + escHtml(type.name) + '] — 재출제 완료</span>' +
+        '<span style="font-size:11px;color:var(--ink3);">검수 결과가 초기화됩니다 — 다시 검수하기를 실행하세요</span>' +
+        '</div>';
+    }
+
+    compileAndRenderOutput();
+    var vPanel = document.getElementById('validationPanel');
+    if (vPanel) document.getElementById('outputArea').appendChild(vPanel);
+
+  } catch(err) {
+    if (cardEl) {
+      cardEl.style.background  = 'var(--acs)';
+      cardEl.style.borderColor = '#f0c0bb';
+      cardEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span class="ei">✗</span>' +
+        '<span style="font-weight:700;">' + num + '번 — 재출제 실패: ' + escHtml(err.message) + '</span>' +
+        '</div>';
+    }
+  }
 }
 
 // ─── HISTORY ───
