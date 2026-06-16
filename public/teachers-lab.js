@@ -3228,13 +3228,18 @@ function renderValidationCard(num, type, parsed) {
   cardEl.style.borderColor = borderColor;
 
   var detailHtml = '';
+  var extraHtml  = '';
   if (!isPassed) {
+    // 상세보기 (접기/펼치기) — AI 분석 결과만 포함
     detailHtml = '<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;display:none;" id="vdetail-' + num + '">' +
       '<div style="font-size:12px;font-weight:700;color:var(--ac);margin-bottom:6px;">발견된 문제점</div>' +
       '<div style="font-size:12px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;">' + escHtml(parsed.issues) + '</div>' +
       '<div style="font-size:12px;font-weight:700;color:var(--bl);margin-top:10px;margin-bottom:4px;">교정 지시 (AI 분석)</div>' +
       '<div style="font-size:12px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;">' + escHtml(parsed.corrections) + '</div>' +
-      '<div style="font-size:12px;font-weight:700;color:var(--ink1);margin-top:12px;margin-bottom:4px;">추가 수정사항 <span style="font-weight:400;color:var(--ink3);">(선택 — 직접 입력)</span></div>' +
+      '</div>';
+    // 추가 수정사항 입력 — 항상 표시
+    extraHtml = '<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--ink1);margin-bottom:4px;">추가 수정사항 <span style="font-weight:400;color:var(--ink3);">(선택 — 직접 입력)</span></div>' +
       '<textarea id="vextra-' + num + '" placeholder="예: 3번 선지를 더 지엽적인 내용으로 바꿔주세요." style="width:100%;min-height:64px;font-size:12px;font-family:inherit;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--ink1);resize:vertical;box-sizing:border-box;line-height:1.6;"></textarea>' +
       '</div>';
   }
@@ -3248,7 +3253,8 @@ function renderValidationCard(num, type, parsed) {
       '<button class="tbtn" onclick="regenWithCorrection(' + num + ')" style="font-size:11px;padding:3px 10px;background:var(--bl);color:#fff;border-color:var(--bl);">✏️ 수정 반영</button>'
     ) +
     '</div>' +
-    detailHtml;
+    detailHtml +
+    extraHtml;
 }
 
 function renderValidationCardError(num, type, errMsg) {
