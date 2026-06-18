@@ -229,8 +229,11 @@ function srParseExcel(file) {
           if (nameCol === -1) nameCol = 2;
           scoreCol = headers.findIndex(h => h.includes('총점') || h.includes('score'));
           if (scoreCol === -1) scoreCol = 4;
+          // 문항별 OX 섹션이 별도로 있으면 그 섹션만 사용 (표기 섹션과 중복 방지)
+          const oxCol = headers.findIndex(h => h.includes('ox'));
+          const qNumStart = oxCol !== -1 ? oxCol : 0;
           row1.forEach((v, i) => {
-            if (typeof v === 'number' && v >= 1 && v <= 100) qNums.push({ col: i, num: String(Math.round(v)) });
+            if (i >= qNumStart && typeof v === 'number' && v >= 1 && v <= 100) qNums.push({ col: i, num: String(Math.round(v)) });
           });
           if (qNums.length === 0) {
             row1.forEach((v, i) => {
