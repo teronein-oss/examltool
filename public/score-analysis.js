@@ -803,7 +803,7 @@ function srRenderSingleCard(idx) {
   if (!srCurrentList.length) return;
 
   const s = srCurrentList[idx];
-  const safeId = ('card_'+(s.class||'c')+'_'+s.name).replace(/[^a-z0-9_]/gi,'_');
+  const safeId = `card_${idx}`;
 
   const wrap = document.createElement('div');
   wrap.className = 'sr-student-preview-wrap';
@@ -832,8 +832,7 @@ function srRenderSingleCard(idx) {
 function srSaveCurPNG() {
   if (!srCurrentList.length) return;
   const s = srCurrentList[srCurrentStudentIdx];
-  const id = ('card_'+(s.class||'c')+'_'+s.name).replace(/[^a-z0-9_]/gi,'_');
-  srSavePNG(id, s.name);
+  srSavePNG(`card_${srCurrentStudentIdx}`, s.name);
 }
 
 // ══════════════════════════════════════════════
@@ -1014,8 +1013,9 @@ async function srSaveAllPNG() {
   if (!list.length) { srToast('저장할 학생 없음', true); return; }
   srToast(`${list.length}명 PNG 생성 중...`);
 
-  for (const s of list) {
-    const id = ('card_'+(s.class||'c')+'_'+s.name).replace(/[^a-z0-9_]/gi,'_');
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    const id = `card_${i}`;
     let card = document.getElementById(id);
     let temp = null;
 
