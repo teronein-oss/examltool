@@ -51,6 +51,9 @@ header{background:var(--ink);color:var(--sf);padding:0 24px;height:64px;display:
 /* PANELS */
 .panel{display:none;padding:24px;min-height:calc(100vh - 112px);}
 .panel.active{display:block;}
+#panel-passages{height:calc(100vh - 112px);overflow:hidden;padding-bottom:0;}
+#panel-passages .playout{height:100%;overflow:hidden;align-items:start;}
+#panel-passages .playout>div{overflow-y:auto;height:100%;padding-bottom:24px;}
 
 /* SETTINGS */
 .sgrid{display:grid;grid-template-columns:278px 1fr;gap:20px;max-width:1600px;}

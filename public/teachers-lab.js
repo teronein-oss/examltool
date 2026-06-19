@@ -2912,6 +2912,15 @@ async function startGeneration() {
         assignment.push({ passage: p, typeId: p.seoTypeId, isSeo: true });
       }
     });
+    // 객관식 먼저(유형 순서), 서술형 나중에
+    var _objOrder = {};
+    getActiveQTypes().forEach(function(t, i) { _objOrder[t.id] = i; });
+    assignment.sort(function(a, b) {
+      var aSeo = a.isSeo ? 1 : 0, bSeo = b.isSeo ? 1 : 0;
+      if (aSeo !== bSeo) return aSeo - bSeo;
+      if (!a.isSeo) return ((_objOrder[a.typeId] != null ? _objOrder[a.typeId] : 999) - (_objOrder[b.typeId] != null ? _objOrder[b.typeId] : 999));
+      return 0;
+    });
   }
 
   if (!assignment.length) { alert('생성할 문항이 없습니다. 문항 수를 설정해주세요.'); return; }
