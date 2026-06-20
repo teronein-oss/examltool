@@ -1004,11 +1004,18 @@ async function srSavePNG(id, name) {
   const card = document.getElementById(id);
   if (!card) { srToast('카드를 찾을 수 없습니다', true); return; }
   srToast('PNG 생성 중...');
+  // html2canvas가 CSS transform이 걸린 부모 안의 자식 위치를 잘못 계산하는 버그 우회:
+  // 캡처 전 sr-scale-wrap의 transform을 일시 해제 후 복원
+  const wrap = card.closest('.sr-scale-wrap');
+  const savedTransform = wrap ? wrap.style.transform : '';
+  const savedHeight    = wrap ? wrap.style.height    : '';
+  if (wrap) { wrap.style.transform = 'none'; wrap.style.height = '1123px'; }
   try {
     const canvas = await html2canvas(card, { scale:2, width:794, backgroundColor:'#fff', useCORS:true, logging:false });
     srDl(canvas, name);
     srToast(`${name}.png 저장 완료`);
   } catch(e) { srToast('PNG 오류: '+e.message, true); }
+  if (wrap) { wrap.style.transform = savedTransform; wrap.style.height = savedHeight; }
 }
 
 async function srSaveAllPNG() {
