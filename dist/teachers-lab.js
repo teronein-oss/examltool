@@ -181,6 +181,12 @@ function mergeWithDefaultQTypes(savedTypes) {
     if (savedIds.indexOf(dt.id) < 0) savedTypes.push(JSON.parse(JSON.stringify(dt)));
   });
 
+  // 기존 유형의 name을 DEFAULT_TYPES와 동기화 (이름 변경 시 모든 학교·개인설정에 자동 반영)
+  savedTypes.forEach(function(t) {
+    var def = DEFAULT_TYPES.filter(function(d){ return d.id === t.id; })[0];
+    if (def && t.name !== def.name) t.name = def.name;
+  });
+
   // DEFAULT_TYPES 순서대로 재정렬
   var orderMap = {};
   DEFAULT_TYPES.forEach(function(dt, idx) { orderMap[dt.id] = idx; });
