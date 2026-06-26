@@ -2075,31 +2075,42 @@ function getFixedFormat(typeId) {
 
 var HARNESS_TOPIC = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[HARNESS — 출력 전 내부 검증 (사고만 수행, 출력 금지)]
+[HARNESS — 최종 출력 전 수행. 아래 세 섹션을 반드시 출력할 것]
 
-▶ CHECK 1 : 정답 유일성
-① 정답이 지문 전체(도입부 포함)를 포괄하는가?
-   → 결론부만 반영했다면 도입부 기반 선지가 중복 정답이 될 수 있음. 정답 재설계.
-② 나머지 4개 선지 중, 지문의 특정 부분만 읽어도 옳다고 볼 수 있는 것이 있는가?
-   → 있으면 해당 선지를 다른 T 유형으로 교체.
-③ "정답이 틀리고 이 선지가 맞다"고 주장하려면 지문 어느 부분을 근거로 삼겠는가?
-   → 근거가 존재하면 정답 또는 해당 선지 재설계.
+▶ STEP A: 정답 번호 재검토
+정답을 ③으로 확정했다면, ④ 또는 ⑤로도 논리적으로 동등하게 배치 가능한지 검토하라.
+가능하다면 ④ 또는 ⑤ 중 하나로 변경하라.
+ANSWER_PLACEMENT: [③ 유지 이유 또는 ④·⑤로 변경한 이유 한 문장]
 
-▶ CHECK 2 : D1 품질
-① D1이 틀린 이유를 정확히 한 문장으로 완성하라:
-   "이 선지는 [___]이 지문의 논리 방향과 충돌한다."
-   → [___]에 관계어·논리방향 이외의 내용이 들어가면 D1 재제작.
-② D1이 틀린 이유가 1가지인가?
-   → 2가지 이상이면 수험생이 즉시 소거 가능. T1 또는 T2로 재제작.
-③ D1과 정답이 핵심 명사를 2개 이상 공유하는가?
-   → 미충족 시 재제작.
+▶ STEP B: 정답 유일성 검증
+① 정답이 지문 전체(도입부 포함)를 포괄하는가? 결론부만 반영했다면 재설계.
+② 나머지 4개 선지 각각에 대해: 지문의 특정 부분만 읽어도 옳다고 볼 수 있는가?
+③ 각 선지에 대해: "이 선지가 맞고 정답이 틀렸다"고 주장할 지문 근거가 존재하는가? 있으면 재설계.
+UNIQUENESS_CHECK: 통과 또는 재설계:[선지 번호와 이유]
 
-위 항목 중 하나라도 불충족이면 해당 부분을 수정한 뒤 출력한다.
+▶ STEP C: D1 품질 검증
+① D1이 틀린 이유: "이 선지는 [관계어/논리방향]이 지문과 충돌한다." — [  ] 안에 관계어 외 내용 시 재제작.
+② D1이 틀린 이유가 정확히 1가지인가? 2가지 이상이면 재제작.
+③ D1과 정답이 핵심 명사를 2개 이상 공유하는가? 미충족 시 재제작.
+D1_CHECK: 통과 또는 재설계:[이유]
+
+STEP B·C에서 재설계 판정 시 해당 선지를 수정하여 최종 출력한다.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
 function getHarness(typeId) {
   if (typeId === 'topic') return HARNESS_TOPIC;
   return '';
+}
+
+function stripHarnessSections(raw) {
+  // 하네스 검증 섹션 제거 (ANSWER_PLACEMENT, UNIQUENESS_CHECK, D1_CHECK)
+  raw = raw.replace(/\n?[ \t]*ANSWER_PLACEMENT:[^\n]*/g, '');
+  raw = raw.replace(/\n?[ \t]*UNIQUENESS_CHECK:[^\n]*/g, '');
+  raw = raw.replace(/\n?[ \t]*D1_CHECK:[^\n]*/g, '');
+  // EXPLANATION 선택지 해석에서 T타입 레이블·추가 설명 제거
+  // 패턴: ① 한국어 번역 — 추가설명 [T1: ...] → ① 한국어 번역
+  raw = raw.replace(/^([ \t]*[①②③④⑤➀➁➂➃➄][^\n—–]+?)\s+[—–][^\n]+$/gm, '$1');
+  return raw.trim();
 }
 
 // ─── GENERATION ───
@@ -2876,6 +2887,23 @@ async function callWithRetry(type, text, sid) {
         await wait(w * 1000);
       }
       var result = await callAPI(type, text);
+
+      // 주제: 하네스 검증 결과 파싱 → 실패 시 재시도 → 섹션 제거
+      if (type.id === 'topic' && result) {
+        var uCheck  = (result.match(/UNIQUENESS_CHECK:\s*([^\n]+)/) || [])[1] || '';
+        var d1Check = (result.match(/D1_CHECK:\s*([^\n]+)/)         || [])[1] || '';
+        var needsRetry = uCheck.includes('재설계') || d1Check.includes('재설계');
+        if (needsRetry && n < max) {
+          var reasons = [];
+          if (uCheck.includes('재설계'))  reasons.push('정답 유일성 실패: ' + uCheck.trim());
+          if (d1Check.includes('재설계')) reasons.push('D1 품질 실패: ' + d1Check.trim());
+          var el3 = document.getElementById(sid);
+          if (el3) el3.innerHTML = '<div class="spin"></div><span>⚠️ 하네스 검증 실패 — 재출제 중...</span>';
+          await wait(1000);
+          try { result = await callAPI(type, text, reasons.join(' / ')); } catch(e3) {}
+        }
+        result = stripHarnessSections(result);
+      }
 
       // 어법·어휘: 번호가 지문 안에 인라인으로 5개 모두 있는지 검증
       if (type.id === 'grammar' || type.id === 'vocab') {
