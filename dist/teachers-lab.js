@@ -2104,6 +2104,10 @@ function getSystemPrompt(typeId) {
 
 var CIRCLED = ['①', '②', '③', '④', '⑤'];
 
+// 지문별 '이미 만든 정답 표현' 기억 → 다음 버전에서 어휘·구조 중복 회피용 (세션 유지)
+var _topicVersionMemory = {};
+function _verKey(text) { return (text || '').replace(/\s+/g, ' ').trim().slice(0, 120); }
+
 // 배치 내 정답 위치를 ①~⑤ 균등 분포로 배정하는 덱 (셔플 순환)
 function buildAnswerDeck(n) {
   var deck = [], pool = [];
@@ -2847,7 +2851,7 @@ function toSections(num, type, raw, passageTitle) {
   return { q: q.join('\n'), a: a.join('\n') };
 }
 
-async function callAPI(type, passageText, retryHint, targetPos) {
+async function callAPI(type, passageText, retryHint, targetPos, avoidList) {
   var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   var model = document.getElementById('modelSelect').value;
   if (!key) throw new Error('API 키를 입력해주세요.');
@@ -2855,6 +2859,10 @@ async function callAPI(type, passageText, retryHint, targetPos) {
   // 정답 위치 지정 (주제 유형): 코드가 ①~⑤ 균등 분포로 배정 → 모델에 명시
   var posRule = (type.id === 'topic' && targetPos)
     ? '\n\n## 정답 위치 지정 (필수)\n이 문항의 정답은 반드시 ' + CIRCLED[targetPos - 1] + '번 선택지여야 한다. 정답 내용을 ' + CIRCLED[targetPos - 1] + ' 자리에 배치하고 ANSWER: 도 ' + CIRCLED[targetPos - 1] + '로 출력하라. 다른 번호 금지.'
+    : '';
+  // 버전 변주 (주제 유형): 같은 지문으로 이미 만든 정답 표현을 회피시킴
+  var varRule = (type.id === 'topic' && avoidList && avoidList.length)
+    ? '\n\n## 버전 변주 (필수 — 여러 버전 제작 중)\n이 지문으로 아래 정답 보기를 이미 만들었다. 이번 정답은 핵심 의미(주제)는 동일하게 유지하되, 사용 어휘·관계어·문장 구조가 아래와 뚜렷이 달라야 한다. 아래에 등장한 핵심 단어·관계어를 재사용하지 말고 다른 환언어·다른 관계어·다른 문형으로 새로 구성하라. 오답 보기들도 이전 버전과 다른 표현으로 작성하라.\n[이미 사용한 정답 표현 — 회피 대상]\n' + avoidList.map(function(s, i) { return (i + 1) + '. ' + s; }).join('\n')
     : '';
   // 다중 레퍼런스 파일 합치기 (구버전 단일 reference도 지원)
   var refs = [];
@@ -2869,7 +2877,7 @@ async function callAPI(type, passageText, retryHint, targetPos) {
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
   var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
-  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule;
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule + varRule;
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
@@ -2931,6 +2939,8 @@ async function callAPI(type, passageText, retryHint, targetPos) {
 async function callWithRetry(type, text, sid, targetPos) {
   // 주제 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
   if (type.id === 'topic' && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
+  // 주제 유형: 같은 지문으로 이미 만든 정답 표현 → 회피 목록
+  var avoidList = type.id === 'topic' ? (_topicVersionMemory[_verKey(text)] || []).slice() : null;
   var lastErr, max = 3;
   for (var n = 1; n <= max; n++) {
     try {
@@ -2940,7 +2950,7 @@ async function callWithRetry(type, text, sid, targetPos) {
         if (el) el.innerHTML = '<div class="spin"></div><span>⚠️ 재시도 (' + n + '/' + max + ') — ' + w + '초 대기중...</span>';
         await wait(w * 1000);
       }
-      var result = await callAPI(type, text, null, targetPos);
+      var result = await callAPI(type, text, null, targetPos, avoidList);
 
       // 주제: 코드 검증 (① 정답 위치 일치, ② 정답 50% 환언) → 실패 시 재출제 → 섹션 제거
       if (type.id === 'topic' && result) {
@@ -2958,8 +2968,9 @@ async function callWithRetry(type, text, sid, targetPos) {
         });
         var correctIdx = (targetPos || ansNum) - 1;
         var correctLine = chLines[correctIdx] || chLines[ansNum - 1] || '';
-        if (correctLine) {
-          var orig = measureOriginality(correctLine.replace(/^[①②③④⑤➀➁➂➃➄]\s*/, ''), text);
+        var correctClean = correctLine.replace(/^[①②③④⑤➀➁➂➃➄]\s*/, '').trim();
+        if (correctClean) {
+          var orig = measureOriginality(correctClean, text);
           if (orig.total >= 4 && orig.ratio < 0.5) {
             reasons.push('정답 환언 부족(지문 재사용 ' + Math.round((1 - orig.ratio) * 100) + '%): 다음 지문 단어를 상위 개념어로 환언하라 — ' + orig.reused.join(', '));
           }
@@ -2969,8 +2980,23 @@ async function callWithRetry(type, text, sid, targetPos) {
           var el3 = document.getElementById(sid);
           if (el3) el3.innerHTML = '<div class="spin"></div><span>⚠️ 품질 검증 실패 — 재출제 중...</span>';
           await wait(1000);
-          try { result = await callAPI(type, text, reasons.join(' / '), targetPos); } catch(e3) {}
+          try {
+            result = await callAPI(type, text, reasons.join(' / '), targetPos, avoidList);
+            // 재출제 결과로 정답 표현 갱신
+            var rc = (extractSec(result, 'CHOICES') || '').split('\n').filter(function(l) { return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/); });
+            var rci = (targetPos || answerToNum(extractSec(result, 'ANSWER'))) - 1;
+            correctClean = ((rc[rci] || '').replace(/^[①②③④⑤➀➁➂➃➄]\s*/, '') || correctClean).trim();
+          } catch (e3) {}
         }
+
+        // 이번 버전의 정답 표현을 메모리에 기록 (다음 버전에서 회피, 최근 6개 유지)
+        if (correctClean) {
+          var mk = _verKey(text);
+          if (!_topicVersionMemory[mk]) _topicVersionMemory[mk] = [];
+          _topicVersionMemory[mk].push(correctClean);
+          if (_topicVersionMemory[mk].length > 6) _topicVersionMemory[mk].shift();
+        }
+
         result = stripHarnessSections(result);
       }
 
