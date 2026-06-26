@@ -229,8 +229,11 @@ function srParseExcel(file) {
           if (nameCol === -1) nameCol = 2;
           scoreCol = headers.findIndex(h => h.includes('총점') || h.includes('score'));
           if (scoreCol === -1) scoreCol = 4;
+          // 문항별 OX 섹션이 별도로 있으면 그 섹션만 사용 (표기 섹션과 중복 방지)
+          const oxCol = headers.findIndex(h => h.includes('ox'));
+          const qNumStart = oxCol !== -1 ? oxCol : 0;
           row1.forEach((v, i) => {
-            if (typeof v === 'number' && v >= 1 && v <= 100) qNums.push({ col: i, num: String(Math.round(v)) });
+            if (i >= qNumStart && typeof v === 'number' && v >= 1 && v <= 100) qNums.push({ col: i, num: String(Math.round(v)) });
           });
           if (qNums.length === 0) {
             row1.forEach((v, i) => {
@@ -803,7 +806,7 @@ function srRenderSingleCard(idx) {
   if (!srCurrentList.length) return;
 
   const s = srCurrentList[idx];
-  const safeId = ('card_'+(s.class||'c')+'_'+s.name).replace(/[^a-z0-9_]/gi,'_');
+  const safeId = `card_${idx}`;
 
   const wrap = document.createElement('div');
   wrap.className = 'sr-student-preview-wrap';
@@ -832,8 +835,7 @@ function srRenderSingleCard(idx) {
 function srSaveCurPNG() {
   if (!srCurrentList.length) return;
   const s = srCurrentList[srCurrentStudentIdx];
-  const id = ('card_'+(s.class||'c')+'_'+s.name).replace(/[^a-z0-9_]/gi,'_');
-  srSavePNG(id, s.name);
+  srSavePNG(`card_${srCurrentStudentIdx}`, s.name);
 }
 
 // ══════════════════════════════════════════════
@@ -1002,11 +1004,18 @@ async function srSavePNG(id, name) {
   const card = document.getElementById(id);
   if (!card) { srToast('카드를 찾을 수 없습니다', true); return; }
   srToast('PNG 생성 중...');
+  const wrap = card.closest('.sr-scale-wrap');
+  const savedTransform = wrap ? wrap.style.transform : '';
+  const savedHeight    = wrap ? wrap.style.height    : '';
+  if (wrap) { wrap.style.transform = 'none'; wrap.style.height = '1123px'; }
+  // transform 제거 후 브라우저 레이아웃 재계산이 완료될 때까지 대기
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
-    const canvas = await html2canvas(card, { scale:2, width:794, backgroundColor:'#fff', useCORS:true, logging:false });
+    const canvas = await html2canvas(card, { scale:2, width:794, height:1123, windowWidth:794, windowHeight:1123, backgroundColor:'#fff', useCORS:true, logging:false });
     srDl(canvas, name);
     srToast(`${name}.png 저장 완료`);
   } catch(e) { srToast('PNG 오류: '+e.message, true); }
+  if (wrap) { wrap.style.transform = savedTransform; wrap.style.height = savedHeight; }
 }
 
 async function srSaveAllPNG() {
@@ -1014,8 +1023,9 @@ async function srSaveAllPNG() {
   if (!list.length) { srToast('저장할 학생 없음', true); return; }
   srToast(`${list.length}명 PNG 생성 중...`);
 
-  for (const s of list) {
-    const id = ('card_'+(s.class||'c')+'_'+s.name).replace(/[^a-z0-9_]/gi,'_');
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    const id = `card_${i}`;
     let card = document.getElementById(id);
     let temp = null;
 
@@ -1028,7 +1038,7 @@ async function srSaveAllPNG() {
       await srTick(); srInitChart(s, id); await srTick(300);
     }
     try {
-      const canvas = await html2canvas(card, { scale:2, width:794, backgroundColor:'#fff', useCORS:true, logging:false });
+      const canvas = await html2canvas(card, { scale:2, width:794, height:1123, windowWidth:794, windowHeight:1123, backgroundColor:'#fff', useCORS:true, logging:false });
       srDl(canvas, s.name);
     } catch(e) { console.error(s.name, e); }
     if (temp) temp.remove();

@@ -1004,14 +1004,14 @@ async function srSavePNG(id, name) {
   const card = document.getElementById(id);
   if (!card) { srToast('카드를 찾을 수 없습니다', true); return; }
   srToast('PNG 생성 중...');
-  // html2canvas가 CSS transform이 걸린 부모 안의 자식 위치를 잘못 계산하는 버그 우회:
-  // 캡처 전 sr-scale-wrap의 transform을 일시 해제 후 복원
   const wrap = card.closest('.sr-scale-wrap');
   const savedTransform = wrap ? wrap.style.transform : '';
   const savedHeight    = wrap ? wrap.style.height    : '';
   if (wrap) { wrap.style.transform = 'none'; wrap.style.height = '1123px'; }
+  // transform 제거 후 브라우저 레이아웃 재계산이 완료될 때까지 대기
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
-    const canvas = await html2canvas(card, { scale:2, width:794, backgroundColor:'#fff', useCORS:true, logging:false });
+    const canvas = await html2canvas(card, { scale:2, width:794, height:1123, windowWidth:794, windowHeight:1123, backgroundColor:'#fff', useCORS:true, logging:false });
     srDl(canvas, name);
     srToast(`${name}.png 저장 완료`);
   } catch(e) { srToast('PNG 오류: '+e.message, true); }
@@ -1038,7 +1038,7 @@ async function srSaveAllPNG() {
       await srTick(); srInitChart(s, id); await srTick(300);
     }
     try {
-      const canvas = await html2canvas(card, { scale:2, width:794, backgroundColor:'#fff', useCORS:true, logging:false });
+      const canvas = await html2canvas(card, { scale:2, width:794, height:1123, windowWidth:794, windowHeight:1123, backgroundColor:'#fff', useCORS:true, logging:false });
       srDl(canvas, s.name);
     } catch(e) { console.error(s.name, e); }
     if (temp) temp.remove();

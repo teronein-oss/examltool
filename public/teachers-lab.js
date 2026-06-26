@@ -2069,6 +2069,39 @@ function getFixedFormat(typeId) {
   return '';
 }
 
+// ─── HARNESS ───
+// 유형별 하네스: API 호출 시 type.prompt 뒤, 지문 뒤에 동적으로 주입됨
+// 각 하네스는 내부 사고(출력 금지) 블록으로 작성
+
+var HARNESS_TOPIC = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HARNESS — 출력 전 내부 검증 (사고만 수행, 출력 금지)]
+
+▶ CHECK 1 : 정답 유일성
+① 정답이 지문 전체(도입부 포함)를 포괄하는가?
+   → 결론부만 반영했다면 도입부 기반 선지가 중복 정답이 될 수 있음. 정답 재설계.
+② 나머지 4개 선지 중, 지문의 특정 부분만 읽어도 옳다고 볼 수 있는 것이 있는가?
+   → 있으면 해당 선지를 다른 T 유형으로 교체.
+③ "정답이 틀리고 이 선지가 맞다"고 주장하려면 지문 어느 부분을 근거로 삼겠는가?
+   → 근거가 존재하면 정답 또는 해당 선지 재설계.
+
+▶ CHECK 2 : D1 품질
+① D1이 틀린 이유를 정확히 한 문장으로 완성하라:
+   "이 선지는 [___]이 지문의 논리 방향과 충돌한다."
+   → [___]에 관계어·논리방향 이외의 내용이 들어가면 D1 재제작.
+② D1이 틀린 이유가 1가지인가?
+   → 2가지 이상이면 수험생이 즉시 소거 가능. T1 또는 T2로 재제작.
+③ D1과 정답이 핵심 명사를 2개 이상 공유하는가?
+   → 미충족 시 재제작.
+
+위 항목 중 하나라도 불충족이면 해당 부분을 수정한 뒤 출력한다.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+function getHarness(typeId) {
+  if (typeId === 'topic') return HARNESS_TOPIC;
+  return '';
+}
+
 // ─── GENERATION ───
 var _genCancelled = false;
 
@@ -2773,7 +2806,8 @@ async function callAPI(type, passageText, retryHint) {
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
   var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
-  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText;
+  var harness = getHarness(type.id);
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + (harness ? '\n\n' + harness : '');
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
