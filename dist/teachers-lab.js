@@ -844,6 +844,10 @@ async function startPracGeneration() {
   var statusEl = document.getElementById('statusList');
   var rawResults = [];
 
+  // 주제 유형 정답 위치 균등 배정 덱
+  var _topicCount = assignment.filter(function(a){ return a.typeId === 'topic'; }).length;
+  var _topicDeck = buildAnswerDeck(_topicCount);
+
   for (var i = 0; i < assignment.length; i++) {
     var item = assignment[i];
     var type = null;
@@ -864,7 +868,8 @@ async function startPracGeneration() {
     if (_genCancelled) break;
 
     try {
-      var result = await callWithRetry(type, item.passage.text, sid);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : null;
+      var result = await callWithRetry(type, item.passage.text, sid, _tp);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
       el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
@@ -2075,31 +2080,70 @@ function getFixedFormat(typeId) {
 
 var BASE_SYSTEM = '지정된 형식(대문자 섹션 키: 로 시작)으로만 응답하세요. 추론 과정, 설명, 서문을 출력하지 마세요.';
 
-var HARNESS_TOPIC_SYSTEM = `[HARNESS — 출제 전 최우선 지침. 아래 절차를 수행한 뒤 유저 프롬프트의 출력 형식에 따라 응답하고, EXPLANATION 이후 반드시 아래 4줄을 추가 출력할 것]
+// 주제 유형 품질 지침 — 내부 설계용. 추가 출력을 요구하지 않으므로 BASE_SYSTEM과 충돌 없음.
+// 정답 위치 배정·50% 환언 강제는 코드(callWithRetry)에서 별도 검증한다.
+var HARNESS_TOPIC_SYSTEM = `[출제 품질 지침 — 내부 설계에만 반영하고 이 지침 자체는 출력하지 말 것]
 
-▶ STEP A: 정답 번호 배치
-정답 번호를 ①~⑤ 사이에 균형 있게 배치할 것. ④로 수렴하지 말 것.
-ANSWER_PLACEMENT: [선택한 정답 번호와 이유 한 문장]
+▶ 정답 유일성
+- 정답은 지문 전체(도입부 포함)를 포괄해야 한다. 결론부만 반영 금지.
+- 나머지 4개 선지는 지문의 어느 부분으로도 정답이 될 수 없어야 한다.
+- "이 오답이 맞고 정답이 틀렸다"고 주장할 지문 근거가 있으면 그 선지를 재설계하라.
 
-▶ STEP B: 정답 유일성 및 환언 검증
-① 정답이 지문 전체(도입부 포함)를 포괄하는가? 결론부만 반영했다면 재설계.
-② 나머지 4개 선지 각각에 대해: 지문의 특정 부분만 읽어도 옳다고 볼 수 있는가?
-③ 각 선지에 대해: "이 선지가 맞고 정답이 틀렸다"고 주장할 지문 근거가 존재하는가? 있으면 재설계.
-UNIQUENESS_CHECK: 통과 또는 재설계:[선지 번호와 이유]
-④ 정답 선지의 단어(관사·전치사 제외) 중 지문 미등장 어휘가 50% 이상인가? 미충족 시 재설계.
-ORIGINALITY_CHECK: 통과 또는 재설계:[지문 재등장 단어 목록]
+▶ 정답 어휘 환언 (난이도 핵심)
+- 정답 선지 단어의 50% 이상은 지문에 없는 어휘(상위 개념어·환언어)로 구성하라.
+- 지문 단어를 그대로 복사하지 말고 상위 기능 개념어로 환언하라.
 
-▶ STEP C: D1 품질 검증
-① D1이 틀린 이유: "이 선지는 [관계어/논리방향]이 지문과 충돌한다." — [  ] 안에 관계어 외 내용 시 재제작.
-② D1이 틀린 이유가 정확히 1가지인가? 2가지 이상이면 재제작.
-③ D1과 정답이 핵심 명사를 2개 이상 공유하는가? 미충족 시 재제작.
-D1_CHECK: 통과 또는 재설계:[이유]
-
-STEP B·C에서 재설계 판정 시 해당 선지를 수정하여 최종 출력한다.`;
+▶ D1(최고난도 오답) 설계
+- 정답과 핵심 명사를 2개 이상 공유하되, 관계어/논리 방향 1가지만 지문과 충돌해야 한다.
+- 틀린 이유가 2가지 이상이면 너무 쉬우므로 재설계하라.`;
 
 function getSystemPrompt(typeId) {
   if (typeId === 'topic') return HARNESS_TOPIC_SYSTEM + '\n\n' + BASE_SYSTEM;
   return BASE_SYSTEM;
+}
+
+var CIRCLED = ['①', '②', '③', '④', '⑤'];
+
+// 배치 내 정답 위치를 ①~⑤ 균등 분포로 배정하는 덱 (셔플 순환)
+function buildAnswerDeck(n) {
+  var deck = [], pool = [];
+  while (deck.length < n) {
+    if (!pool.length) {
+      pool = [1, 2, 3, 4, 5];
+      for (var k = pool.length - 1; k > 0; k--) {
+        var r = Math.floor(Math.random() * (k + 1));
+        var t = pool[k]; pool[k] = pool[r]; pool[r] = t;
+      }
+    }
+    deck.push(pool.shift());
+  }
+  return deck;
+}
+
+// 동그라미 숫자/아라비아 숫자를 1~5 정수로 정규화
+function answerToNum(s) {
+  if (!s) return 0;
+  var ci = CIRCLED.indexOf(s.trim().charAt(0));
+  if (ci >= 0) return ci + 1;
+  var m = s.match(/[1-5]/);
+  return m ? parseInt(m[0], 10) : 0;
+}
+
+var ORIG_STOPWORDS = (' a an the of in on to for and or as by with from at into that this these those its their our your his her between toward towards through under over about against upon within without across among per via not but nor so than then there here it is are was were be been being has have had do does did will would can could may might must shall should ').split(/\s+/);
+
+// 정답 선지가 지문 어휘를 얼마나 재사용했는지 측정 → 환언(novelty) 비율 반환
+function measureOriginality(choiceText, passageText) {
+  function toks(s) {
+    return (s.toLowerCase().match(/[a-z]+/g) || []).filter(function(w) {
+      return w.length >= 3 && ORIG_STOPWORDS.indexOf(w) < 0;
+    });
+  }
+  var pset = {};
+  toks(passageText).forEach(function(w) { pset[w] = 1; });
+  var ct = toks(choiceText);
+  if (!ct.length) return { ratio: 1, reused: [], total: 0 };
+  var reused = ct.filter(function(w) { return pset[w]; });
+  return { ratio: (ct.length - reused.length) / ct.length, reused: reused, total: ct.length };
 }
 
 function stripHarnessSections(raw) {
@@ -2109,8 +2153,10 @@ function stripHarnessSections(raw) {
   raw = raw.replace(/\n?[ \t]*ORIGINALITY_CHECK:[^\n]*/g, '');
   raw = raw.replace(/\n?[ \t]*D1_CHECK:[^\n]*/g, '');
   // EXPLANATION 선택지 해석에서 T타입 레이블·추가 설명 제거
-  // 패턴: ① 한국어 번역 — 추가설명 [T1: ...] → ① 한국어 번역
+  // 패턴1: ① 한국어 번역 — 추가설명(T1: ...) → ① 한국어 번역  (em-dash/하이픈 분리형)
   raw = raw.replace(/^([ \t]*[①②③④⑤➀➁➂➃➄][^\n—–]+?)\s+[—–][^\n]+$/gm, '$1');
+  // 패턴2: ① 한국어 번역 (T1: 관계어 교체 ...) → ① 한국어 번역  (괄호 안에 T# 포함)
+  raw = raw.replace(/^([ \t]*[①②③④⑤➀➁➂➃➄][^\n(]+?)\s*\([^)\n]*\bT\d+[^)\n]*\)\s*$/gm, '$1');
   return raw.trim();
 }
 
@@ -2800,11 +2846,15 @@ function toSections(num, type, raw, passageTitle) {
   return { q: q.join('\n'), a: a.join('\n') };
 }
 
-async function callAPI(type, passageText, retryHint) {
+async function callAPI(type, passageText, retryHint, targetPos) {
   var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   var model = document.getElementById('modelSelect').value;
   if (!key) throw new Error('API 키를 입력해주세요.');
   var hint = retryHint ? '\n\n## ⚠️ 이전 출력 오류 수정 요청\n' + retryHint + '\n' : '';
+  // 정답 위치 지정 (주제 유형): 코드가 ①~⑤ 균등 분포로 배정 → 모델에 명시
+  var posRule = (type.id === 'topic' && targetPos)
+    ? '\n\n## 정답 위치 지정 (필수)\n이 문항의 정답은 반드시 ' + CIRCLED[targetPos - 1] + '번 선택지여야 한다. 정답 내용을 ' + CIRCLED[targetPos - 1] + ' 자리에 배치하고 ANSWER: 도 ' + CIRCLED[targetPos - 1] + '로 출력하라. 다른 번호 금지.'
+    : '';
   // 다중 레퍼런스 파일 합치기 (구버전 단일 reference도 지원)
   var refs = [];
   if (type.references && type.references.length) {
@@ -2818,7 +2868,7 @@ async function callAPI(type, passageText, retryHint) {
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
   var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
-  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText;
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule;
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
@@ -2877,7 +2927,9 @@ async function callAPI(type, passageText, retryHint) {
   }
 }
 
-async function callWithRetry(type, text, sid) {
+async function callWithRetry(type, text, sid, targetPos) {
+  // 주제 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
+  if (type.id === 'topic' && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
   var lastErr, max = 3;
   for (var n = 1; n <= max; n++) {
     try {
@@ -2887,26 +2939,38 @@ async function callWithRetry(type, text, sid) {
         if (el) el.innerHTML = '<div class="spin"></div><span>⚠️ 재시도 (' + n + '/' + max + ') — ' + w + '초 대기중...</span>';
         await wait(w * 1000);
       }
-      var result = await callAPI(type, text);
+      var result = await callAPI(type, text, null, targetPos);
 
-      // 주제: 하네스 검증 결과 파싱 → 실패 시 재시도 → 섹션 제거
+      // 주제: 코드 검증 (① 정답 위치 일치, ② 정답 50% 환언) → 실패 시 재출제 → 섹션 제거
       if (type.id === 'topic' && result) {
-        var uCheck  = (result.match(/UNIQUENESS_CHECK:\s*([^\n]+)/) || [])[1] || '';
-        var oCheck  = (result.match(/ORIGINALITY_CHECK:\s*([^\n]+)/) || [])[1] || '';
-        var d1Check = (result.match(/D1_CHECK:\s*([^\n]+)/)         || [])[1] || '';
-        var needsRetry = uCheck.includes('재설계') || oCheck.includes('재설계') || d1Check.includes('재설계');
-        if (needsRetry && n < max) {
-          var reasons = [];
-          if (uCheck.includes('재설계'))  reasons.push('정답 유일성 실패: ' + uCheck.trim());
-          if (oCheck.includes('재설계'))  reasons.push('정답 환언 부족 실패: ' + oCheck.trim());
-          if (d1Check.includes('재설계')) reasons.push('D1 품질 실패: ' + d1Check.trim());
-          var el3 = document.getElementById(sid);
-          if (el3) el3.innerHTML = '<div class="spin"></div><span>⚠️ 하네스 검증 실패 — 재출제 중...</span>';
-          await wait(1000);
-          try { result = await callAPI(type, text, reasons.join(' / ')); } catch(e3) {}
+        var reasons = [];
+
+        // ① 정답 위치 검증
+        var ansNum = answerToNum(extractSec(result, 'ANSWER'));
+        if (targetPos && ansNum && ansNum !== targetPos) {
+          reasons.push('정답 위치 오류: 정답을 반드시 ' + CIRCLED[targetPos - 1] + '번에 배치하라.');
         }
-        // [진단 모드] 하네스 섹션 제거 임시 비활성화 — 확인 후 복원 필요
-        // result = stripHarnessSections(result);
+
+        // ② 정답 선지 50% 환언 검증 (코드 직접 측정)
+        var chLines = (extractSec(result, 'CHOICES') || '').split('\n').filter(function(l) {
+          return l.trim().match(/^[①②③④⑤➀➁➂➃➄]/);
+        });
+        var correctIdx = (targetPos || ansNum) - 1;
+        var correctLine = chLines[correctIdx] || chLines[ansNum - 1] || '';
+        if (correctLine) {
+          var orig = measureOriginality(correctLine.replace(/^[①②③④⑤➀➁➂➃➄]\s*/, ''), text);
+          if (orig.total >= 4 && orig.ratio < 0.5) {
+            reasons.push('정답 환언 부족(지문 재사용 ' + Math.round((1 - orig.ratio) * 100) + '%): 다음 지문 단어를 상위 개념어로 환언하라 — ' + orig.reused.join(', '));
+          }
+        }
+
+        if (reasons.length && n < max) {
+          var el3 = document.getElementById(sid);
+          if (el3) el3.innerHTML = '<div class="spin"></div><span>⚠️ 품질 검증 실패 — 재출제 중...</span>';
+          await wait(1000);
+          try { result = await callAPI(type, text, reasons.join(' / '), targetPos); } catch(e3) {}
+        }
+        result = stripHarnessSections(result);
       }
 
       // 어법·어휘: 번호가 지문 안에 인라인으로 5개 모두 있는지 검증
@@ -3025,6 +3089,10 @@ async function startGeneration() {
   var statusEl = document.getElementById('statusList');
   var rawResults = [];
 
+  // 주제 유형 정답 위치 균등 배정 덱
+  var _topicCount = assignment.filter(function(a){ return a.typeId === 'topic'; }).length;
+  var _topicDeck = buildAnswerDeck(_topicCount);
+
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
     var type = null;
@@ -3050,7 +3118,8 @@ async function startGeneration() {
     if (_genCancelled) break;
 
     try {
-      var result = await callWithRetry(type, item.passage.text, sid);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : null;
+      var result = await callWithRetry(type, item.passage.text, sid, _tp);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
