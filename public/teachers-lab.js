@@ -2075,17 +2075,19 @@ function getFixedFormat(typeId) {
 
 var BASE_SYSTEM = '지정된 형식(대문자 섹션 키: 로 시작)으로만 응답하세요. 추론 과정, 설명, 서문을 출력하지 마세요.';
 
-var HARNESS_TOPIC_SYSTEM = `[HARNESS — 출제 전 최우선 지침. 아래 절차를 수행한 뒤 유저 프롬프트의 출력 형식에 따라 응답하고, EXPLANATION 이후 반드시 아래 3줄을 추가 출력할 것]
+var HARNESS_TOPIC_SYSTEM = `[HARNESS — 출제 전 최우선 지침. 아래 절차를 수행한 뒤 유저 프롬프트의 출력 형식에 따라 응답하고, EXPLANATION 이후 반드시 아래 4줄을 추가 출력할 것]
 
 ▶ STEP A: 정답 번호 배치
 정답 번호를 ①~⑤ 사이에 균형 있게 배치할 것. ④로 수렴하지 말 것.
 ANSWER_PLACEMENT: [선택한 정답 번호와 이유 한 문장]
 
-▶ STEP B: 정답 유일성 검증
+▶ STEP B: 정답 유일성 및 환언 검증
 ① 정답이 지문 전체(도입부 포함)를 포괄하는가? 결론부만 반영했다면 재설계.
 ② 나머지 4개 선지 각각에 대해: 지문의 특정 부분만 읽어도 옳다고 볼 수 있는가?
 ③ 각 선지에 대해: "이 선지가 맞고 정답이 틀렸다"고 주장할 지문 근거가 존재하는가? 있으면 재설계.
 UNIQUENESS_CHECK: 통과 또는 재설계:[선지 번호와 이유]
+④ 정답 선지의 단어(관사·전치사 제외) 중 지문 미등장 어휘가 50% 이상인가? 미충족 시 재설계.
+ORIGINALITY_CHECK: 통과 또는 재설계:[지문 재등장 단어 목록]
 
 ▶ STEP C: D1 품질 검증
 ① D1이 틀린 이유: "이 선지는 [관계어/논리방향]이 지문과 충돌한다." — [  ] 안에 관계어 외 내용 시 재제작.
@@ -2104,6 +2106,7 @@ function stripHarnessSections(raw) {
   // 하네스 검증 섹션 제거 (ANSWER_PLACEMENT, UNIQUENESS_CHECK, D1_CHECK)
   raw = raw.replace(/\n?[ \t]*ANSWER_PLACEMENT:[^\n]*/g, '');
   raw = raw.replace(/\n?[ \t]*UNIQUENESS_CHECK:[^\n]*/g, '');
+  raw = raw.replace(/\n?[ \t]*ORIGINALITY_CHECK:[^\n]*/g, '');
   raw = raw.replace(/\n?[ \t]*D1_CHECK:[^\n]*/g, '');
   // EXPLANATION 선택지 해석에서 T타입 레이블·추가 설명 제거
   // 패턴: ① 한국어 번역 — 추가설명 [T1: ...] → ① 한국어 번역
@@ -2889,11 +2892,13 @@ async function callWithRetry(type, text, sid) {
       // 주제: 하네스 검증 결과 파싱 → 실패 시 재시도 → 섹션 제거
       if (type.id === 'topic' && result) {
         var uCheck  = (result.match(/UNIQUENESS_CHECK:\s*([^\n]+)/) || [])[1] || '';
+        var oCheck  = (result.match(/ORIGINALITY_CHECK:\s*([^\n]+)/) || [])[1] || '';
         var d1Check = (result.match(/D1_CHECK:\s*([^\n]+)/)         || [])[1] || '';
-        var needsRetry = uCheck.includes('재설계') || d1Check.includes('재설계');
+        var needsRetry = uCheck.includes('재설계') || oCheck.includes('재설계') || d1Check.includes('재설계');
         if (needsRetry && n < max) {
           var reasons = [];
           if (uCheck.includes('재설계'))  reasons.push('정답 유일성 실패: ' + uCheck.trim());
+          if (oCheck.includes('재설계'))  reasons.push('정답 환언 부족 실패: ' + oCheck.trim());
           if (d1Check.includes('재설계')) reasons.push('D1 품질 실패: ' + d1Check.trim());
           var el3 = document.getElementById(sid);
           if (el3) el3.innerHTML = '<div class="spin"></div><span>⚠️ 하네스 검증 실패 — 재출제 중...</span>';
