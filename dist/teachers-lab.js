@@ -2901,7 +2901,8 @@ async function callWithRetry(type, text, sid) {
           await wait(1000);
           try { result = await callAPI(type, text, reasons.join(' / ')); } catch(e3) {}
         }
-        result = stripHarnessSections(result);
+        // [진단 모드] 하네스 섹션 제거 임시 비활성화 — 확인 후 복원 필요
+        // result = stripHarnessSections(result);
       }
 
       // 어법·어휘: 번호가 지문 안에 인라인으로 5개 모두 있는지 검증
