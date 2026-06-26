@@ -2073,12 +2073,12 @@ function getFixedFormat(typeId) {
 // 유형별 하네스: API 호출 시 type.prompt 뒤, 지문 뒤에 동적으로 주입됨
 // 각 하네스는 내부 사고(출력 금지) 블록으로 작성
 
-var HARNESS_TOPIC = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[HARNESS — 최종 출력 전 수행. 아래 세 섹션을 반드시 출력할 것]
+var BASE_SYSTEM = '지정된 형식(대문자 섹션 키: 로 시작)으로만 응답하세요. 추론 과정, 설명, 서문을 출력하지 마세요.';
+
+var HARNESS_TOPIC_SYSTEM = `[HARNESS — 출제 전 최우선 지침. 아래 절차를 수행한 뒤 유저 프롬프트의 출력 형식에 따라 응답하고, EXPLANATION 이후 반드시 아래 3줄을 추가 출력할 것]
 
 ▶ STEP A: 정답 번호 배치
-정답 번호를 ③④⑤ 사이에 균형 있게 배치할 것. 특정 번호로 수렴하지 말 것.
+정답 번호를 ①~⑤ 사이에 균형 있게 배치할 것. ④로 수렴하지 말 것.
 ANSWER_PLACEMENT: [선택한 정답 번호와 이유 한 문장]
 
 ▶ STEP B: 정답 유일성 검증
@@ -2093,12 +2093,11 @@ UNIQUENESS_CHECK: 통과 또는 재설계:[선지 번호와 이유]
 ③ D1과 정답이 핵심 명사를 2개 이상 공유하는가? 미충족 시 재제작.
 D1_CHECK: 통과 또는 재설계:[이유]
 
-STEP B·C에서 재설계 판정 시 해당 선지를 수정하여 최종 출력한다.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+STEP B·C에서 재설계 판정 시 해당 선지를 수정하여 최종 출력한다.`;
 
-function getHarness(typeId) {
-  if (typeId === 'topic') return HARNESS_TOPIC;
-  return '';
+function getSystemPrompt(typeId) {
+  if (typeId === 'topic') return HARNESS_TOPIC_SYSTEM + '\n\n' + BASE_SYSTEM;
+  return BASE_SYSTEM;
 }
 
 function stripHarnessSections(raw) {
@@ -2816,8 +2815,7 @@ async function callAPI(type, passageText, retryHint) {
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
   var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
-  var harness = getHarness(type.id);
-  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + (harness ? '\n\n' + harness : '');
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText;
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
@@ -2832,7 +2830,7 @@ async function callAPI(type, passageText, retryHint) {
       body: JSON.stringify({
         model: model,
         max_tokens: 4000,
-        system: '지정된 형식(대문자 섹션 키: 로 시작)으로만 응답하세요. 추론 과정, 설명, 서문을 출력하지 마세요.',
+        system: getSystemPrompt(type.id),
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -2847,6 +2845,7 @@ async function callAPI(type, passageText, retryHint) {
     // ── Gemini API ──
     // thinkingConfig는 Flash 계열만 지원 (Pro는 항상 thinking 활성화, 필드 불필요)
     var geminiBody2 = {
+      systemInstruction:{parts:[{text: getSystemPrompt(type.id)}]},
       contents:[{parts:[{text: prompt}]}],
       generationConfig:{maxOutputTokens:16384, temperature:0.7}
     };
