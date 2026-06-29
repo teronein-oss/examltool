@@ -1119,10 +1119,12 @@ function selectSeoType(i) {
   var t = editingSeoTypes[i];
   var nameEl   = document.getElementById('seoEditName');
   var dirEl    = document.getElementById('seoEditDirection');
+  var harnEl   = document.getElementById('seoEditHarness');
   var promEl   = document.getElementById('seoEditPrompt');
   var renderEl = document.getElementById('seoEditRender');
   if (nameEl)   nameEl.value   = t.name;
   if (dirEl)    dirEl.value    = t.direction || '';
+  if (harnEl)   harnEl.value   = t.harness || '';
   if (promEl)   promEl.value   = t.prompt || '';
   if (renderEl) renderEl.value = t.seoRender || 'blanks';
 }
@@ -1131,10 +1133,12 @@ function saveSeoCurrentType() {
   if (!isMaster()) { alert('관리자만 수정할 수 있습니다.'); return; }
   var nameEl   = document.getElementById('seoEditName');
   var dirEl    = document.getElementById('seoEditDirection');
+  var harnEl   = document.getElementById('seoEditHarness');
   var promEl   = document.getElementById('seoEditPrompt');
   var renderEl = document.getElementById('seoEditRender');
   if (nameEl)   editingSeoTypes[seoSelIdx].name      = nameEl.value;
   if (dirEl)    editingSeoTypes[seoSelIdx].direction = dirEl.value;
+  if (harnEl)   editingSeoTypes[seoSelIdx].harness   = harnEl.value;
   if (promEl)   editingSeoTypes[seoSelIdx].prompt    = promEl.value;
   if (renderEl) editingSeoTypes[seoSelIdx].seoRender = renderEl.value;
   globalSeoTypes = JSON.parse(JSON.stringify(editingSeoTypes));
@@ -1197,7 +1201,7 @@ function addSeoType() {
   var name = prompt('새 서술형 유형 이름을 입력하세요:', '새 서술형 유형');
   if (!name || !name.trim()) return;
   var newId = 'seo_custom_' + Date.now();
-  var newType = { id: newId, name: name.trim(), direction: '', prompt: '', seoRender: 'blanks', done: false };
+  var newType = { id: newId, name: name.trim(), direction: '', harness: '', prompt: '', seoRender: 'blanks', done: false };
   editingSeoTypes.push(newType);
   globalSeoTypes = JSON.parse(JSON.stringify(editingSeoTypes));
   saveGlobalSeoTypes();
@@ -1358,6 +1362,7 @@ function selectType(i) {
   document.getElementById('editorBadge').className    = 'pebadge ' + COLORS[i % COLORS.length];
   document.getElementById('editName').value           = t.name;
   document.getElementById('editDirection').value      = t.direction;
+  document.getElementById('editHarness').value        = t.harness || '';
   document.getElementById('editPrompt').value         = t.prompt;
   var kichulRow = document.getElementById('editKichulRow');
   if (kichulRow) kichulRow.style.display = 'none'; // 기출 체크박스: 객관식 탭에서는 항상 숨김
@@ -1380,6 +1385,7 @@ function saveCurrentType() {
 
   editingQTypes[selIdx].name      = document.getElementById('editName').value;
   editingQTypes[selIdx].direction = document.getElementById('editDirection').value;
+  editingQTypes[selIdx].harness   = document.getElementById('editHarness').value;
   editingQTypes[selIdx].prompt    = document.getElementById('editPrompt').value;
   editingQTypes[selIdx].references = _curRefs.length ? _curRefs : [];
   editingQTypes[selIdx].reference  = '';
@@ -1412,6 +1418,7 @@ function saveTypeToAllSchools() {
   var typeId   = editingQTypes[selIdx].id;
   var newName  = document.getElementById('editName').value;
   var newDir   = document.getElementById('editDirection').value;
+  var newHarn  = document.getElementById('editHarness').value;
   var newProm  = document.getElementById('editPrompt').value;
   var newRefs  = _curRefs.length ? _curRefs : [];
   var kichulEl = document.getElementById('editKichul');
@@ -1430,6 +1437,7 @@ function saveTypeToAllSchools() {
       if (t.id === typeId) {
         t.name       = newName;
         t.direction  = newDir;
+        t.harness    = newHarn;
         t.prompt     = newProm;
         t.references = newRefs;
         t.reference  = '';
@@ -1439,7 +1447,7 @@ function saveTypeToAllSchools() {
     });
     // 해당 id가 없으면 추가
     if (!found) {
-      schoolPresets[school].push({ id: typeId, name: newName, direction: newDir, prompt: newProm, references: newRefs, reference: '', kichul: newKichul });
+      schoolPresets[school].push({ id: typeId, name: newName, direction: newDir, harness: newHarn, prompt: newProm, references: newRefs, reference: '', kichul: newKichul });
     }
   });
 
@@ -2100,6 +2108,14 @@ var HARNESS_TOPIC_SYSTEM = `[출제 품질 지침 — 내부 설계에만 반영
 function getSystemPrompt(typeId) {
   if (typeId === 'topic') return HARNESS_TOPIC_SYSTEM + '\n\n' + BASE_SYSTEM;
   return BASE_SYSTEM;
+}
+
+// 유형별 하네스 결정: 편집기에서 입력한 type.harness가 있으면 그것을 시스템 지침으로 쓰고,
+// 출력 형식 강제 규칙(BASE_SYSTEM)을 항상 뒤에 붙인다. 비어 있으면 기존 기본값으로 폴백.
+function resolveHarness(type) {
+  var h = type && type.harness ? type.harness.trim() : '';
+  if (h) return h + '\n\n' + BASE_SYSTEM;
+  return getSystemPrompt(type ? type.id : '');
 }
 
 var CIRCLED = ['①', '②', '③', '④', '⑤'];
@@ -2892,7 +2908,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList) {
       body: JSON.stringify({
         model: model,
         max_tokens: 4000,
-        system: getSystemPrompt(type.id),
+        system: resolveHarness(type),
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -2907,7 +2923,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList) {
     // ── Gemini API ──
     // thinkingConfig는 Flash 계열만 지원 (Pro는 항상 thinking 활성화, 필드 불필요)
     var geminiBody2 = {
-      systemInstruction:{parts:[{text: getSystemPrompt(type.id)}]},
+      systemInstruction:{parts:[{text: resolveHarness(type)}]},
       contents:[{parts:[{text: prompt}]}],
       generationConfig:{maxOutputTokens:16384, temperature:0.7}
     };
