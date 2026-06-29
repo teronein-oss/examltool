@@ -2147,6 +2147,12 @@ function getSystemPrompt(typeId) {
 // 출력 형식 강제 규칙(BASE_SYSTEM)을 항상 뒤에 붙인다. 비어 있으면 기존 기본값으로 폴백.
 function resolveHarness(type) {
   var h = type && type.harness ? type.harness.trim() : '';
+  // 명시적 UI 하네스가 없으면 유형별 .md 하네스를 기본 폴백으로 적용한다.
+  // (저장 데이터에 harness 필드가 없어도 모든 유형이 .md 하네스를 기본 적용 — topic만 되던 비대칭 해소)
+  if (!h && typeof window !== 'undefined' && window.TYPE_PROMPTS && type) {
+    var tp = window.TYPE_PROMPTS[type.id];
+    if (tp && tp.harness) h = tp.harness.trim();
+  }
   if (h) return h + '\n\n' + BASE_SYSTEM;
   return getSystemPrompt(type ? type.id : '');
 }
