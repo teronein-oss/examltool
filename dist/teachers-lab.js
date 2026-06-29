@@ -1371,6 +1371,18 @@ function renderTypeList() {
   }).join('');
 }
 
+// 선택한 유형 1개만 .md 기본값(prompt·harness)으로 되돌린다. 다른 유형은 영향 없음.
+function resetTypeToMd() {
+  var t = editingQTypes[selIdx];
+  if (!t) return;
+  var tp = (typeof window !== 'undefined' && window.TYPE_PROMPTS) ? window.TYPE_PROMPTS[t.id] : null;
+  if (!tp) { alert('이 유형은 아직 .md 기본값이 없습니다.'); return; }
+  if (!confirm('[' + t.name + '] 유형의 프롬프트·하네스를 .md 기본값으로 되돌립니다.\n이 유형의 UI 수정본은 사라지며, 다른 유형은 영향받지 않습니다.\n계속할까요?')) return;
+  if (tp.instructions != null) document.getElementById('editPrompt').value = tp.instructions;
+  if (tp.harness != null) document.getElementById('editHarness').value = tp.harness;
+  saveCurrentType(); // DOM 값을 읽어 editingQTypes에 반영 + 저장(qTypes/Firebase)
+}
+
 function selectType(i) {
   selIdx = i;
   renderTypeList();
@@ -1381,6 +1393,10 @@ function selectType(i) {
   document.getElementById('editDirection').value      = t.direction;
   document.getElementById('editHarness').value        = t.harness || '';
   document.getElementById('editPrompt').value         = t.prompt;
+  // .md 기본값이 있는 유형(현재 주제만)에서만 '되돌리기' 버튼 노출
+  var resetBtn = document.getElementById('resetMdBtn');
+  if (resetBtn) resetBtn.style.display =
+    (typeof window !== 'undefined' && window.TYPE_PROMPTS && window.TYPE_PROMPTS[t.id]) ? 'inline-block' : 'none';
   var kichulRow = document.getElementById('editKichulRow');
   if (kichulRow) kichulRow.style.display = 'none'; // 기출 체크박스: 객관식 탭에서는 항상 숨김
   var kichulEl = document.getElementById('editKichul');

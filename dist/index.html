@@ -180,6 +180,7 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
         <textarea class="fta" id="editHarness" rows="6" placeholder="이 유형의 시스템 레벨 출제 지침 (예: 출제 품질 기준, 정답 유일성·변별력 규칙 등). 비워두면 기본값이 적용됩니다."></textarea>
         <div class="fl">메타프롬프트 (AI 출제 지침)</div>
         <textarea class="fta" id="editPrompt" rows="16"></textarea>
+        <button id="resetMdBtn" class="refbtn" onclick="resetTypeToMd()" style="display:none;margin:4px 0;color:var(--ac);border-color:#f0c0bb;">↩ 이 유형만 .md 기본값으로 되돌리기</button>
         <div class="fl" style="margin-top:4px;">레퍼런스 파일 <span style="font-weight:400;color:var(--ink3);text-transform:none;letter-spacing:0;">(선택 — 여러 파일 추가 가능, 출제 시 AI 참고 자료로 제공됩니다)</span></div>
         <div class="refbox">
           <div style="display:flex;align-items:center;gap:8px;">
@@ -893,8 +894,8 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
 </style>
 
 <!-- Teachers Lab JS (global scope) -->
-<script src="/prompts-data.js?v=20260629b"></script>
-<script src="/teachers-lab.js?v=20260629b"></script>
+<script src="/prompts-data.js?v=20260629c"></script>
+<script src="/teachers-lab.js?v=20260629c"></script>
 <!-- 시험분석지 JS -->
 <script src="/score-analysis.js?v=2"></script>
 <!-- React entry: check-table + Tailwind -->
