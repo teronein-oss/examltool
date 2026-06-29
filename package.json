@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prompts": "node scripts/build-prompts.mjs",
+    "predev": "node scripts/build-prompts.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/build-prompts.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
