@@ -864,6 +864,9 @@ async function startPracGeneration() {
   // 주제 유형 정답 위치 균등 배정 덱
   var _topicCount = assignment.filter(function(a){ return a.typeId === 'topic'; }).length;
   var _topicDeck = buildAnswerDeck(_topicCount);
+  var _blankCount = assignment.filter(function(a){ return a.typeId === 'blank'; }).length;
+  var _blankAnsDeck = buildAnswerDeck(_blankCount);
+  var _blankRegionDeck = buildRegionDeck(_blankCount);
 
   for (var i = 0; i < assignment.length; i++) {
     var item = assignment[i];
@@ -885,8 +888,9 @@ async function startPracGeneration() {
     if (_genCancelled) break;
 
     try {
-      var _tp = type.id === 'topic' ? _topicDeck.shift() : null;
-      var result = await callWithRetry(type, item.passage.text, sid, _tp);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : null);
+      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
+      var result = await callWithRetry(type, item.passage.text, sid, _tp, _region);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
       el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
@@ -2164,6 +2168,22 @@ var _topicVersionMemory = {};
 function _verKey(text) { return (text || '').replace(/\s+/g, ' ').trim().slice(0, 120); }
 
 // 배치 내 정답 위치를 ①~⑤ 균등 분포로 배정하는 덱 (셔플 순환)
+// 빈칸 위치(초/중/후)를 균등 분포로 배정하는 덱 (셔플 순환) — buildAnswerDeck과 동일 패턴
+function buildRegionDeck(n) {
+  var deck = [], pool = [], regions = ['cho', 'jung', 'hu'];
+  while (deck.length < n) {
+    if (!pool.length) {
+      pool = regions.slice();
+      for (var k = pool.length - 1; k > 0; k--) {
+        var r = Math.floor(Math.random() * (k + 1));
+        var t = pool[k]; pool[k] = pool[r]; pool[r] = t;
+      }
+    }
+    deck.push(pool.shift());
+  }
+  return deck;
+}
+
 function buildAnswerDeck(n) {
   var deck = [], pool = [];
   while (deck.length < n) {
@@ -2906,14 +2926,19 @@ function toSections(num, type, raw, passageTitle) {
   return { q: q.join('\n'), a: a.join('\n') };
 }
 
-async function callAPI(type, passageText, retryHint, targetPos, avoidList) {
+async function callAPI(type, passageText, retryHint, targetPos, avoidList, targetRegion) {
   var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   var model = document.getElementById('modelSelect').value;
   if (!key) throw new Error('API 키를 입력해주세요.');
   var hint = retryHint ? '\n\n## ⚠️ 이전 출력 오류 수정 요청\n' + retryHint + '\n' : '';
-  // 정답 위치 지정 (주제 유형): 코드가 ①~⑤ 균등 분포로 배정 → 모델에 명시
-  var posRule = (type.id === 'topic' && targetPos)
+  // 정답 위치 지정 (주제·빈칸 유형): 코드가 ①~⑤ 균등 분포로 배정 → 모델에 명시
+  var posRule = ((type.id === 'topic' || type.id === 'blank') && targetPos)
     ? '\n\n## 정답 위치 지정 (필수)\n이 문항의 정답은 반드시 ' + CIRCLED[targetPos - 1] + '번 선택지여야 한다. 정답 내용을 ' + CIRCLED[targetPos - 1] + ' 자리에 배치하고 ANSWER: 도 ' + CIRCLED[targetPos - 1] + '로 출력하라. 다른 번호 금지.'
+    : '';
+  // 빈칸 위치 지정 (빈칸 유형): 코드가 초/중/후 균등 분포로 배정 → 모델에 명시
+  var REGION_LABEL = { cho: '지문 도입부(초반 1/3)', jung: '지문 중반(가운데 1/3)', hu: '지문 후반부(마지막 1/3, 단 맨 끝 문장은 제외)' };
+  var regionRule = (type.id === 'blank' && targetRegion && REGION_LABEL[targetRegion])
+    ? '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL[targetRegion] + '에 있는 핵심 문장에 두어라. 지정된 영역 외에는 빈칸을 두지 말 것.'
     : '';
   // 버전 변주 (주제 유형): 같은 지문으로 이미 만든 정답 표현을 회피시킴
   var varRule = (type.id === 'topic' && avoidList && avoidList.length)
@@ -2932,7 +2957,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList) {
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
   var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
-  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule + varRule;
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule + varRule + regionRule;
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
@@ -2991,9 +3016,9 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList) {
   }
 }
 
-async function callWithRetry(type, text, sid, targetPos) {
-  // 주제 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
-  if (type.id === 'topic' && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
+async function callWithRetry(type, text, sid, targetPos, targetRegion) {
+  // 주제·빈칸 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
+  if ((type.id === 'topic' || type.id === 'blank') && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
   // 주제 유형: 같은 지문으로 이미 만든 정답 표현 → 회피 목록
   var avoidList = type.id === 'topic' ? (_topicVersionMemory[_verKey(text)] || []).slice() : null;
   var lastErr, max = 3;
@@ -3005,7 +3030,29 @@ async function callWithRetry(type, text, sid, targetPos) {
         if (el) el.innerHTML = '<div class="spin"></div><span>⚠️ 재시도 (' + n + '/' + max + ') — ' + w + '초 대기중...</span>';
         await wait(w * 1000);
       }
-      var result = await callAPI(type, text, null, targetPos, avoidList);
+      var result = await callAPI(type, text, null, targetPos, avoidList, targetRegion);
+
+      // 빈칸: 코드 검증 (① 정답 위치 일치, ② 선지 번호 ①~⑤ 각 1회) → 실패 시 재출제
+      if (type.id === 'blank' && result) {
+        var bReasons = [];
+        var bAns = answerToNum(extractSec(result, 'ANSWER'));
+        if (targetPos && bAns && bAns !== targetPos) {
+          bReasons.push('정답 위치 오류: 정답 내용을 ' + CIRCLED[targetPos - 1] + '번 선택지에 배치하고 ANSWER도 ' + CIRCLED[targetPos - 1] + '로 하라.');
+        }
+        var bNums = (extractSec(result, 'CHOICES') || '').match(/[①②③④⑤]/g) || [];
+        var bSeen = {}; bNums.forEach(function(c) { bSeen[c] = (bSeen[c] || 0) + 1; });
+        var bDistinct = Object.keys(bSeen).length;
+        var bDup = Object.keys(bSeen).some(function(c) { return bSeen[c] > 1; });
+        if (bDistinct !== 5 || bDup) {
+          bReasons.push('선지 번호 오류: CHOICES는 ①②③④⑤ 5개를 각각 정확히 1회만 사용하라(중복·누락 금지).');
+        }
+        if (bReasons.length && n < max) {
+          var elB = document.getElementById(sid);
+          if (elB) elB.innerHTML = '<div class="spin"></div><span>⚠️ 빈칸 품질 검증 실패 — 재출제 중...</span>';
+          await wait(1000);
+          try { result = await callAPI(type, text, bReasons.join(' / '), targetPos, null, targetRegion); } catch (eB) {}
+        }
+      }
 
       // 주제: 코드 검증 (① 정답 위치 일치, ② 정답 50% 환언) → 실패 시 재출제 → 섹션 제거
       if (type.id === 'topic' && result) {
@@ -3174,6 +3221,9 @@ async function startGeneration() {
   // 주제 유형 정답 위치 균등 배정 덱
   var _topicCount = assignment.filter(function(a){ return a.typeId === 'topic'; }).length;
   var _topicDeck = buildAnswerDeck(_topicCount);
+  var _blankCount = assignment.filter(function(a){ return a.typeId === 'blank'; }).length;
+  var _blankAnsDeck = buildAnswerDeck(_blankCount);
+  var _blankRegionDeck = buildRegionDeck(_blankCount);
 
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
@@ -3200,8 +3250,9 @@ async function startGeneration() {
     if (_genCancelled) break;
 
     try {
-      var _tp = type.id === 'topic' ? _topicDeck.shift() : null;
-      var result = await callWithRetry(type, item.passage.text, sid, _tp);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : null);
+      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
+      var result = await callWithRetry(type, item.passage.text, sid, _tp, _region);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
