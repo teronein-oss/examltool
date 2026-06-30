@@ -2976,10 +2976,14 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
     regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL_HARD[targetRegion] + '에 두어라. 매 문항 같은 자리(특히 맨 끝 문장 직전)로 수렴하지 말 것.';
   }
   // 부정형 표현 형태 지정 (빈칸 고난이도): 코드가 명사구/동사구/동명사구를 균등 배정 → ignorant of 반복 방지 + 선지 문법 일치
+  // ⚠ 각 풀의 표현은 '3인칭 단수' 디폴트 형태로 적어놓았다. 빈칸 문장의 실제 주어에 맞춰
+  //    반드시 동사 형태를 일치시켜라(주술 일치). 예: 주어가 they/people이면 'shows→show',
+  //    'stops→stop', 'falls→fall', 'has yet to→have yet to', 'is unable to→are unable to'.
+  //    풀의 단어를 그대로 복사해 비문(they ... stops short of)이 되지 않게 한다.
   var NEG_LABEL = {
-    np:   "명사구. 부정형 표현은 'shows a neglect of ___ / reflects an absence of ___ / suggests an inability to grasp ___ / stays ignorant of ___ / overlooks ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. 5개 선지 모두 명사구.",
-    v:    "동사원형구. 부정형 표현은 반드시 'to'로 끝나는 형태('fails to ___ / is unable to ___ / refuses to ___ / cannot ___ / has yet to ___')만 써서 빈칸이 동사원형으로 시작하게 한다. overlook·disregard·neglect처럼 명사 목적어를 받는 동사는 쓰지 말 것. 5개 선지 모두 동사원형구.",
-    ving: "동명사(Ving)구. 부정형 표현은 'is incapable of ___ / refrains from ___ / falls short of ___ / stops short of ___ / avoids ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. 5개 선지 모두 동명사구."
+    np:   "명사구. 부정형 표현은 'show(s) a neglect of ___ / reflect(s) an absence of ___ / suggest(s) an inability to grasp ___ / stay(s) ignorant of ___ / overlook(s) ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they/people → show·reflect·overlook). 5개 선지 모두 명사구.",
+    v:    "동사원형구. 부정형 표현은 반드시 'to'로 끝나는 형태('fail(s) to ___ / is/are unable to ___ / refuse(s) to ___ / cannot ___ / has/have yet to ___')만 써서 빈칸이 동사원형으로 시작하게 한다. overlook·disregard·neglect처럼 명사 목적어를 받는 동사는 쓰지 말 것. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they → fail·are unable to·have yet to). 5개 선지 모두 동사원형구.",
+    ving: "동명사(Ving)구. 부정형 표현은 'is/are incapable of ___ / refrain(s) from ___ / fall(s) short of ___ / stop(s) short of ___ / avoid(s) ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they → are incapable of·refrain·fall·stop·avoid). 5개 선지 모두 동명사구."
   };
   // 같은 형태(np/v/ving) 내에서도 매 문항 동일 어휘 반복 금지 — 'keeps from'·'reflects an absence of' 같은 표현이 배치 내 중복되지 않게 한다.
   var negVaryRule = (type.id === 'blank_hard' && targetNeg)
