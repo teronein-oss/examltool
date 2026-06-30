@@ -871,6 +871,9 @@ async function startPracGeneration() {
   var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
   var _blankHardNegDeck = buildNegDeck(_blankHardCount);
   var _blankHardRegionDeck = buildRegionDeck(_blankHardCount, ['mid_early','mid_core','mid_late']);
+  var _blankTfCount = assignment.filter(function(a){ return a.typeId === 'blank_hard_transform'; }).length;
+  var _blankTfAnsDeck = buildAnswerDeck(_blankTfCount);
+  var _blankTfRegionDeck = buildRegionDeck(_blankTfCount);
 
   for (var i = 0; i < assignment.length; i++) {
     var item = assignment[i];
@@ -892,8 +895,8 @@ async function startPracGeneration() {
     if (_genCancelled) break;
 
     try {
-      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
-      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : (type.id === 'blank_hard' ? _blankHardRegionDeck.shift() : null);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : (type.id === 'blank_hard_transform' ? _blankTfAnsDeck.shift() : null)));
+      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : (type.id === 'blank_hard' ? _blankHardRegionDeck.shift() : (type.id === 'blank_hard_transform' ? _blankTfRegionDeck.shift() : null));
       var _neg = type.id === 'blank_hard' ? _blankHardNegDeck.shift() : null;
       var result = await callWithRetry(type, item.passage.text, sid, _tp, _region, _neg);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
@@ -2983,7 +2986,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
   if (!key) throw new Error('API 키를 입력해주세요.');
   var hint = retryHint ? '\n\n## ⚠️ 이전 출력 오류 수정 요청\n' + retryHint + '\n' : '';
   // 정답 위치 지정 (주제·빈칸 유형): 코드가 ①~⑤ 균등 분포로 배정 → 모델에 명시
-  var posRule = ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard') && targetPos)
+  var posRule = ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard' || type.id === 'blank_hard_transform') && targetPos)
     ? '\n\n## 정답 위치 지정 (필수)\n이 문항의 정답은 반드시 ' + CIRCLED[targetPos - 1] + '번 선택지여야 한다. 정답 내용을 ' + CIRCLED[targetPos - 1] + ' 자리에 배치하고 ANSWER: 도 ' + CIRCLED[targetPos - 1] + '로 출력하라. 다른 번호 금지.'
     : '';
   // 빈칸 위치 지정 (빈칸 유형): 코드가 초/중/후 균등 분포로 배정 → 모델에 명시
@@ -2999,6 +3002,8 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
     regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL[targetRegion] + '에 있는 핵심 문장에 두어라. 지정된 영역 외에는 빈칸을 두지 말 것.';
   } else if (type.id === 'blank_hard' && targetRegion && REGION_LABEL_HARD[targetRegion]) {
     regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL_HARD[targetRegion] + '에 두어라. 매 문항 같은 자리(특히 맨 끝 문장 직전)로 수렴하지 말 것.';
+  } else if (type.id === 'blank_hard_transform' && targetRegion && REGION_LABEL[targetRegion]) {
+    regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL[targetRegion] + '에 있는 핵심 주제 구에 두어라. 지정된 영역 외에는 빈칸을 두지 말 것.';
   }
   // 부정형 표현 지정 (빈칸 고난이도): buildNegDeck가 NEG_EXPRESSIONS 풀(18개)에서 문항마다
   //   '구체 표현 1개'를 균등 배정 → 배치 내 표현 중복 0(특정 표현 빈도 쏠림 방지). 형태(np/v/ving)도 함께 결정.
@@ -3093,7 +3098,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
 
 async function callWithRetry(type, text, sid, targetPos, targetRegion, targetNeg) {
   // 주제·빈칸 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
-  if ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard') && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
+  if ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard' || type.id === 'blank_hard_transform') && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
   // 주제 유형: 같은 지문으로 이미 만든 정답 표현 → 회피 목록
   var avoidList = type.id === 'topic' ? (_topicVersionMemory[_verKey(text)] || []).slice() : null;
   var lastErr, max = 3;
@@ -3107,8 +3112,8 @@ async function callWithRetry(type, text, sid, targetPos, targetRegion, targetNeg
       }
       var result = await callAPI(type, text, null, targetPos, avoidList, targetRegion, targetNeg);
 
-      // 빈칸·빈칸고난이도: 코드 검증 (① 정답 위치 일치, ② 선지 번호 ①~⑤ 각 1회) → 실패 시 재출제
-      if ((type.id === 'blank' || type.id === 'blank_hard') && result) {
+      // 빈칸·빈칸고난이도·변형: 코드 검증 (① 정답 위치 일치, ② 선지 번호 ①~⑤ 각 1회) → 실패 시 재출제
+      if ((type.id === 'blank' || type.id === 'blank_hard' || type.id === 'blank_hard_transform') && result) {
         var bReasons = [];
         var bAns = answerToNum(extractSec(result, 'ANSWER'));
         if (targetPos && bAns && bAns !== targetPos) {
@@ -3303,6 +3308,9 @@ async function startGeneration() {
   var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
   var _blankHardNegDeck = buildNegDeck(_blankHardCount);
   var _blankHardRegionDeck = buildRegionDeck(_blankHardCount, ['mid_early','mid_core','mid_late']);
+  var _blankTfCount = assignment.filter(function(a){ return a.typeId === 'blank_hard_transform'; }).length;
+  var _blankTfAnsDeck = buildAnswerDeck(_blankTfCount);
+  var _blankTfRegionDeck = buildRegionDeck(_blankTfCount);
 
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
@@ -3329,8 +3337,8 @@ async function startGeneration() {
     if (_genCancelled) break;
 
     try {
-      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
-      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : (type.id === 'blank_hard' ? _blankHardRegionDeck.shift() : null);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : (type.id === 'blank_hard_transform' ? _blankTfAnsDeck.shift() : null)));
+      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : (type.id === 'blank_hard' ? _blankHardRegionDeck.shift() : (type.id === 'blank_hard_transform' ? _blankTfRegionDeck.shift() : null));
       var _neg = type.id === 'blank_hard' ? _blankHardNegDeck.shift() : null;
       var result = await callWithRetry(type, item.passage.text, sid, _tp, _region, _neg);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
