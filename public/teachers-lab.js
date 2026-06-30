@@ -2966,12 +2966,16 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
     : '';
   // 부정형 표현 형태 지정 (빈칸 고난이도): 코드가 명사구/동사구/동명사구를 균등 배정 → ignorant of 반복 방지 + 선지 문법 일치
   var NEG_LABEL = {
-    np:   "명사구. 부정형 표현은 'shows a neglect of ___ / reflects an absence of ___ / remains blind to ___ / stays ignorant of ___' 중 자연스러운 1개를 골라 빈칸이 명사구가 되게 한다. 5개 선지 모두 명사구.",
-    v:    "동사원형구. 부정형 표현은 반드시 'to'로 끝나는 형태('fails to ___ / is unable to ___ / refuses to ___')만 써서 빈칸이 동사원형으로 시작하게 한다. overlook·disregard·neglect처럼 명사 목적어를 받는 동사는 쓰지 말 것. 5개 선지 모두 동사원형구.",
-    ving: "동명사(Ving)구. 부정형 표현은 'is incapable of ___ / keeps from ___ / avoids ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. 5개 선지 모두 동명사구."
+    np:   "명사구. 부정형 표현은 'shows a neglect of ___ / reflects an absence of ___ / suggests an inability to grasp ___ / stays ignorant of ___ / overlooks ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. 5개 선지 모두 명사구.",
+    v:    "동사원형구. 부정형 표현은 반드시 'to'로 끝나는 형태('fails to ___ / is unable to ___ / refuses to ___ / cannot ___ / has yet to ___')만 써서 빈칸이 동사원형으로 시작하게 한다. overlook·disregard·neglect처럼 명사 목적어를 받는 동사는 쓰지 말 것. 5개 선지 모두 동사원형구.",
+    ving: "동명사(Ving)구. 부정형 표현은 'is incapable of ___ / refrains from ___ / falls short of ___ / stops short of ___ / avoids ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. 5개 선지 모두 동명사구."
   };
+  // 같은 형태(np/v/ving) 내에서도 매 문항 동일 어휘 반복 금지 — 'keeps from'·'reflects an absence of' 같은 표현이 배치 내 중복되지 않게 한다.
+  var negVaryRule = (type.id === 'blank_hard' && targetNeg)
+    ? "\n- 같은 형태 유형 안에서도 부정형 어휘는 배치 내 매 문항 다른 것을 골라라. 'keeps from / reflects an absence of' 같은 표현이 한 배치에서 2회 이상 반복되지 않게 한다."
+    : '';
   var negRule = (type.id === 'blank_hard' && targetNeg && NEG_LABEL[targetNeg])
-    ? '\n\n## 부정형 표현·선지 형태 지정 (필수)\n이 문항의 빈칸 형태는 ' + NEG_LABEL[targetNeg] + ' 같은 부정형 표현(특히 ignorant of)을 매 문항 반복하지 말 것.'
+    ? '\n\n## 부정형 표현·선지 형태 지정 (필수)\n이 문항의 빈칸 형태는 ' + NEG_LABEL[targetNeg] + ' 같은 부정형 표현(특히 ignorant of)을 매 문항 반복하지 말 것.' + negVaryRule
     : '';
   // 버전 변주 (주제 유형): 같은 지문으로 이미 만든 정답 표현을 회피시킴
   var varRule = (type.id === 'topic' && avoidList && avoidList.length)
