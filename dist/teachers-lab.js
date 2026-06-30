@@ -870,6 +870,7 @@ async function startPracGeneration() {
   var _blankHardCount = assignment.filter(function(a){ return a.typeId === 'blank_hard'; }).length;
   var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
   var _blankHardNegDeck = buildNegDeck(_blankHardCount);
+  var _blankHardRegionDeck = buildRegionDeck(_blankHardCount, ['mid_early','mid_core','mid_late']);
 
   for (var i = 0; i < assignment.length; i++) {
     var item = assignment[i];
@@ -892,7 +893,7 @@ async function startPracGeneration() {
 
     try {
       var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
-      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
+      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : (type.id === 'blank_hard' ? _blankHardRegionDeck.shift() : null);
       var _neg = type.id === 'blank_hard' ? _blankHardNegDeck.shift() : null;
       var result = await callWithRetry(type, item.passage.text, sid, _tp, _region, _neg);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
@@ -2176,9 +2177,10 @@ var _topicVersionMemory = {};
 function _verKey(text) { return (text || '').replace(/\s+/g, ' ').trim().slice(0, 120); }
 
 // 배치 내 정답 위치를 ①~⑤ 균등 분포로 배정하는 덱 (셔플 순환)
-// 빈칸 위치(초/중/후)를 균등 분포로 배정하는 덱 (셔플 순환) — buildAnswerDeck과 동일 패턴
-function buildRegionDeck(n) {
-  var deck = [], pool = [], regions = ['cho', 'jung', 'hu'];
+// 임의 region 풀을 받아 균등 분포로 배정하는 덱 (셔플 순환) — buildAnswerDeck과 동일 패턴
+function buildRegionDeck(n, regions) {
+  var deck = [], pool = [];
+  regions = regions || ['cho', 'jung', 'hu'];
   while (deck.length < n) {
     if (!pool.length) {
       pool = regions.slice();
@@ -2961,9 +2963,18 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
     : '';
   // 빈칸 위치 지정 (빈칸 유형): 코드가 초/중/후 균등 분포로 배정 → 모델에 명시
   var REGION_LABEL = { cho: '지문 도입부(초반 1/3)', jung: '지문 중반(가운데 1/3)', hu: '지문 후반부(마지막 1/3, 단 맨 끝 문장은 제외)' };
-  var regionRule = (type.id === 'blank' && targetRegion && REGION_LABEL[targetRegion])
-    ? '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL[targetRegion] + '에 있는 핵심 문장에 두어라. 지정된 영역 외에는 빈칸을 두지 말 것.'
-    : '';
+  // 빈칸 고난이도용 — 50~75% 범위 내 3구간 (디폴트 '맨끝 직전 문장' 쏠림 차단)
+  var REGION_LABEL_HARD = {
+    mid_early: '지문 전체 문장 수의 50~58% 지점(중후반 초입, 핵심 논거가 시작되는 문장)',
+    mid_core:  '지문 전체 문장 수의 58~67% 지점(중후반 한가운데, 핵심 논거가 본격 전개되는 문장)',
+    mid_late:  '지문 전체 문장 수의 67~75% 지점(중후반 후반, 단 맨 끝 문장과 마지막에서 두 번째 문장은 제외)'
+  };
+  var regionRule = '';
+  if (type.id === 'blank' && targetRegion && REGION_LABEL[targetRegion]) {
+    regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL[targetRegion] + '에 있는 핵심 문장에 두어라. 지정된 영역 외에는 빈칸을 두지 말 것.';
+  } else if (type.id === 'blank_hard' && targetRegion && REGION_LABEL_HARD[targetRegion]) {
+    regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL_HARD[targetRegion] + '에 두어라. 매 문항 같은 자리(특히 맨 끝 문장 직전)로 수렴하지 말 것.';
+  }
   // 부정형 표현 형태 지정 (빈칸 고난이도): 코드가 명사구/동사구/동명사구를 균등 배정 → ignorant of 반복 방지 + 선지 문법 일치
   var NEG_LABEL = {
     np:   "명사구. 부정형 표현은 'shows a neglect of ___ / reflects an absence of ___ / suggests an inability to grasp ___ / stays ignorant of ___ / overlooks ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. 5개 선지 모두 명사구.",
@@ -3264,6 +3275,7 @@ async function startGeneration() {
   var _blankHardCount = assignment.filter(function(a){ return a.typeId === 'blank_hard'; }).length;
   var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
   var _blankHardNegDeck = buildNegDeck(_blankHardCount);
+  var _blankHardRegionDeck = buildRegionDeck(_blankHardCount, ['mid_early','mid_core','mid_late']);
 
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
@@ -3291,7 +3303,7 @@ async function startGeneration() {
 
     try {
       var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
-      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
+      var _region = type.id === 'blank' ? _blankRegionDeck.shift() : (type.id === 'blank_hard' ? _blankHardRegionDeck.shift() : null);
       var _neg = type.id === 'blank_hard' ? _blankHardNegDeck.shift() : null;
       var result = await callWithRetry(type, item.passage.text, sid, _tp, _region, _neg);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
