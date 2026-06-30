@@ -867,6 +867,8 @@ async function startPracGeneration() {
   var _blankCount = assignment.filter(function(a){ return a.typeId === 'blank'; }).length;
   var _blankAnsDeck = buildAnswerDeck(_blankCount);
   var _blankRegionDeck = buildRegionDeck(_blankCount);
+  var _blankHardCount = assignment.filter(function(a){ return a.typeId === 'blank_hard'; }).length;
+  var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
 
   for (var i = 0; i < assignment.length; i++) {
     var item = assignment[i];
@@ -888,7 +890,7 @@ async function startPracGeneration() {
     if (_genCancelled) break;
 
     try {
-      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : null);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
       var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
       var result = await callWithRetry(type, item.passage.text, sid, _tp, _region);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
@@ -2936,7 +2938,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
   if (!key) throw new Error('API 키를 입력해주세요.');
   var hint = retryHint ? '\n\n## ⚠️ 이전 출력 오류 수정 요청\n' + retryHint + '\n' : '';
   // 정답 위치 지정 (주제·빈칸 유형): 코드가 ①~⑤ 균등 분포로 배정 → 모델에 명시
-  var posRule = ((type.id === 'topic' || type.id === 'blank') && targetPos)
+  var posRule = ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard') && targetPos)
     ? '\n\n## 정답 위치 지정 (필수)\n이 문항의 정답은 반드시 ' + CIRCLED[targetPos - 1] + '번 선택지여야 한다. 정답 내용을 ' + CIRCLED[targetPos - 1] + ' 자리에 배치하고 ANSWER: 도 ' + CIRCLED[targetPos - 1] + '로 출력하라. 다른 번호 금지.'
     : '';
   // 빈칸 위치 지정 (빈칸 유형): 코드가 초/중/후 균등 분포로 배정 → 모델에 명시
@@ -3022,7 +3024,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
 
 async function callWithRetry(type, text, sid, targetPos, targetRegion) {
   // 주제·빈칸 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
-  if ((type.id === 'topic' || type.id === 'blank') && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
+  if ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard') && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
   // 주제 유형: 같은 지문으로 이미 만든 정답 표현 → 회피 목록
   var avoidList = type.id === 'topic' ? (_topicVersionMemory[_verKey(text)] || []).slice() : null;
   var lastErr, max = 3;
@@ -3036,8 +3038,8 @@ async function callWithRetry(type, text, sid, targetPos, targetRegion) {
       }
       var result = await callAPI(type, text, null, targetPos, avoidList, targetRegion);
 
-      // 빈칸: 코드 검증 (① 정답 위치 일치, ② 선지 번호 ①~⑤ 각 1회) → 실패 시 재출제
-      if (type.id === 'blank' && result) {
+      // 빈칸·빈칸고난이도: 코드 검증 (① 정답 위치 일치, ② 선지 번호 ①~⑤ 각 1회) → 실패 시 재출제
+      if ((type.id === 'blank' || type.id === 'blank_hard') && result) {
         var bReasons = [];
         var bAns = answerToNum(extractSec(result, 'ANSWER'));
         if (targetPos && bAns && bAns !== targetPos) {
@@ -3228,6 +3230,8 @@ async function startGeneration() {
   var _blankCount = assignment.filter(function(a){ return a.typeId === 'blank'; }).length;
   var _blankAnsDeck = buildAnswerDeck(_blankCount);
   var _blankRegionDeck = buildRegionDeck(_blankCount);
+  var _blankHardCount = assignment.filter(function(a){ return a.typeId === 'blank_hard'; }).length;
+  var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
 
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
@@ -3254,7 +3258,7 @@ async function startGeneration() {
     if (_genCancelled) break;
 
     try {
-      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : null);
+      var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
       var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
       var result = await callWithRetry(type, item.passage.text, sid, _tp, _region);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
