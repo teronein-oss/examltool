@@ -2981,7 +2981,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
   //    'stops→stop', 'falls→fall', 'has yet to→have yet to', 'is unable to→are unable to'.
   //    풀의 단어를 그대로 복사해 비문(they ... stops short of)이 되지 않게 한다.
   var NEG_LABEL = {
-    np:   "명사구. 부정형 표현은 'show(s) a neglect of ___ / reflect(s) an absence of ___ / suggest(s) an inability to grasp ___ / stay(s) ignorant of ___ / overlook(s) ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they/people → show·reflect·overlook). 5개 선지 모두 명사구.",
+    np:   "명사구. 부정형 표현은 'show(s) a neglect of ___ / lack(s) ___ / suggest(s) an inability to grasp ___ / stay(s) ignorant of ___ / overlook(s) ___ / disregard(s) ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. ※ 'reflect(s) an absence of'는 사용 금지(반복·표현 한정으로 인해 제외). ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they/people → show·lack·overlook·disregard). 5개 선지 모두 명사구.",
     v:    "동사원형구. 부정형 표현은 반드시 'to'로 끝나는 형태('fail(s) to ___ / is/are unable to ___ / refuse(s) to ___ / hesitate(s) to ___ / cannot ___ / is/are reluctant to ___')만 써서 빈칸이 동사원형으로 시작하게 한다. ※ 'has/have yet to'는 사용 금지(반복·표현 한정으로 인해 제외). ※ overlook·disregard·neglect처럼 명사 목적어를 받는 동사는 쓰지 말 것. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they → fail·are unable to·refuse·hesitate·are reluctant to). 5개 선지 모두 동사원형구.",
     ving: "동명사(Ving)구. 부정형 표현은 'keep(s) [people/them/us] from ___ / prevent(s) [people/them/us] from ___ / is/are incapable of ___ / refrain(s) from ___ / avoid(s) ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. ※ 'stop(s) short of'·'fall(s) short of'는 사용 금지(반복·표현 한정으로 인해 제외). ※ 'keep(s)/prevent(s)' 계열은 'keeps people from ___ing'처럼 사이에 사람·기관을 끼우는 형태로 풀어쓴다. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they → keep·prevent·are incapable of·refrain·avoid). 5개 선지 모두 동명사구."
   };
