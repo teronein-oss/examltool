@@ -176,8 +176,10 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
           <input type="checkbox" id="editKichul" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ac);">
           <label for="editKichul" style="font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">기출 유형 <span style="font-weight:400;color:var(--ink3);">— 체크 시 유형 이름 옆에 (기출) 표시</span></label>
         </div>
+        <div id="objHarnessRow">
         <div class="fl">하네스 (시스템 지침) <span style="font-weight:400;color:var(--ink3);text-transform:none;letter-spacing:0;">— 메타프롬프트 위에 공통 적용. 비워두면 기본 시스템 지침 사용 (출력 형식 강제 규칙은 자동 추가)</span></div>
         <textarea class="fta" id="editHarness" rows="6" placeholder="이 유형의 시스템 레벨 출제 지침 (예: 출제 품질 기준, 정답 유일성·변별력 규칙 등). 비워두면 기본값이 적용됩니다."></textarea>
+        </div>
         <div class="fl">메타프롬프트 (AI 출제 지침)</div>
         <textarea class="fta" id="editPrompt" rows="16"></textarea>
         <button id="resetMdBtn" class="refbtn" onclick="resetTypeToMd()" style="display:none;margin:4px 0;color:var(--ac);border-color:#f0c0bb;">↩ 이 유형만 .md 기본값으로 되돌리기</button>
