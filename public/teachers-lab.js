@@ -2194,12 +2194,37 @@ function buildRegionDeck(n, regions) {
   return deck;
 }
 
-// 빈칸 고난이도 부정형 표현 형태(명사구/동사구/동명사구)를 균등 배정 — ignorant of 반복 방지
+// 빈칸 고난이도 부정형 표현 풀 (form: 빈칸·선지 문법 형태 / expr: 빈칸 앞 부정형 표현, 3인칭 단수 디폴트)
+var NEG_EXPRESSIONS = [
+  // np — 빈칸·선지가 명사구
+  { form:'np', expr:'shows a neglect of' },
+  { form:'np', expr:'reflects an absence of' },
+  { form:'np', expr:'lacks' },
+  { form:'np', expr:'suggests an inability to grasp' },
+  { form:'np', expr:'stays ignorant of' },
+  { form:'np', expr:'overlooks' },
+  { form:'np', expr:'disregards' },
+  // v — 빈칸·선지가 동사원형구 (반드시 to로 끝남)
+  { form:'v', expr:'fails to' },
+  { form:'v', expr:'is unable to' },
+  { form:'v', expr:'refuses to' },
+  { form:'v', expr:'hesitates to' },
+  { form:'v', expr:'cannot' },
+  { form:'v', expr:'is reluctant to' },
+  // ving — 빈칸·선지가 동명사(Ving)구
+  { form:'ving', expr:'keeps [people/them/us] from' },
+  { form:'ving', expr:'prevents [people/them/us] from' },
+  { form:'ving', expr:'is incapable of' },
+  { form:'ving', expr:'refrains from' },
+  { form:'ving', expr:'avoids' }
+];
+
+// 부정형 '표현' 자체를 균등 배정하는 덱 — 풀(18개)을 셔플 순환하므로 배치(≤18문항)에서 동일 표현 중복 0
 function buildNegDeck(n) {
-  var deck = [], pool = [], forms = ['np', 'v', 'ving'];
+  var deck = [], pool = [];
   while (deck.length < n) {
     if (!pool.length) {
-      pool = forms.slice();
+      pool = NEG_EXPRESSIONS.slice();
       for (var k = pool.length - 1; k > 0; k--) {
         var r = Math.floor(Math.random() * (k + 1));
         var t = pool[k]; pool[k] = pool[r]; pool[r] = t;
@@ -2975,22 +3000,20 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
   } else if (type.id === 'blank_hard' && targetRegion && REGION_LABEL_HARD[targetRegion]) {
     regionRule = '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL_HARD[targetRegion] + '에 두어라. 매 문항 같은 자리(특히 맨 끝 문장 직전)로 수렴하지 말 것.';
   }
-  // 부정형 표현 형태 지정 (빈칸 고난이도): 코드가 명사구/동사구/동명사구를 균등 배정 → ignorant of 반복 방지 + 선지 문법 일치
-  // ⚠ 각 풀의 표현은 '3인칭 단수' 디폴트 형태로 적어놓았다. 빈칸 문장의 실제 주어에 맞춰
-  //    반드시 동사 형태를 일치시켜라(주술 일치). 예: 주어가 they/people이면 'shows→show',
-  //    'stops→stop', 'falls→fall', 'has yet to→have yet to', 'is unable to→are unable to'.
-  //    풀의 단어를 그대로 복사해 비문(they ... stops short of)이 되지 않게 한다.
-  var NEG_LABEL = {
-    np:   "명사구. 부정형 표현은 'show(s) a neglect of ___ / lack(s) ___ / suggest(s) an inability to grasp ___ / stay(s) ignorant of ___ / overlook(s) ___ / disregard(s) ___' 중 1개를 골라 빈칸이 명사구가 되게 한다. ※ 'reflect(s) an absence of'는 사용 금지(반복·표현 한정으로 인해 제외). ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they/people → show·lack·overlook·disregard). 5개 선지 모두 명사구.",
-    v:    "동사원형구. 부정형 표현은 반드시 'to'로 끝나는 형태('fail(s) to ___ / is/are unable to ___ / refuse(s) to ___ / hesitate(s) to ___ / cannot ___ / is/are reluctant to ___')만 써서 빈칸이 동사원형으로 시작하게 한다. ※ 'has/have yet to'는 사용 금지(반복·표현 한정으로 인해 제외). ※ overlook·disregard·neglect처럼 명사 목적어를 받는 동사는 쓰지 말 것. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they → fail·are unable to·refuse·hesitate·are reluctant to). 5개 선지 모두 동사원형구.",
-    ving: "동명사(Ving)구. 부정형 표현은 'keep(s) [people/them/us] from ___ / prevent(s) [people/them/us] from ___ / is/are incapable of ___ / refrain(s) from ___ / avoid(s) ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. ※ 'stop(s) short of'·'fall(s) short of'는 사용 금지(반복·표현 한정으로 인해 제외). ※ 'keep(s)/prevent(s)' 계열은 'keeps people from ___ing'처럼 사이에 사람·기관을 끼우는 형태로 풀어쓴다. ※ 주어의 인칭·수에 맞춰 동사 형태를 반드시 일치시켜라(they → keep·prevent·are incapable of·refrain·avoid). 5개 선지 모두 동명사구."
+  // 부정형 표현 지정 (빈칸 고난이도): buildNegDeck가 NEG_EXPRESSIONS 풀(18개)에서 문항마다
+  //   '구체 표현 1개'를 균등 배정 → 배치 내 표현 중복 0(특정 표현 빈도 쏠림 방지). 형태(np/v/ving)도 함께 결정.
+  //   targetNeg = { form, expr }. expr는 3인칭 단수 디폴트이므로 negRule이 주어 인칭·수 활용을 지시한다.
+  // 부정형 표현은 코드(buildNegDeck)가 문항마다 균등 배정 → 배치 내 표현 중복 0
+  var NEG_FORM_LABEL = {
+    np:   "명사구(빈칸·5개 선지 모두 명사구)",
+    v:    "동사원형구(빈칸·5개 선지 모두 동사원형으로 시작, 부정형은 반드시 to로 끝남)",
+    ving: "동명사(Ving)구(빈칸·5개 선지 모두 동명사구; 'keeps/prevents [people] from' 계열은 사이에 사람·기관을 끼워 'keeps people from ___ing'처럼 풀어씀)"
   };
-  // 같은 형태(np/v/ving) 내에서도 매 문항 동일 어휘 반복 금지 — 'keeps from'·'reflects an absence of' 같은 표현이 배치 내 중복되지 않게 한다.
-  var negVaryRule = (type.id === 'blank_hard' && targetNeg)
-    ? "\n- 같은 형태 유형 안에서도 부정형 어휘는 배치 내 매 문항 다른 것을 골라라. 'keeps from / reflects an absence of' 같은 표현이 한 배치에서 2회 이상 반복되지 않게 한다."
-    : '';
-  var negRule = (type.id === 'blank_hard' && targetNeg && NEG_LABEL[targetNeg])
-    ? '\n\n## 부정형 표현·선지 형태 지정 (필수)\n이 문항의 빈칸 형태는 ' + NEG_LABEL[targetNeg] + ' 같은 부정형 표현(특히 ignorant of)을 매 문항 반복하지 말 것.' + negVaryRule
+  var negRule = (type.id === 'blank_hard' && targetNeg && targetNeg.expr)
+    ? '\n\n## 부정형 표현·선지 형태 지정 (필수)\n' +
+      '이 문항의 빈칸 바로 앞 부정형 표현은 반드시 "' + targetNeg.expr + ' ___" 형태를 사용한다. (표시는 3인칭 단수 디폴트 — 실제 주어의 인칭·수에 맞춰 동사를 활용하라. 예: they/people이면 ' + targetNeg.expr.replace(/\bshows\b/,'show').replace(/\breflects\b/,'reflect').replace(/\blacks\b/,'lack').replace(/\bsuggests\b/,'suggest').replace(/\bstays\b/,'stay').replace(/\boverlooks\b/,'overlook').replace(/\bdisregards\b/,'disregard').replace(/\bfails\b/,'fail').replace(/\brefuses\b/,'refuse').replace(/\bhesitates\b/,'hesitate').replace(/\bis\b/,'are').replace(/\bkeeps\b/,'keep').replace(/\bprevents\b/,'prevent').replace(/\brefrains\b/,'refrain').replace(/\bavoids\b/,'avoid') + ')\n' +
+      '빈칸과 5개 선지는 모두 ' + NEG_FORM_LABEL[targetNeg.form] + '로 통일한다.\n' +
+      '단, 이 표현이 지문 맥락에 도저히 자연스럽지 않으면 같은 형태(' + targetNeg.form + ')의 다른 부정형으로만 바꾸되, 절대 논지를 역전시키지 말 것(지문 결론을 부정하는 비문 금지).'
     : '';
   // 버전 변주 (주제 유형): 같은 지문으로 이미 만든 정답 표현을 회피시킴
   var varRule = (type.id === 'topic' && avoidList && avoidList.length)
