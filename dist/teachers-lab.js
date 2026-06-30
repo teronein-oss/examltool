@@ -869,6 +869,7 @@ async function startPracGeneration() {
   var _blankRegionDeck = buildRegionDeck(_blankCount);
   var _blankHardCount = assignment.filter(function(a){ return a.typeId === 'blank_hard'; }).length;
   var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
+  var _blankHardNegDeck = buildNegDeck(_blankHardCount);
 
   for (var i = 0; i < assignment.length; i++) {
     var item = assignment[i];
@@ -892,7 +893,8 @@ async function startPracGeneration() {
     try {
       var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
       var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
-      var result = await callWithRetry(type, item.passage.text, sid, _tp, _region);
+      var _neg = type.id === 'blank_hard' ? _blankHardNegDeck.shift() : null;
+      var result = await callWithRetry(type, item.passage.text, sid, _tp, _region, _neg);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
       el.innerHTML = '<span class="di">✓</span><span>' + (i+1) + '번 [' + type.name + '] — 완료</span>';
@@ -2190,6 +2192,22 @@ function buildRegionDeck(n) {
   return deck;
 }
 
+// 빈칸 고난이도 부정형 표현 형태(명사구/동사구/동명사구)를 균등 배정 — ignorant of 반복 방지
+function buildNegDeck(n) {
+  var deck = [], pool = [], forms = ['np', 'v', 'ving'];
+  while (deck.length < n) {
+    if (!pool.length) {
+      pool = forms.slice();
+      for (var k = pool.length - 1; k > 0; k--) {
+        var r = Math.floor(Math.random() * (k + 1));
+        var t = pool[k]; pool[k] = pool[r]; pool[r] = t;
+      }
+    }
+    deck.push(pool.shift());
+  }
+  return deck;
+}
+
 function buildAnswerDeck(n) {
   var deck = [], pool = [];
   while (deck.length < n) {
@@ -2932,7 +2950,7 @@ function toSections(num, type, raw, passageTitle) {
   return { q: q.join('\n'), a: a.join('\n') };
 }
 
-async function callAPI(type, passageText, retryHint, targetPos, avoidList, targetRegion) {
+async function callAPI(type, passageText, retryHint, targetPos, avoidList, targetRegion, targetNeg) {
   var key   = document.getElementById('apiKeyInput').value.replace(/\s/g, '');
   var model = document.getElementById('modelSelect').value;
   if (!key) throw new Error('API 키를 입력해주세요.');
@@ -2945,6 +2963,15 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
   var REGION_LABEL = { cho: '지문 도입부(초반 1/3)', jung: '지문 중반(가운데 1/3)', hu: '지문 후반부(마지막 1/3, 단 맨 끝 문장은 제외)' };
   var regionRule = (type.id === 'blank' && targetRegion && REGION_LABEL[targetRegion])
     ? '\n\n## 빈칸 위치 지정 (필수)\n이 문항의 빈칸은 ' + REGION_LABEL[targetRegion] + '에 있는 핵심 문장에 두어라. 지정된 영역 외에는 빈칸을 두지 말 것.'
+    : '';
+  // 부정형 표현 형태 지정 (빈칸 고난이도): 코드가 명사구/동사구/동명사구를 균등 배정 → ignorant of 반복 방지 + 선지 문법 일치
+  var NEG_LABEL = {
+    np:   "명사구. 부정형 표현은 'shows a neglect of ___ / reflects an absence of ___ / remains blind to ___ / stays ignorant of ___' 중 자연스러운 1개를 골라 빈칸이 명사구가 되게 한다. 5개 선지 모두 명사구.",
+    v:    "동사원형구. 부정형 표현은 'fails to ___ / tends not to ___ / refuses to ___' 중 1개를 골라 빈칸이 동사원형구가 되게 한다. 5개 선지 모두 동사원형구.",
+    ving: "동명사(Ving)구. 부정형 표현은 'is incapable of ___ / keeps from ___ / avoids ___' 중 1개를 골라 빈칸이 동명사구가 되게 한다. 5개 선지 모두 동명사구."
+  };
+  var negRule = (type.id === 'blank_hard' && targetNeg && NEG_LABEL[targetNeg])
+    ? '\n\n## 부정형 표현·선지 형태 지정 (필수)\n이 문항의 빈칸 형태는 ' + NEG_LABEL[targetNeg] + ' 같은 부정형 표현(특히 ignorant of)을 매 문항 반복하지 말 것.'
     : '';
   // 버전 변주 (주제 유형): 같은 지문으로 이미 만든 정답 표현을 회피시킴
   var varRule = (type.id === 'topic' && avoidList && avoidList.length)
@@ -2963,7 +2990,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
     ? '\n\n## 레퍼런스 자료 (참고용 — 출제 시 반영하되 그대로 복사하지 말 것)\n' + refs.join('\n\n') + '\n'
     : '';
   var globalRule = '## 출력 공통 규칙 (반드시 준수)\n- 마크다운 서식 금지: **굵게**, ## 머리글, - 목록, 표(Table)를 절대 쓰지 말고 순수 텍스트로만 출력.\n- PASSAGE:, DIRECTION:, CHOICES:, ANSWER:, SUMMARY:, MODEL_ANSWER:, EXPLANATION: 등 섹션 라벨은 줄 맨 앞에 영문 대문자 그대로 쓰고, 라벨에 별표나 머리글 기호를 붙이지 말 것.\n\n';
-  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule + varRule + regionRule;
+  var prompt = globalRule + getFixedFormat(type.id) + hint + refSection + '\n\n## 추가 출제 지침\n' + type.prompt + '\n\n[원본 지문]\n' + passageText + posRule + varRule + regionRule + negRule;
 
   if (model.startsWith('claude')) {
     // ── Claude API ──
@@ -3022,7 +3049,7 @@ async function callAPI(type, passageText, retryHint, targetPos, avoidList, targe
   }
 }
 
-async function callWithRetry(type, text, sid, targetPos, targetRegion) {
+async function callWithRetry(type, text, sid, targetPos, targetRegion, targetNeg) {
   // 주제·빈칸 유형: 정답 위치를 코드가 배정 (배치 덱에서 받거나, 없으면 랜덤)
   if ((type.id === 'topic' || type.id === 'blank' || type.id === 'blank_hard') && !targetPos) targetPos = 1 + Math.floor(Math.random() * 5);
   // 주제 유형: 같은 지문으로 이미 만든 정답 표현 → 회피 목록
@@ -3036,7 +3063,7 @@ async function callWithRetry(type, text, sid, targetPos, targetRegion) {
         if (el) el.innerHTML = '<div class="spin"></div><span>⚠️ 재시도 (' + n + '/' + max + ') — ' + w + '초 대기중...</span>';
         await wait(w * 1000);
       }
-      var result = await callAPI(type, text, null, targetPos, avoidList, targetRegion);
+      var result = await callAPI(type, text, null, targetPos, avoidList, targetRegion, targetNeg);
 
       // 빈칸·빈칸고난이도: 코드 검증 (① 정답 위치 일치, ② 선지 번호 ①~⑤ 각 1회) → 실패 시 재출제
       if ((type.id === 'blank' || type.id === 'blank_hard') && result) {
@@ -3056,7 +3083,7 @@ async function callWithRetry(type, text, sid, targetPos, targetRegion) {
           var elB = document.getElementById(sid);
           if (elB) elB.innerHTML = '<div class="spin"></div><span>⚠️ 빈칸 품질 검증 실패 — 재출제 중...</span>';
           await wait(1000);
-          try { result = await callAPI(type, text, bReasons.join(' / '), targetPos, null, targetRegion); } catch (eB) {}
+          try { result = await callAPI(type, text, bReasons.join(' / '), targetPos, null, targetRegion, targetNeg); } catch (eB) {}
         }
       }
 
@@ -3232,6 +3259,7 @@ async function startGeneration() {
   var _blankRegionDeck = buildRegionDeck(_blankCount);
   var _blankHardCount = assignment.filter(function(a){ return a.typeId === 'blank_hard'; }).length;
   var _blankHardAnsDeck = buildAnswerDeck(_blankHardCount);
+  var _blankHardNegDeck = buildNegDeck(_blankHardCount);
 
   for (var i=0; i<assignment.length; i++) {
     var item = assignment[i];
@@ -3260,7 +3288,8 @@ async function startGeneration() {
     try {
       var _tp = type.id === 'topic' ? _topicDeck.shift() : (type.id === 'blank' ? _blankAnsDeck.shift() : (type.id === 'blank_hard' ? _blankHardAnsDeck.shift() : null));
       var _region = type.id === 'blank' ? _blankRegionDeck.shift() : null;
-      var result = await callWithRetry(type, item.passage.text, sid, _tp, _region);
+      var _neg = type.id === 'blank_hard' ? _blankHardNegDeck.shift() : null;
+      var result = await callWithRetry(type, item.passage.text, sid, _tp, _region, _neg);
       console.log("[RAW RESPONSE " + (i+1) + "번]", result);
       rawResults.push({ num:i+1, type:type, result:result, passageTitle: item.passage.title||'' });
       var el = document.getElementById(sid);
