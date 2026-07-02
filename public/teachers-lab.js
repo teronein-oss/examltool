@@ -1,10 +1,6 @@
-// ※ 코드를 변경하려면 아래 CODES 배열을 수정하세요
-var CODES = ['seum2025', 'english01', 'goT2026', 'manager1', 'manager2', 'manager3', 'user1', 'master_andy'];
-var MASTER_CODE = 'master_andy';
-
-// 클라우드 동기화 대상 코드 — 이 코드로 로그인하면 Firebase와 연동되며, 
-// 로컬 저장 공간 역시 seum2025 등 일반 사용자와 섞이지 않도록 완전히 독립된(격리된) 키를 씁니다.
-var CLOUD_CODES = ['manager1', 'manager2', 'manager3', 'user1', 'master_andy'];
+// ※ 인증: 접근코드 → 구글 로그인 + 가입 승인제로 전환됨.
+// 마스터(관리자) 이메일 목록 — 여기에 있는 구글 계정은 자동 승인 + 관리자 권한.
+var MASTER_EMAILS = ['teronein@gmail.com'];
 
 var COLORS = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','ca','cb','cc','cd','ce','cf'];
 var HEXES  = ['#c0392b','#2980b9','#27ae60','#8e44ad','#d35400','#16a085','#2c3e50','#7f8c8d','#e67e22','#1abc9c','#9b59b6','#34495e','#e74c3c','#3498db','#2ecc71'];
@@ -221,7 +217,7 @@ var ISOLATED_KEYS = ['qTypes_v5', 'passages', 'passageSets', 'promptSets_v1', 'q
 function getIsolatedKey(k) {
   if (ISOLATED_KEYS.indexOf(k) >= 0) {
     var uid = sessionStorage.getItem('seumUserId') || '';
-    if (CLOUD_CODES.indexOf(uid) >= 0) {
+    if (uid) {   // 로그인(구글 UID)한 모든 사용자는 UID별로 격리
       return uid + '_' + k;
     }
   }
@@ -267,33 +263,15 @@ function resetLocalStorageAndReload() {
 
 // ─── 로컬(seum2025) → 클라우드 데이터 마이그레이션 ───
 function showMigrationIfCloud() {
-  var uid = sessionStorage.getItem('seumUserId') || '';
+  // 구식(접근코드→클라우드) 마이그레이션 UI — 구글 로그인 전환으로 폐기. 항상 숨김.
   var sec = document.getElementById('migrationSection');
-  var label = document.getElementById('migTargetCode');
-  if (!sec) return;
-  if (CLOUD_CODES.indexOf(uid) >= 0) {
-    // seum2025 plain-key 데이터가 존재하는지 확인
-    var hasLocalData = false;
-    var checkKeys = ['qTypes_v5', 'passages', 'passageSets', 'promptSets_v1'];
-    checkKeys.forEach(function(k) {
-      var val = _originalGetItem.call(localStorage, k);  // plain key (격리 우회)
-      if (val && val !== '[]' && val !== '{}' && val !== 'null') hasLocalData = true;
-    });
-    if (hasLocalData) {
-      sec.style.display = '';
-      if (label) label.textContent = uid;
-    } else {
-      sec.style.display = 'none';
-    }
-  } else {
-    sec.style.display = 'none';
-  }
+  if (sec) sec.style.display = 'none';
 }
 
 function migrateFromLocal() {
   var uid = sessionStorage.getItem('seumUserId') || '';
-  if (CLOUD_CODES.indexOf(uid) < 0) {
-    alert('클라우드 코드로 로그인된 상태에서만 사용할 수 있습니다.');
+  if (!uid) {   // 로그인된 상태에서만 (구식 마이그레이션 UI는 비활성이라 사실상 호출되지 않음)
+    alert('로그인된 상태에서만 사용할 수 있습니다.');
     return;
   }
 
@@ -1506,7 +1484,7 @@ function saveTypeToAllSchools() {
 
 // ─── MASTER ADMIN ───
 function isMaster() {
-  return sessionStorage.getItem('seumUserId') === MASTER_CODE;
+  return MASTER_EMAILS.indexOf((sessionStorage.getItem('seumUserEmail') || '').toLowerCase()) >= 0;
 }
 
 function showMasterAdminSection() {
@@ -1519,6 +1497,7 @@ function showMasterAdminSection() {
     document.getElementById('adminMaintainPrompt').value = getTransformPromptForCat(settingsCat, 'maintain');
     document.getElementById('adminChangePrompt').value   = getTransformPromptForCat(settingsCat, 'change');
     renderUiConfigToggles();
+    loadPendingRequests();
   } else {
     sec.style.display = 'none';
   }
@@ -4152,82 +4131,195 @@ function reloadMemoryForUser() {
   // renderHistory()는 제거 — 히스토리 탭 클릭 시에만 지연 로딩
 }
 
-function checkCode() {
-  var input = document.getElementById('codeInput').value.trim();
-  var err   = document.getElementById('codeErr');
-  if (CODES.indexOf(input) >= 0) {
-    sessionStorage.setItem('seumAuth', '1');
-    sessionStorage.setItem('seumUserId', input);
-    
-    try {
-      reloadMemoryForUser();
-    } catch(e) {
-      alert("로그인 중 일시적인 화면 로드 지연이 발생했습니다: " + e.message + "\n잠시 후 다시 시도해주세요.");
-      console.error(e);
-    }
-    
-    // UI Update with Animation
-    var lockScreen = document.getElementById('lockScreen');
-    lockScreen.classList.add('fade-up-out');
-    
-    // Add stagger classes to main elements
-    var header = document.querySelector('header');
-    if(header) header.classList.add('stagger-in');
-    var tabs = document.querySelector('.tabs');
-    if(tabs) tabs.classList.add('stagger-in', 'stagger-delay-1');
-    document.querySelectorAll('.panel.active').forEach(function(p) { p.classList.add('stagger-in', 'stagger-delay-2'); });
+// ─── 구글 로그인 + 가입 승인제 ───
 
-    setTimeout(function() {
-      lockScreen.style.display = 'none';
-    }, 500);
-    
-    if (CLOUD_CODES.indexOf(input) >= 0) {
-      if (fbDb) {
-        fbPullData(true);
-      } else {
-        // Firebase 재초기화 시도
-        console.warn('fbDb is null for cloud code, retrying Firebase init...');
-        initFirebase();
-        if (fbDb) {
-          fbPullData(true);
-        } else {
-          setSyncStatus('syncerr', '☁ 연결 실패 — 새로고침 필요');
-          console.error('Firebase DB를 초기화할 수 없습니다. 네트워크 연결을 확인하세요.');
-        }
-      }
-    } else {
-      setSyncStatus('syncno', '💾 로컬 저장');
-    }
-    // 인증 직후(코드 종류 무관) 실시간 공유설정 구독 — 마스터 변경이 즉시 반영됨
-    if (fbDb) subscribeShared();
-    applyUiConfig(); // 캐시된 표시 설정 즉시 적용 (네트워크 도착 전에도)
-    showMigrationIfCloud();
-    showMasterAdminSection();
-    renderSettingsCategoryTabs();
-    renderSettingsEditorVisibility();
-    // 마스터는 프롬프트 설정 진입 시 기본 카테고리를 '청덕고'로
-    if (isMaster()) switchSettingsCat('청덕고');
-  } else {
-    err.textContent = '코드가 올바르지 않습니다.';
-    document.getElementById('codeInput').value = '';
-    document.getElementById('codeInput').focus();
-    setTimeout(function(){ err.textContent = ''; }, 2000);
+// 잠금화면 상태 표시: checking | signedout | pending | rejected | error
+function setAuthScreen(state, detail) {
+  var lock = document.getElementById('lockScreen');
+  if (lock) { lock.style.display = ''; lock.classList.remove('fade-up-out'); }
+  var sub  = document.getElementById('authSub');
+  var btn  = document.getElementById('googleBtn');
+  var msg  = document.getElementById('authMsg');
+  var logout = document.getElementById('authLogoutBtn');
+  if (!btn) return;
+  btn.style.display = 'none';
+  if (logout) logout.style.display = 'none';
+  if (msg) msg.textContent = '';
+  if (state === 'checking') {
+    if (sub) sub.textContent = '로그인 확인 중…';
+  } else if (state === 'signedout') {
+    if (sub) sub.textContent = '로그인이 필요합니다';
+    btn.style.display = '';
+  } else if (state === 'pending') {
+    if (sub) sub.textContent = '가입 신청이 접수되었습니다';
+    if (msg) msg.textContent = '관리자 승인 후 이용할 수 있습니다.' + (detail ? ' (' + detail + ')' : '');
+    if (logout) logout.style.display = '';
+  } else if (state === 'rejected') {
+    if (sub) sub.textContent = '접근이 거부되었습니다';
+    if (msg) msg.textContent = '관리자에게 문의하세요.';
+    if (logout) logout.style.display = '';
+  } else if (state === 'error') {
+    if (sub) sub.textContent = '연결 오류';
+    if (msg) msg.textContent = (detail || '') + ' — 새로고침 후 다시 시도하세요.';
+    if (logout) logout.style.display = '';
   }
 }
 
-// 이미 인증된 세션이면 잠금 화면 건너뜀
-if (sessionStorage.getItem('seumAuth') === '1') {
-  document.getElementById('lockScreen').style.display = 'none';
-  showMigrationIfCloud();
+function signInWithGoogle() {
+  if (typeof firebase === 'undefined' || !firebase.auth) { alert('로그인 모듈 로딩 중입니다. 잠시 후 다시 시도하세요.'); return; }
+  var provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).catch(function(e) {
+    console.error('Google sign-in error', e);
+    if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      setAuthScreen('error', e.message);
+    }
+  });
+}
+
+function signOutUser() {
+  sessionStorage.removeItem('seumAuth');
+  sessionStorage.removeItem('seumUserId');
+  sessionStorage.removeItem('seumUserEmail');
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().signOut().finally(function(){ location.reload(); });
+  } else {
+    location.reload();
+  }
+}
+
+// 승인된 사용자 진입 — 기존 로그인 후 부수효과 실행
+function enterApp(user) {
+  sessionStorage.setItem('seumAuth', '1');
+  sessionStorage.setItem('seumUserId', user.uid);
+  sessionStorage.setItem('seumUserEmail', (user.email || '').toLowerCase());
+
+  try { reloadMemoryForUser(); }
+  catch(e) { console.error(e); }
+
+  var lockScreen = document.getElementById('lockScreen');
+  if (lockScreen) {
+    lockScreen.classList.add('fade-up-out');
+    setTimeout(function(){ lockScreen.style.display = 'none'; }, 500);
+  }
+  var header = document.querySelector('header');
+  if (header) header.classList.add('stagger-in');
+  var tabs = document.querySelector('.tabs');
+  if (tabs) tabs.classList.add('stagger-in', 'stagger-delay-1');
+  document.querySelectorAll('.panel.active').forEach(function(p) { p.classList.add('stagger-in', 'stagger-delay-2'); });
+
+  var emLabel = document.getElementById('userEmailLabel');
+  if (emLabel) emLabel.textContent = user.email || '';
+  var logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.style.display = '';
+
+  if (fbDb) { fbPullData(true); subscribeShared(); }
+  else { initFirebase(); if (fbDb) { fbPullData(true); subscribeShared(); } }
+
+  applyUiConfig();
   showMasterAdminSection();
   renderSettingsCategoryTabs();
   renderSettingsEditorVisibility();
-  // Add stagger classes to main elements for initial load
-  var header = document.querySelector('header');
-  if(header) header.classList.add('stagger-in');
-  var tabs = document.querySelector('.tabs');
-  if(tabs) tabs.classList.add('stagger-in', 'stagger-delay-1');
-  document.querySelectorAll('.panel.active').forEach(function(p) { p.classList.add('stagger-in', 'stagger-delay-2'); });
+  if (isMaster()) { switchSettingsCat('청덕고'); loadPendingRequests(); }
+}
+
+// 로그인된 구글 사용자 처리 — access/{uid} 승인 상태 확인
+function handleAuthUser(user) {
+  if (!fbDb) { initFirebase(); }
+  if (!fbDb) { setAuthScreen('checking'); setTimeout(function(){ handleAuthUser(user); }, 1500); return; }
+  var uid = user.uid;
+  var email = (user.email || '').toLowerCase();
+  var isMasterEmail = MASTER_EMAILS.indexOf(email) >= 0;
+  setAuthScreen('checking');
+  fbDb.collection('access').doc(uid).get().then(function(doc) {
+    if (isMasterEmail) {
+      if (!doc.exists || doc.data().status !== 'approved') {
+        fbDb.collection('access').doc(uid).set({
+          email: user.email,
+          status: 'approved',
+          requestedAt: (doc.exists && doc.data().requestedAt) || Date.now(),
+          approvedAt: Date.now()
+        }, { merge: true });
+      }
+      enterApp(user);
+      return;
+    }
+    if (!doc.exists) {
+      fbDb.collection('access').doc(uid).set({ email: user.email, status: 'pending', requestedAt: Date.now() });
+      setAuthScreen('pending', user.email);
+      return;
+    }
+    var st = doc.data().status;
+    if (st === 'approved')      enterApp(user);
+    else if (st === 'rejected') setAuthScreen('rejected');
+    else                        setAuthScreen('pending', user.email);
+  }).catch(function(e) {
+    console.error('access check failed', e);
+    setAuthScreen('error', e.message);
+  });
+}
+
+function initAuth() {
+  if (typeof firebase === 'undefined' || !firebase.auth) { setTimeout(initAuth, 500); return; }
+  try { firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) {}
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (!user) { setAuthScreen('signedout'); return; }
+    handleAuthUser(user);
+  });
+}
+
+// ─── 마스터: 가입 승인 관리 ───
+function loadPendingRequests() {
+  if (!isMaster() || !fbDb) return;
+  var box = document.getElementById('pendingRequests');
+  if (!box) return;
+  fbDb.collection('access').where('status', '==', 'pending').get().then(function(snap) {
+    if (snap.empty) { box.innerHTML = '<div style="font-size:12px;color:var(--ink3);">대기 중인 가입 신청이 없습니다.</div>'; return; }
+    var html = '';
+    snap.forEach(function(d) {
+      var data = d.data();
+      var uid = d.id;
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:#fff;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;">' +
+        '<span style="font-size:13px;color:var(--ink);">' + (data.email || uid) + '</span>' +
+        '<span style="display:flex;gap:6px;">' +
+          '<button onclick="approveUser(\'' + uid + '\')" style="background:#2d6a2d;color:#fff;border:none;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;">승인</button>' +
+          '<button onclick="rejectUser(\'' + uid + '\')" style="background:var(--ac);color:#fff;border:none;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;">거부</button>' +
+        '</span></div>';
+    });
+    box.innerHTML = html;
+  }).catch(function(e) {
+    console.error('loadPendingRequests failed', e);
+    box.innerHTML = '<div style="font-size:12px;color:var(--ac);">목록 로드 실패: ' + e.message + '</div>';
+  });
+}
+
+function approveUser(uid) {
+  if (!isMaster() || !fbDb) return;
+  fbDb.collection('access').doc(uid).set({ status: 'approved', approvedAt: Date.now() }, { merge: true })
+    .then(function(){ loadPendingRequests(); })
+    .catch(function(e){ alert('승인 실패: ' + e.message); });
+}
+
+function rejectUser(uid) {
+  if (!isMaster() || !fbDb) return;
+  if (!confirm('이 신청을 거부하시겠습니까?')) return;
+  fbDb.collection('access').doc(uid).set({ status: 'rejected' }, { merge: true })
+    .then(function(){ loadPendingRequests(); })
+    .catch(function(e){ alert('거부 실패: ' + e.message); });
+}
+
+// ─── 마스터: 기존 master_andy 클라우드 데이터 1회 이전 ───
+function importMasterAndyData() {
+  if (!isMaster() || !fbDb) return;
+  if (!confirm('기존 master_andy 계정의 클라우드 데이터(지문·프롬프트세트 등)를 현재 구글 계정으로 가져옵니다.\n현재 계정의 같은 항목은 덮어써집니다. 계속할까요?')) return;
+  fbDb.collection('users').doc('master_andy').get().then(function(doc) {
+    if (!doc.exists) { alert('가져올 master_andy 데이터가 없습니다.'); return; }
+    var uid = fbUserId();
+    if (!uid) { alert('현재 로그인 UID를 확인할 수 없습니다.'); return; }
+    fbDb.collection('users').doc(uid).set(doc.data(), { merge: true }).then(function() {
+      alert('✓ 데이터 이전 완료. 새로고침하면 반영됩니다.');
+      location.reload();
+    });
+  }).catch(function(e){ alert('이전 실패: ' + e.message); });
 }
 
 // ─── REQUIRED PROMPT BOX ───
@@ -4390,10 +4482,13 @@ var fbApp = null, fbDb = null;
 var _fbSyncTimer = null;
 
 function fbUserId() {
-  // CLOUD_CODES에 해당하는 코드로 로그인한 경우만 Firebase ID 반환
-  // 그 외(seum2025 등)는 빈 문자열 → Firebase 사용 안 함 → 로컬 저장만
-  var uid = sessionStorage.getItem('seumUserId') || '';
-  return CLOUD_CODES.indexOf(uid) >= 0 ? uid : '';
+  // 구글 로그인 UID를 Firebase 문서 ID로 사용 (승인된 모든 사용자가 클라우드 동기화)
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+      return firebase.auth().currentUser.uid;
+    }
+  } catch (e) {}
+  return sessionStorage.getItem('seumUserId') || '';
 }
 
 function setSyncStatus(state, text) {
@@ -4695,27 +4790,7 @@ function clearAllRefFiles() {
 
   // Firebase 초기화 (FIREBASE_CONFIG에 값이 있을 때만 동작)
   initFirebase();
-  // 이미 인증된 세션이면 저장 방식에 따라 복원
-  if (sessionStorage.getItem('seumAuth') === '1') {
-    var _initUid = fbUserId();
-    if (_initUid && fbDb) {
-      // 클라우드 코드: Firebase에서 자동 로드
-      setTimeout(function(){ fbPullData(true); }, 800);
-    } else if (_initUid && !fbDb) {
-      // 클라우드 코드인데 Firebase 미연결 — 재시도 대기
-      setSyncStatus('syncing', '☁ 연결 대기 중...');
-      setTimeout(function() {
-        if (!fbDb) initFirebase();
-        if (fbDb && fbUserId()) {
-          fbPullData(true);
-        } else {
-          setSyncStatus('syncerr', '☁ 연결 실패 — 새로고침 필요');
-        }
-      }, 3000);
-    } else {
-      // 로컬 코드: 상태 표시만, 공유 학교 프롬프트는 pull
-      setSyncStatus('syncno', '💾 로컬 저장');
-      if (fbDb) fbPullSharedSchoolPresets();
-    }
-  }
+  // 구글 로그인 상태 감시 — 승인 여부에 따라 잠금화면/앱 진입 결정 (세션 지속됨)
+  setAuthScreen('checking');
+  initAuth();
 })();

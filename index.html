@@ -7,6 +7,7 @@
 <!-- Firebase v10 Compat SDK (teachers-lab.js용) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,15 +17,11 @@
 <div id="lockScreen">
   <div class="lockbox">
     <div class="locktitle">Seum <span>Teachers Lab</span></div>
-    <div class="locksub">접근 코드를 입력하세요</div>
-    <div style="position:relative;display:flex;align-items:center;">
-      <input class="lockinput" type="password" id="codeInput" placeholder="••••••" maxlength="20"
-        onkeydown="if(event.key==='Enter') checkCode()" style="padding-right:44px;width:100%;box-sizing:border-box;">
-      <button onclick="(function(){var i=document.getElementById('codeInput'),b=document.getElementById('codeToggleBtn');if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}i.focus();})()" id="codeToggleBtn" type="button" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;font-size:18px;padding:0;line-height:1;">👁</button>
-    </div>
-    <div class="lockerr" id="codeErr"></div>
-    <button class="lockbtn" onclick="checkCode()">Enter</button>
-    <div class="lockhint">코드는 관리자에게 문의하세요</div>
+    <div class="locksub" id="authSub">로그인 확인 중…</div>
+    <button class="lockbtn" id="googleBtn" onclick="signInWithGoogle()" style="display:none;">Google로 로그인</button>
+    <div class="lockerr" id="authMsg"></div>
+    <button id="authLogoutBtn" onclick="signOutUser()" type="button" style="display:none;margin-top:8px;background:none;border:none;color:var(--ink3);text-decoration:underline;cursor:pointer;font-size:12px;">다른 계정으로 로그인</button>
+    <div class="lockhint">가입 신청 후 관리자 승인이 필요합니다</div>
   </div>
 </div>
 
@@ -51,6 +48,8 @@
     <span class="apist kno" id="keyStatus">미입력</span>
     <button class="guide-btn" onclick="openGuide()">? 사용 가이드</button>
     <span class="syncst syncno" id="syncStatus" title="클라우드 동기화 상태">☁ 미연결</span>
+    <span id="userEmailLabel" style="font-size:11px;color:var(--ink3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button id="logoutBtn" onclick="signOutUser()" type="button" style="display:none;background:none;border:1px solid var(--bd);border-radius:99px;padding:4px 12px;font-size:11px;color:var(--ink3);cursor:pointer;">로그아웃</button>
   </div>
 </header>
 
@@ -287,6 +286,21 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
       <span style="font-family:'Playfair Display',serif;font-weight:700;color:#fff;font-size:15px;">관리자 전용 프롬프트 편집</span>
       <span style="font-size:11px;background:var(--ac);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;">master_andy</span>
       <span style="font-size:11px;background:#4f6ef7;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px;">📂 <span id="adminCatLabel">개인설정</span></span>
+    </div>
+
+    <!-- 👥 가입 승인 대기 -->
+    <div style="background:#fff6e8;border:1px solid #e0b878;border-radius:var(--r);padding:12px 16px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-weight:700;font-size:13px;color:#8a5a10;">👥 가입 승인 대기 <span style="font-weight:400;color:var(--ink3);font-size:11px;">— 구글 로그인으로 가입 신청한 사용자를 승인/거부합니다.</span></span>
+        <button onclick="loadPendingRequests()" style="font-size:11px;padding:4px 12px;border:1px solid #e0b878;border-radius:99px;background:#fff;color:#8a5a10;cursor:pointer;">🔄 새로고침</button>
+      </div>
+      <div id="pendingRequests" style="font-size:13px;color:var(--ink3);"></div>
+    </div>
+
+    <!-- ⬇ 기존 master_andy 데이터 1회 이전 -->
+    <div style="background:#eef3ff;border:1px solid #a0b8e0;border-radius:var(--r);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <span style="font-size:12px;color:var(--bl);">⬇ <strong>기존 데이터 가져오기</strong> — 예전 <code>master_andy</code> 클라우드 데이터(지문·프롬프트세트 등)를 현재 구글 계정으로 1회 이전합니다.</span>
+      <button onclick="importMasterAndyData()" style="background:var(--bl);color:#fff;border:none;border-radius:99px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;">⬇ 가져오기</button>
     </div>
 
     <div style="background:#e8f4e8;border:1px solid #7bc47b;border-radius:var(--r);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -894,8 +908,8 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
 </style>
 
 <!-- Teachers Lab JS (global scope) -->
-<script src="/prompts-data.js?v=20260701c"></script>
-<script src="/teachers-lab.js?v=20260701c"></script>
+<script src="/prompts-data.js?v=20260701d"></script>
+<script src="/teachers-lab.js?v=20260701d"></script>
 <!-- 시험분석지 JS -->
 <script src="/score-analysis.js?v=2"></script>
 <!-- React entry: check-table + Tailwind -->

@@ -1,0 +1,41 @@
+rules_version = '2';
+// Seum Teachers Lab — 구글 로그인 + 가입 승인제 보안 규칙
+// 배포: Firebase 콘솔(Firestore → 규칙)에 붙여넣기 또는 `firebase deploy --only firestore:rules`
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isMaster() {
+      return request.auth != null && request.auth.token.email == 'teronein@gmail.com';
+    }
+    function isApproved() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/access/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/access/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    // 승인 메타데이터: 본인은 자기 문서 읽기 + 최초 pending 신청만, 상태 변경은 마스터만
+    match /access/{uid} {
+      allow read:   if request.auth != null && (request.auth.uid == uid || isMaster());
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.status == 'pending';
+      allow update, delete: if isMaster();
+    }
+
+    // 사용자별 앱 데이터: 승인된 본인만 (마스터 포함)
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid && (isApproved() || isMaster());
+    }
+
+    // 공유 카탈로그: 승인 사용자 읽기, 마스터만 쓰기
+    match /shared/{doc} {
+      allow read:  if isApproved() || isMaster();
+      allow write: if isMaster();
+    }
+
+    // 사용량 로그: 승인 사용자 기록, 마스터만 열람
+    match /usage_logs/{id} {
+      allow create: if isApproved() || isMaster();
+      allow read:   if isMaster();
+    }
+  }
+}
