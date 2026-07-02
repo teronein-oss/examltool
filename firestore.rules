@@ -21,9 +21,9 @@ service cloud.firestore {
       allow update, delete: if isMaster();
     }
 
-    // 사용자별 앱 데이터: 승인된 본인만 (마스터 포함)
+    // 사용자별 앱 데이터: 승인된 본인 + 마스터(관리자는 모든 사용자 문서 접근 — 데이터 이전/관리용)
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid && (isApproved() || isMaster());
+      allow read, write: if request.auth != null && ((request.auth.uid == uid && isApproved()) || isMaster());
     }
 
     // 공유 카탈로그: 승인 사용자 읽기, 마스터만 쓰기
