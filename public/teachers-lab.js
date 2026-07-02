@@ -943,6 +943,11 @@ function switchTab(name) {
   if (name === 'check-table') {
     document.querySelectorAll('.tab')[5].classList.add('active');
   }
+  if (name === 'admin') {
+    var _at = document.querySelector('.tab[data-tabkey="admin"]');
+    if (_at) _at.classList.add('active');
+    if (isMaster()) { showMasterAdminSection(); loadPendingRequests(); }
+  }
 }
 
 // ─── 학교 prefix 기반 객관식 유형 필터링 ───
@@ -1488,18 +1493,21 @@ function isMaster() {
 }
 
 function showMasterAdminSection() {
-  var sec = document.getElementById('masterAdminSection');
-  if (!sec) return;
-  if (isMaster()) {
-    sec.style.display = '';
+  // 관리자 탭 자체를 마스터에게만 노출 (별도 페이지 #panel-admin)
+  var tab = document.getElementById('adminTab');
+  var master = isMaster();
+  if (tab) tab.style.display = master ? '' : 'none';
+  // 비마스터가 관리자 탭에 머물러 있으면 지문 입력으로 되돌림
+  if (!master && document.getElementById('panel-admin') && document.getElementById('panel-admin').classList.contains('active')) {
+    switchTab('passages');
+  }
+  if (master) {
     var label = document.getElementById('adminCatLabel');
     if (label) label.textContent = settingsCat;
-    document.getElementById('adminMaintainPrompt').value = getTransformPromptForCat(settingsCat, 'maintain');
-    document.getElementById('adminChangePrompt').value   = getTransformPromptForCat(settingsCat, 'change');
+    var mp = document.getElementById('adminMaintainPrompt'); if (mp) mp.value = getTransformPromptForCat(settingsCat, 'maintain');
+    var cp = document.getElementById('adminChangePrompt'); if (cp) cp.value = getTransformPromptForCat(settingsCat, 'change');
     renderUiConfigToggles();
     loadPendingRequests();
-  } else {
-    sec.style.display = 'none';
   }
   updateTypeEditorMasterButtons();
 }

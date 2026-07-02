@@ -63,6 +63,7 @@
   <button class="tab" data-tabkey="settings" onclick="switchTab('settings')">⚙️ 프롬프트 설정</button>
   <button class="tab" data-tabkey="check-table" onclick="switchTab('check-table')">📊 출제공방</button>
   <button class="tab" data-tabkey="analysis" onclick="switchTab('analysis');initScoreAnalysis()">📈 시험분석지</button>
+  <button class="tab" id="adminTab" data-tabkey="admin" onclick="switchTab('admin')" style="display:none;color:var(--ac);font-weight:700;">🔐 관리자</button>
 </div>
 
 <div class="panel" id="panel-settings">
@@ -281,8 +282,11 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
     <button onclick="resetLocalStorageAndReload()" style="background:transparent;border:1px solid #d9534f;color:#d9534f;padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;">🗑️ 로컬 데이터/캐시 완전 비우기</button>
   </div>
 
-  <!-- ★ 관리자 전용 섹션 (master_andy만 표시) -->
-  <div id="masterAdminSection" style="display:none;margin-top:24px;border-top:3px solid var(--ac);padding-top:20px;">
+  </div><!-- end panel-settings -->
+
+  <!-- ★ 관리자 전용 페이지 (마스터만 탭 노출) -->
+  <div class="panel" id="panel-admin">
+  <div id="masterAdminSection" style="margin-top:8px;">
     <div style="background:var(--ink);border-radius:var(--r);padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
       <span style="font-size:16px;">🔐</span>
       <span style="font-family:'Playfair Display',serif;font-weight:700;color:#fff;font-size:15px;">관리자 전용 프롬프트 편집</span>
@@ -910,8 +914,8 @@ INTRO/BLOCK_A/B/C: ← 순서 유형만</pre>
 </style>
 
 <!-- Teachers Lab JS (global scope) -->
-<script src="/prompts-data.js?v=20260701d"></script>
-<script src="/teachers-lab.js?v=20260701d"></script>
+<script src="/prompts-data.js?v=20260701e"></script>
+<script src="/teachers-lab.js?v=20260701e"></script>
 <!-- 시험분석지 JS -->
 <script src="/score-analysis.js?v=2"></script>
 <!-- React entry: check-table + Tailwind -->
